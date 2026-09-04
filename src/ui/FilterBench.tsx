@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useFilterStore } from '../state/filterStore'
 import { SideDrawer } from './SideDrawer'
+import { LabelsSwitch } from './LabelsSwitch'
+import { useLabelsStore } from '../state/labelsStore'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
 import { IonKey } from './IonKey'
@@ -15,11 +17,7 @@ import {
   RUN_MS,
   type LaneKind,
 } from '../stage/filterScene'
-import {
-  FILTER_ZOOM_PARTS,
-  FILTER_ZOOM_HONESTY,
-  filterLedger,
-} from '../core/filterZoom'
+import { FILTER_ZOOM_PARTS, FILTER_ZOOM_HONESTY, filterLedger } from '../core/filterZoom'
 import { IONS } from '../core/ions'
 
 // D15 — inside the selectivity filter. Reached by tapping the magnifier on
@@ -40,6 +38,12 @@ const BUTTONS: { label: string; lanes: readonly LaneKind[]; kind?: LaneKind }[] 
 ]
 
 export function FilterBench() {
+  // ⚠ The app's one 🏷 switch (2026-09-04). Held in a ref too: the drawing
+  // runs in an animation loop, not on React's clock.
+  const labelsOn = useLabelsStore((st) => st.labelsOn)
+  const labelsRef = useRef(labelsOn)
+  labelsRef.current = labelsOn
+
   const open = useFilterStore((s) => s.open)
   const closeBench = useFilterStore((s) => s.closeBench)
   const startedMs = useFilterStore((s) => s.startedMs)
@@ -80,7 +84,12 @@ export function FilterBench() {
         if (into !== null && runOver(into)) finish(kind)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
         ctx.clearRect(0, 0, LANE_W, LANE_H)
-        drawLane(ctx, kind, into === null ? null : Math.min(into, RUN_MS))
+        drawLane(
+          ctx,
+          kind,
+          into === null ? null : Math.min(into, RUN_MS),
+          labelsRef.current,
+        )
       })
     }
     frame = requestAnimationFrame(tick)
@@ -91,7 +100,11 @@ export function FilterBench() {
   const watched = LANE_KIND.filter((k) => ran[k])
 
   return (
-    <SideDrawer open={open} onClose={closeBench} ariaLabel="Inside the selectivity filter">
+    <SideDrawer
+      open={open}
+      onClose={closeBench}
+      ariaLabel="Inside the selectivity filter"
+    >
       <div className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)] gap-x-6 overflow-hidden pt-2">
         <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/40 p-3">
           <Section title="What this is" paragraphs={FRAMING} />
@@ -107,6 +120,12 @@ export function FilterBench() {
               over one of them (user, 2026-08-28): two of them act on the left
               panel, one on the right, one on both, and a control sitting on
               top of one picture would say it belongs to that picture. */}
+          {/* ⚠ IN THE ROW, PUSHED RIGHT (user, 2026-09-04: "make sure 'labels'
+              are in the top right corner… align horizontally with other
+              buttons, if any"). A row of controls already exists here, so the
+              switch belongs IN it rather than in a strip of its own — one row
+              of chrome, the actions from the left, the way-of-reading control
+              at the right end. */}
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {BUTTONS.map((b) => (
               <button
@@ -126,8 +145,14 @@ export function FilterBench() {
                 <span>{b.label}</span>
               </button>
             ))}
+            <LabelsSwitch
+              on={labelsOn}
+              onToggle={() => useLabelsStore.getState().toggleLabels()}
+              titleOn="Hide the names on the picture"
+              titleOff="Show the names on the picture"
+              className="ml-auto"
+            />
           </div>
-
           <div className="flex min-h-0 min-w-0 gap-4">
             {LANE_KIND.map((kind, i) => (
               <div
@@ -145,7 +170,12 @@ export function FilterBench() {
                     )
                     if (term) speakAloud(term)
                   }}
-                  style={{ width: LANE_W, height: LANE_H, touchAction: 'none', cursor: 'pointer' }}
+                  style={{
+                    width: LANE_W,
+                    height: LANE_H,
+                    touchAction: 'none',
+                    cursor: 'pointer',
+                  }}
                   aria-label={`${IONS[kind].name} entering the selectivity filter`}
                 />
               </div>

@@ -6,7 +6,6 @@ import {
   alongTug,
   contentAt,
   stateOf,
-
   type Doors,
 } from '../core/resting'
 import { REST_MV } from '../core/capacitor'
@@ -160,7 +159,10 @@ export function resetBoxAt(x: number, y: number): boolean {
 }
 
 export function labelSpeakerAt(x: number, y: number): boolean {
-  return Math.hypot(x - (RS_W / 2 + LABEL_SPEAKER.x), y - LABEL_SPEAKER.y) <= LABEL_SPEAKER.r * 1.4
+  return (
+    Math.hypot(x - (RS_W / 2 + LABEL_SPEAKER.x), y - LABEL_SPEAKER.y) <=
+    LABEL_SPEAKER.r * 1.4
+  )
 }
 
 /** Which door in the wall is under this point, if any. */
@@ -300,6 +302,7 @@ export function drawResting(
   mv: number,
   ms: number,
   dragging: { kind: DoorKind; x: number; y: number } | null,
+  labelsOn = true,
 ): void {
   ctx.clearRect(0, 0, RS_W, RS_H)
 
@@ -418,5 +421,8 @@ export function drawResting(
     ctx.restore()
   }
 
-  for (const l of restingLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of restingLabels()) drawSpoken(ctx, l)
 }

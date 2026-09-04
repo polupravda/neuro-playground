@@ -1,6 +1,12 @@
 import { HALF_MEM, drawLipids, PX_PER_NM } from './bilayer'
 import { PX_PER_UM } from './layout'
-import { drawGlossyIon, drawIonCharge, badgeMinR, chargeWash, polarityT } from './particleStyle'
+import {
+  drawGlossyIon,
+  drawIonCharge,
+  badgeMinR,
+  chargeWash,
+  polarityT,
+} from './particleStyle'
 import { IONS } from '../core/ions'
 import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
 import { chargesFor, potassiumInside, fmtBig, REST_MV } from '../core/capacitor'
@@ -154,7 +160,12 @@ export function capacitorLabels(): SpokenLabel[] {
   ]
 }
 
-export function drawCapacitor(ctx: CanvasRenderingContext2D, mv: number, ms: number): void {
+export function drawCapacitor(
+  ctx: CanvasRenderingContext2D,
+  mv: number,
+  ms: number,
+  labelsOn = true,
+): void {
   ctx.save()
   ctx.scale(CAP_SCALE, CAP_SCALE)
 
@@ -187,7 +198,15 @@ export function drawCapacitor(ctx: CanvasRenderingContext2D, mv: number, ms: num
   // ball says nothing about charge.
   for (const ion of bulkAt(ms, mv)) {
     drawGlossyIon(ctx, 'k', ion.x, ion.y, ION_R)
-    drawIonCharge(ctx, ion.x, ion.y, ION_R, IONS.k.charge, undefined, badgeMinR(CAP_SCALE))
+    drawIonCharge(
+      ctx,
+      ion.x,
+      ion.y,
+      ION_R,
+      IONS.k.charge,
+      undefined,
+      badgeMinR(CAP_SCALE),
+    )
   }
 
   // The wall.
@@ -253,7 +272,10 @@ export function drawCapacitor(ctx: CanvasRenderingContext2D, mv: number, ms: num
     CAP_W * CAP_SCALE - 12,
     (CAP_H - 12) * CAP_SCALE,
   )
-  for (const l of capacitorLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of capacitorLabels()) drawSpoken(ctx, l)
 }
 
 export const CAPACITOR_TERMS = ['charge', 'potassium', 'membrane'] as const

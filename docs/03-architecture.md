@@ -1494,6 +1494,59 @@ common way a view becomes unreadable while every test still passes.
 | **a button** | a name, an icon, and a one- or two-word *state reading* on the thing it controls ("working", "open now") | a description |
 | **the info block** | everything else — what just happened, what it means, what is exaggerated, what is not built yet | — |
 
+### ⚠ Every NAME in the app is drawn by one function (2026-09-04)
+
+User: *"unify labels across the app. Source of truth: vesicle view."* There
+were **two** label systems. The vesicle view (D06) drew a name as a dark
+rounded plate `rgba(2,6,23,0.72)` with no rim, `11px system-ui` in `#cbd5e1`,
+and a leader from the plate's **box centre** to the part it names. The
+whole-neuron scene drew its own: `13px ui-sans-serif`, a slate plate, ink
+`#64748b` two steps dimmer, no leader at all — so the same word looked like
+two different kinds of thing depending on which view you stood in, and nine
+bench views sat somewhere between the two.
+
+`spokenLabels.ts` now owns the style — `LABEL_PLATE`, `LABEL_INK`,
+`labelFont()`, `drawConnector()` — and every canvas imports it. `drawName` is
+`drawSpoken` without the F04 glyph, with `named()` for its hit box (`spoken()`
+reserves 18 px for a glyph, and a silent name padded for one sits off-centre
+on its own plate).
+
+- **A leader leaves the label's BOX CENTRE**, never its ink edge. Two views
+  started theirs at the edge with their own ink, which reads as a second
+  gesture on the same canvas.
+- **On the whole-neuron scene the leader is drawn AFTER the keep-out nudge.**
+  That scene shoves a label sideways when a panel is in the way, so a line
+  drawn from the anchor it was queued with misses its own plate by up to a
+  plate's width.
+- **A leader is only for a name that points at a discrete THING.** Not for an
+  extended structure (`dendrites`, `axon`, `axon terminals` — a line to one
+  point on a two-hundred-pixel fan reads as "this one branch"), not for a
+  half-plane (`outside the cell` has no point to aim at), and never for a
+  reading (a line from "−70 mV" to a membrane claims the number is its name).
+- ⚠ **Unifying the LOOK of labels is not a decision about VOICE.** Which terms
+  speak stays per term, on request (see *User shorthands*). Adopting the
+  vesicle view's style wholesale would have handed some forty terms a speaker
+  nobody asked for. Ruled by the user, 2026-09-04.
+
+### One 🏷 switch, and it hides names only
+
+Whether names are drawn is a preference about the APP, not about the exhibit
+you happen to be standing in: turn them off at the synapse and they stay off
+in the channel drawer. `state/labelsStore.ts` holds the one flag; it replaced
+two private copies (`snareStore.labelsOn`, `synapseStore.labelsOn`) before a
+third could be written.
+
+**The switch never hides a reading on a scale.** A graph without its axis is
+not a simpler graph. Names go; `×1,925`, `−70 mV`, `12 ms`, `open`/`shut`,
+`threshold`/`total` stay. Guarded in `labelStyle.test.ts` by drawing a scene
+twice, with the switch on and off, and requiring the readings to be identical.
+
+**The one reading that speaks** is the resting bench's big state word
+(`resting` / `DEPOLARIZED`), which carries a bespoke amber speaker disc. It is
+a deliberate exception, kept at the user's decision (2026-09-04): that word
+names the membrane's state in a term the child needs said aloud, and it is the
+only way the word is ever said. Recorded here so it stops looking like drift.
+
 Reasons, in the order they were learned:
 
 - **A sentence on the canvas is in the one place a child cannot scroll back to**,
@@ -1628,6 +1681,351 @@ travelling sweep on the axon view, a uniform glow at a membrane patch, and a thi
 thing during the chain. One of those three was the misconception the milestone exists
 to dismantle: *an axon lighting as a unit is precisely what saltatory conduction is
 not.*
+
+**And the terminal arborization is part of the axon** (corrections 2026-09-04:
+"the whole thing lights up at once… not consistent with the rest of the
+neuron"). The spike INVADES the arbor — one wave forking at the branch points,
+each terminal's traced route covered in turn, near boutons reached first — at
+the axon leg's own pace, a duration measured from the route lengths
+(`ARBOR_MS` in chain.ts), never a flash when the phase changes. The per-route
+coverage is one named decision (`terminalReach` in layout.ts) that the big
+scene and the miniature both ask, so the two pictures cannot disagree about
+where the wave is. Declared exaggeration, like every leg of the chain: a real
+arbor is invaded in tens of microseconds.
+
+⚠ **And it is drawn in the cable's OWN language** (same round, second pass:
+"a yellow glowing dot with white tail moves along the lines, same as on axon
+body"). The first attempt lit a growing prefix of each route — progressive,
+and still a different animal from the signal on the cable it continues. It
+is now the same `travellingSignal` the axon uses, with the axon's own tail
+length (`ARBOR_TAIL_PX` = 0.11 of the cable). **When one structure continues
+another, the signal on it must be drawn by the same function** — a second
+way of saying "a spike is here" is a second thing for the child to learn.
+
+⚠ **Fronts on a branching path are DEDUPED, not drawn per route.** Seven
+routes share their first stretches and every route is covered at one speed,
+so the heads on a shared stretch are the same point: one signal per route
+would stack seven glows into a flare on the shared limb — brightest exactly
+where the picture is least interesting. `arborFronts` returns one front per
+distinct position, so one dot leaves the axon and BECOMES many at the forks,
+which is the thing the picture is for. Measured over a run: 1, 2, 3, 4, 5, 6,
+7, then falling back as routes arrive and their boutons take over.
+
+### ⚠ A view and the scene it is reached from must AGREE, not be reconciled by the camera (2026-09-04)
+
+User: *"the vesicle release view is horizontally aligned, whereas the acting
+connection on the whole neuron view is vertical."*
+
+The outgoing synapse used to lie along the scene's x axis — bouton left,
+target right — while every close view of it draws the cleft the textbook way,
+across the middle with the target below. The camera made up the difference
+with a quarter turn on the way in. That was defensible and it was still wrong:
+the picture was right at both ends and the child had to rotate it in their
+head to get from one to the other.
+
+**The scene was turned instead, and the camera's turn deleted.** The terminal
+now speaks DOWNWARD — its target under the arbor, the cleft lying across, the
+glial cells flanking left and right — which is exactly what the release view
+draws. Which way a neuron's axon points is arbitrary; nothing is less true for
+standing this way, and one less rotation is one less thing that is only true
+after you have thought about it.
+
+- **Prefer moving the WORLD over rotating the camera.** A camera turn is a
+  correction applied on every arrival; a world that already stands correctly
+  needs no correction and cannot drift out of agreement with the view.
+- **When the axis moves, everything hung off it moves too.** The astrocytes
+  flanked above/below only because the landing turn was a quarter — the same
+  two cells read through a rotation. With no turn, the scene's flanks and the
+  view's flanks are the same two sides.
+- **Every actor in a demo belongs on the map of it.** The postsynaptic cell is
+  the last link of the chain the miniature lights up, so the miniature draws
+  it (dimmer — it is the other end of the story, not the subject).
+
+⚠ **A miniature's box is SOLVED to contain its content at a fixed shape — it
+is never a fixed shape laid over the content and allowed to crop.**
+`NEURON_MAP_BOX` took its width from the x extent alone and derived height
+from `MAP_ASPECT`, which quietly cut the top and bottom off. That was harmless
+until a cell moved downward, and then the postsynaptic neuron was drawn
+outside its own sheet. The width is now whichever of the two demands is
+larger: the content's own span, or the span its height needs at that aspect.
+
+### ⚠ The way out lives on the MAP, not over the picture (2026-09-04)
+
+User: *"'outgoing synapse' is missing 'back to the whole picture' button."* It
+was never missing. It floated over the stage at `top-3 z-10`, and two views —
+the synapse framings and the spike demo — lay a FULL-WIDTH control column
+across the same band, at the same z, later in the DOM. The button was painted
+over and the transport bar took its clicks. The axon views never showed the
+fault because their plate is CENTRED: the rule held by accident in three views
+and failed in two, which is what a rule expressed only as repeated `top-3
+z-10` in five files buys you.
+
+It was first fixed by arithmetic (the hatch owned its band, columns started
+below it). The user then moved it somewhere better: *"place it inside the 'map
+neuron' container, in the left bottom corner, for all occurrences."*
+
+**The control now sits in the corner of the whole-cell miniature.** That is
+strictly better than owning a band on the stage, and the reason is worth
+keeping: the miniature is permanent and is nobody's overlay, so nothing can
+ever be laid across it; it is the same corner in every view, so the control
+does not move as the chrome around it changes; and **the picture it sits on IS
+the whole picture it returns you to** — the control and its destination are
+the same object. The stage's chrome columns went back to `top-3`, reclaiming
+the height the workaround had cost.
+
+- **When a control is reported missing, look for it underneath something**
+  before adding a second one. A duplicate would have "fixed" this while
+  leaving two escape hatches to keep in step.
+- **Chrome that must never be covered should not be a sibling of the things
+  that cover it.** Z-order and offsets are a negotiation; a different
+  container is not.
+- **It is minimal there, and still named.** A corner of a thumbnail is not
+  where a big amber pill belongs — but an icon alone ranks and does not name,
+  so the word stays and the sentence moves to `title`.
+
+### ⚠ A door has to be findable at rest; hover answers a different question (2026-09-04)
+
+User: *"magnifying glass areas are not visible on the big neuron, as things
+got more cluttered. Make the hover state into active state, but without
+labels. On hover add yellow glow and labels."*
+
+The zoom markers were drawn when the scene was nearly empty: a slate ring at
+0.75 alpha was plenty. The scene has since gained a traced dendritic fan with
+twigs, seven boutons, four whole partner cells and six astrocytes — and the
+markers quietly stopped being findable. **A door nobody can see is a door that
+is not there**, and nothing failed to warn us because nothing was measuring
+whether a marker stood out from what is behind it.
+
+- **The RESTING state carries the prominence.** Full-strength ring and icon —
+  what hover used to look like. Finding a door must not require hovering over
+  the place the door is, which is circular.
+- **It survives clutter by DARKENING what is behind it, not by shouting.** A
+  backing disc, the same answer the app already uses for a name that would
+  disappear into what it lies on. More brightness competing with a bright
+  scene is an arms race the scene wins.
+- **Its ink is chrome, not anatomy.** A marker wearing the cell's own slate
+  competes with the cell; near-white reads as "a thing you can press".
+- **Hover then means the glow and the name.** The yellow was briefly reserved
+  for hover; the user's next call (*"make nav dashed circles yellow"*) went
+  further and better. The miniature's "you are here" ring was ALREADY amber,
+  so **a yellow dashed circle now means one thing on both pictures** — a place
+  you can go, or the place you are. Hover is told apart by the glow and the
+  name, which is a difference you can see without a comparison.
+- **The choice is returned as numbers** (`markerStyle`), so it can be asked
+  directly instead of counting marks on a canvas.
+
+⚠ **The general lesson: a drawing calibrated against an empty scene expires
+when the scene fills up.** Every "how visible is this?" decision made early is
+provisional, and nothing in a test suite notices it going stale.
+
+### ⚠ Stroke a shape ONCE: overlapping caps composite twice (2026-09-04)
+
+User: *"dendrites of the main neuron have visible dots on the places where its
+pieces collide."*
+
+The fan is modelled as SEGMENTS — a hit region, a ripple's route and a
+miniature's line all want segments — and the scene drew them one at a time
+with a round cap at each end. Under the fan's own `globalAlpha` that
+**double-composites every join**: two overlapping round caps at α = 0.85 paint
+1 − 0.15² = 0.98, so each of some thirty joins on a branch came out as a
+bright dot. The ink was right; drawing it thirty times was not.
+
+- **A branch is one mark.** It is laid down as a single tapered ribbon —
+  walked up one side and back down the other, at the width the taper gives
+  each point — and filled once, so a join is not an event.
+- **A polyline stroke cannot taper and a per-segment stroke cannot join**, so
+  where a process must do both, fill a ribbon rather than stroke a line.
+- ⚠ **The general form: any translucent drawing made of overlapping pieces
+  shows its seams.** Partial alpha turns "drawn twice" into a visible mark,
+  and it is invisible at α = 1 — so it survives every test that draws opaque.
+- **Segments are DERIVED from the strokes**, never maintained beside them, so
+  the model the hit regions use and the shape the eye sees cannot drift.
+
+### ⚠ Where a 🏷 switch goes, and whether it is earned at all (2026-09-04)
+
+Asked for as a rule — *"rely mostly on the facts: how cluttered the layout is,
+how many events occurring."* Here are the facts, counted across the exhibits:
+
+| exhibit | names on canvas | canvases | something runs? | switch |
+| --- | --- | --- | --- | --- |
+| vesicles & SNARE | 18 | 1 | timeline | yes |
+| ion channel structure | 8 | 2 | an attempt | yes |
+| phospholipid bilayer | 8 | 3 | assembly | yes |
+| the synapse | 4 | 1 | timeline | yes |
+| selectivity filter | 3 | 1 | an attempt | yes |
+| resting voltage | 3 | 1 | dragging | yes |
+| patch clamp | 3 | 1 | rolling strip | yes |
+| membrane charge & capacitance | 3 | 1 | — | **no** |
+| membrane permeability | 1 | 1 | drifting | **no** |
+
+**A switch is EARNED by either fact, not by having labels at all.**
+
+1. **Density** — about six or more names, so hiding them materially changes
+   what can be seen (SNARE's eighteen; the channel's and the bilayer's eight).
+2. **Motion across the names** — a run, a timeline or a recording whose moving
+   parts pass through where the names sit, so at some moment a name is in the
+   way of the thing it names.
+
+**It is not earned by a sparse, mostly still picture.** One or three names
+that nothing crosses are simply part of the drawing, and a control to hide
+them answers a question nobody asked — every switch is one more thing to
+learn before the exhibit starts. Those two exhibits show their names always.
+
+**Where it goes** (user, 2026-09-04: *"make sure 'labels' are in the top right
+corner, unless space is already taken. Align horizontally with other buttons,
+if any"*):
+
+1. **The TOP-RIGHT corner** — of the picture, or of the panel the picture sits
+   in. One place, so it is found without looking.
+2. **Unless that corner is taken.** Then the nearest free corner, and the
+   reason is written down: inside a zoom the stage's top-right carries the ×N
+   reading, so the switch goes top-LEFT there.
+3. **If a row of controls already exists, the switch joins THAT ROW**, pushed
+   to its right end (`ml-auto`) — never a strip of its own above it. One row
+   of chrome: the actions from the left, the way-of-reading control at the
+   right. This supersedes the earlier "outside the picture, in a row of its
+   own" for the filter and the bilayer lab.
+
+⚠ The switch is horizontally aligned with whatever it stands beside — same
+row, same baseline. Two controls at two heights read as two unrelated things.
+
+⚠ **Never over an instrument.** A graph, a ruler or a recording is the thing
+the view exists to be read; chrome laid on it covers the answer. This is how
+the switch came to sit on the myelin view's voltage-against-distance plot.
+
+⚠ **On the whole-neuron stage:** top-right at the whole picture, top-LEFT
+inside a zoom — those views put their own plates CENTRED at the top, the ×N
+reading is top-right, and the bottom is where the instruments are.
+
+### ⚠ A new exhibit opens on a picture the child already owns (2026-09-04)
+
+User, of D17's first version: *"the new visualisation is not kids-friendly, is
+torn out of context. Make clear: where is astrocyte? where is neuron? Reuse
+the visuals kid already knows. Re-build from scratch."*
+
+That first version invented its own composition — two horizontal walls and a
+vertical one — and it was **a diagram of a process rather than a picture of a
+place**. Everything in it was defensible in isolation and the whole was
+unreadable: a child arriving from the synapse view had to work out what they
+were looking at before they could learn anything, and the answer to "where is
+the astrocyte" was "the grey-green band down the right-hand side".
+
+**A drawer that deepens a view opens on THAT VIEW'S picture.** D17 now uses the
+synapse view's own `synapseGeometry`, its bouton, its cleft, its spine and its
+two green glial fingers, drawn by that view's own `drawAstroFinger` — asked
+for, never copied. What the drawer adds is only what it is about: the doors on
+those fingers and the journey through them.
+
+- **The orientation question is answered IN the picture, not in a caption.**
+  Where is the astrocyte? The green thing at both mouths of the gap, the one
+  the previous view already named. Where are the neurons? The two grey cells
+  above and below it. These names are drawn at EVERY moment of the run, not
+  only at the still it opens on.
+- **New composition is a cost, and it is paid by the child.** Reuse is not
+  laziness here; it is the difference between arriving somewhere and being
+  moved somewhere.
+- **The corollary for the code:** if a drawer needs a structure the parent view
+  already draws, EXPORT that drawing rather than writing a second one. Two
+  drawings of one astrocyte at one synapse is two astrocytes.
+
+### ⚠ A switch with nothing to switch is not a control (2026-09-04)
+
+The spike-train bench draws no NAMES at all — only readings (the mV axis ticks
+and the `spike`/`nothing` outcomes), and readings are never hidden by the 🏷
+switch. Asked whether to put a switch there anyway for positional consistency,
+the user ruled: **skip it — nothing to hide.** Consistency of PLACEMENT is
+worth having; consistency of PRESENCE is not, when presence means a control
+that appears to do nothing. It is recorded here so the gap looks deliberate
+rather than missed.
+
+### ⚠ Fill the room, and PROVE what you trimmed to do it (2026-09-04)
+
+User: *"stretch canvas to take all available space horizontally."* Against a
+recorded correction of 2026-08-28: fitting by width alone *"cropped the bottom
+off"*, after which the scales exhibit fitted by BOTH sides.
+
+Both are right, and they only fit together if the trim is measured. The scene's
+height follows the browser WINDOW while a drawer's room does not, so on a tall
+screen the scene is the taller shape of the two, the both-sides fit becomes
+height-bound, and a band of panel goes unused. **The 2026-08-28 fault was not
+the fitting — it was that nothing measured where the scene's ink ENDED**, so
+the crop ate the cell instead of the water around it.
+
+`SCENE_INK_Y` (layout) is that measurement; `fitScene` fills the width by
+trimming margin symmetrically, and **only while the trim provably stays inside
+the margin**. When it would not, the both-sides fit is what happens: the
+picture stays whole and the slack comes back. The old behaviour is the
+fallback, not the rule.
+
+- **A fit is a DECISION, so it takes its shapes as arguments.** As a
+  module-level constant it could not be exercised: in a test environment the
+  window is short, the scene is short, width already binds, and the branch
+  that matters never runs. A guard that cannot reach the branch is not a
+  guard.
+
+### ⚠ The way out travels with the map (2026-09-04)
+
+Wherever a picture of the whole neuron appears, the control that returns you
+to the whole neuron appears with it — same corner, same words. That now
+includes a picture of it inside a DRAWER: the spike-train bench carries an
+inset of the cell, and its drawer ✕ is not the same act, because the bench is
+opened AT a zoom and closing it leaves you inside a patch. There the control
+does both steps: close, then pull out.
+
+This is the earlier ruling (*a drawer closes; it does not travel*) holding
+rather than bending: a drawer with no map still only closes. What earns the
+way out is the MAP, not the container.
+
+### ⚠ Name the cast. An identity the app RELIES on and does not state is an assumption the reader makes for it (2026-09-04)
+
+User: *"what makes us think that neurotransmitter, displayed in 'the synapse'
+demo is glutamate?"*
+
+The answer was that the app had already committed to glutamate in every number
+it used — AMPA-type receptor rates, a 0 mV reversal, glutamate's own diffusion
+coefficient, 4,000 molecules a vesicle, a synapse landing on a spine — and then
+never said so. `core/synapse.ts` used the word "transmitter" seventeen times
+and "glutamate" none. The identification was sound; it was simply invisible.
+
+**That is not untidiness, it is a correctness risk, and here is why.** The
+reuptake drawer teaches that the astrocyte does most of the clearing. That is
+true OF GLUTAMATE and false of several other transmitters — GABA and the
+monoamines are largely recovered by the neuron that released them. Beside a
+synapse the app never named, it reads as a fact about transmitters in general.
+**The app was one unstated assumption away from teaching something wrong — not
+because the synapse was mislabelled, but because it was unlabelled.**
+
+- **Say what the cast IS, and give the evidence** so it is read off the picture
+  rather than asserted: this synapse names glutamate and says how you can tell
+  (it excites, it lands on a spine, its receptors are AMPA-type).
+- **A claim that is true of one member of a family says which member.** Where a
+  fact depends on the identity, the qualifier travels with the fact.
+- **Guard it.** Both are pinned by tests on the words themselves, the way the
+  generic ligand-gated channel is already pinned to say it is generic.
+
+### ⚠ Which terms speak is ONE list, asked by every producer (2026-09-04)
+
+Voice (F04) is granted per term, on request. When the scene's part names were
+given voices, the decision was put in a single predicate (`sceneTermSpeaks`)
+that BOTH the part names and the zoom markers consult — so a marker cannot
+quietly acquire a voice by being handed a `speak` field. A marker's label
+names a DOOR: "Passive spread" is somewhere to go, not a piece of a neuron,
+and teaching it as a part is exactly what the predicate keeps out.
+
+**A hit box is built from the geometry the drawing used.** The scene's names
+are painted on a canvas, and where they land is known only once the frame is
+composed — the camera has moved them and the keep-out nudger may have pushed
+them sideways. So the drawing records where each spoken name actually ended up
+and the stage hit-tests against that, never against a second calculation.
+
+### ⚠ A drawer CLOSES; it does not travel (2026-09-04)
+
+The same round briefly gave every drawer the stage's own "back to the whole
+picture" — a misreading of a request that was about the synapse ZOOM view.
+The user ruled: *"drawers do not need such."* The two are different acts. A
+zoom is somewhere you went, and the camera has to bring you back. A drawer is
+something you opened OVER where you already are, and closing it is the whole
+of the return — naming it as travel promises a journey that never happens.
 
 ### A drawer hides the column, so a drawer says where it is (2026-08-31)
 

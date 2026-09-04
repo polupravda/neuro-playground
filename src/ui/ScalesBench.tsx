@@ -10,7 +10,7 @@ import {
   SCALES,
   SC_FIT,
   SC_STAGE_W,
-  SC_STAGE_H,
+  SC_CANVAS_H,
   drawScale,
   scaleBits,
   scaleLabels,
@@ -90,7 +90,9 @@ export function ScalesBench() {
     if (!canvas || !ctx) return
     const dpr = window.devicePixelRatio || 1
     canvas.width = SC_STAGE_W * dpr
-    canvas.height = SC_STAGE_H * dpr
+    // ⚠ The canvas is the ROOM's shape at the scene's width, not the scene's
+    // own — see SC_FIT. Equal when nothing is trimmed.
+    canvas.height = SC_CANVAS_H * dpr
     let frame = 0
     let last = 0
     const tick = (ms: number) => {
@@ -100,8 +102,10 @@ export function ScalesBench() {
       // The clock belongs to the run, not to whatever is re-rendering.
       if (useTourStore.getState().playing) useTourStore.getState().step(dt / RUN_MS)
       const s = view.current
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, SC_STAGE_W, SC_STAGE_H)
+      // The trim is taken off BOTH ends, so the picture stays centred on
+      // whatever it was centred on.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, -SC_FIT.cropScene * dpr)
+      ctx.clearRect(0, SC_FIT.cropScene, SC_STAGE_W, SC_CANVAS_H)
       drawScale(ctx, s.which, s.bits, s.u, ms)
     }
     frame = requestAnimationFrame(tick)
@@ -166,7 +170,9 @@ export function ScalesBench() {
               <button
                 type="button"
                 onClick={() =>
-                  playing ? useTourStore.getState().pause() : useTourStore.getState().resume()
+                  playing
+                    ? useTourStore.getState().pause()
+                    : useTourStore.getState().resume()
                 }
                 className="h-[42px] w-[104px] shrink-0 rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 transition hover:bg-amber-500/30"
               >
@@ -179,14 +185,22 @@ export function ScalesBench() {
               min={0}
               max={1000}
               value={Math.round((u ?? 0) * 1000)}
-              onChange={(e) => useTourStore.getState().scrubTo(Number(e.target.value) / 1000)}
+              onChange={(e) =>
+                useTourStore.getState().scrubTo(Number(e.target.value) / 1000)
+              }
               aria-label="Position through the signal"
               className="w-44 cursor-pointer"
               style={{ accentColor: '#fcd34d' }}
             />
           </div>
 
-          <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+          {/* ⚠ THE BOX HUGS THE PICTURE (user, 2026-09-04: "canvas has padding
+              on the right, remove it"). The exhibit is fitted by the SMALLER
+              of the two ratios and height is the binding one, so the drawn
+              canvas is narrower than the room — and a full-width box round it
+              left a band of empty panel on the right that read as padding
+              nobody chose. `w-fit` makes the border the picture's own edge. */}
+          <div className="w-fit rounded-xl border border-slate-700 bg-slate-950/40 p-2">
             <canvas
               ref={canvasRef}
               onPointerDown={(e) => {

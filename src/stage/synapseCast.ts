@@ -4,6 +4,8 @@ import { ligandSeat } from './ligandChannel'
 import {
   MEM_PX,
   activeZone,
+  astroRest,
+  astrocyteFinger,
   cargoIn,
   faceAt,
   fusedShape,
@@ -84,15 +86,10 @@ function alongGap(
   return inGap(g, lerp(x0, x1, q), lerp(f0, f1, q))
 }
 
-/** A resting spot in the extracellular pocket that flares open beside the
- *  spine's head, below the bulb's flank — the bath the gap actually opens
- *  into, so an escaping ball never has to cross a silhouette to get there. */
-function bathSpot(g: SynapseGeometry, side: number, id: number): { x: number; y: number } {
-  return {
-    x: g.foot.x + side * (g.head.rx + 40 + H(id, 21) * 130),
-    y: g.foot.y + 15 + H(id, 22) * 110,
-  }
-}
+// (The old open-bath resting spot is gone — 21b-1: an escaping ball's journey
+// now ENDS somewhere, inside the astrocyte finger or the spine, which is what
+// clearance is. The finger was placed around the very pocket the balls used
+// to rest in, so the routes barely changed.)
 
 /** Series threshold-crossings, memoised per run — these are asked for every
  *  ball on every frame, and the answer never changes. */
@@ -159,9 +156,12 @@ export function ntSettledBy(g: SynapseGeometry, run: SynapseRun): number {
   for (const [v, d] of docked.entries()) {
     const tf = run.vesicles[d.index]?.fusedAtMs ?? null
     if (tf === null) continue
-    const maxTravel =
-      (d.r * 1.3) / NT_SPEED + (g.activeHalf * 1.0 + 60) / NT_SPEED
-    latest = Math.max(latest, tf + EMERGE_STAGGER_MS + maxTravel)
+    const maxTravel = (d.r * 1.3) / NT_SPEED + (g.activeHalf * 1.0 + 60) / NT_SPEED
+    // …and the collection legs (21b-1): escape start + spread, the exit, the
+    // flight to a transporter tick, and the settle inside the collector.
+    const collect =
+      ESCAPE_START_MS + ESCAPE_SPREAD_MS + ESCAPE_EXIT_MS + ESCAPE_TRAVEL_MS * 1.6
+    latest = Math.max(latest, tf + EMERGE_STAGGER_MS + maxTravel + collect)
     void v
   }
   return latest
@@ -170,10 +170,18 @@ export function ntSettledBy(g: SynapseGeometry, run: SynapseRun): number {
 export interface NtDot {
   x: number
   y: number
-  where: 'vesicle' | 'gap' | 'seat' | 'bath'
+  where: 'vesicle' | 'gap' | 'seat' | 'bath' | 'glia' | 'spine'
 }
 
-/** Out of the nearest end of the gap, into the bath, and at rest there. */
+/** How many of the escapees the NEURON itself reclaims — the declared minor
+ *  route (a dendritic transporter): everything else goes to the astrocyte. */
+export const NEURON_UPTAKE_FRAC = 0.15
+
+/** ⚠ Out of the nearest end of the gap and COLLECTED (21b-1, user,
+ *  2026-09-04): clearance as arrival somewhere, never as a fade. Most
+ *  escapees travel to the astrocyte finger on their own side — in through a
+ *  transporter tick, resting visibly INSIDE the glial cell — and a seeded few
+ *  are reclaimed by the spine's own transporter, the minor route. */
 function escapePos(
   g: SynapseGeometry,
   id: number,
@@ -190,12 +198,44 @@ function escapePos(
     return { ...alongGap(g, fromX, fromFrac, exitX, 0.5, q), where: 'gap' }
   }
   const exit = inGap(g, exitX, 0.5)
-  const rest = bathSpot(g, side, id)
-  const q = clamp01((ms - t0 - ESCAPE_EXIT_MS) / ESCAPE_TRAVEL_MS)
-  if (q < 1) {
-    return { x: lerp(exit.x, rest.x, q), y: lerp(exit.y, rest.y, q), where: 'bath' }
+  const t1 = t0 + ESCAPE_EXIT_MS
+  if (H(id, 23) < NEURON_UPTAKE_FRAC) {
+    // The neuronal route: a transporter on the spine's shoulder, just past
+    // the zone's edge on this ball's own side.
+    const tickX = g.foot.x + side * g.activeHalf * 1.35
+    const tick = { x: tickX, y: faceAt(g, tickX) }
+    const inside = { x: tickX - side * 8, y: tick.y + 16 + H(id, 24) * 12 }
+    const q1 = clamp01((ms - t1) / (ESCAPE_TRAVEL_MS * 0.7))
+    if (q1 < 1)
+      return { x: lerp(exit.x, tick.x, q1), y: lerp(exit.y, tick.y, q1), where: 'bath' }
+    const q2 = clamp01((ms - t1 - ESCAPE_TRAVEL_MS * 0.7) / (ESCAPE_TRAVEL_MS * 0.4))
+    if (q2 < 1) {
+      return {
+        x: lerp(tick.x, inside.x, q2),
+        y: lerp(tick.y, inside.y, q2),
+        where: 'spine',
+      }
+    }
+    return {
+      x: inside.x + wobX(jiggleMs, id) * 0.5,
+      y: inside.y + wobY(jiggleMs, id) * 0.5,
+      where: 'spine',
+    }
   }
-  return { x: rest.x + wobX(jiggleMs, id), y: rest.y + wobY(jiggleMs, id), where: 'bath' }
+  const fin = astrocyteFinger(g, side)
+  const tick = fin.ticks[H(id, 25) < 0.5 ? 0 : 1]
+  const rest = astroRest(fin, H(id, 21), H(id, 22))
+  const q1 = clamp01((ms - t1) / ESCAPE_TRAVEL_MS)
+  if (q1 < 1)
+    return { x: lerp(exit.x, tick.x, q1), y: lerp(exit.y, tick.y, q1), where: 'bath' }
+  const q2 = clamp01((ms - t1 - ESCAPE_TRAVEL_MS) / (ESCAPE_TRAVEL_MS * 0.6))
+  if (q2 < 1)
+    return { x: lerp(tick.x, rest.x, q2), y: lerp(tick.y, rest.y, q2), where: 'glia' }
+  return {
+    x: rest.x + wobX(jiggleMs, id) * 0.6,
+    y: rest.y + wobY(jiggleMs, id) * 0.6,
+    where: 'glia',
+  }
 }
 
 /** How much longer a caught pair stays SEATED after the model's bound
@@ -373,7 +413,11 @@ export function transmitterCast(
       const emergeEnd = start + emergeDur
       if (ms < emergeEnd) {
         const q = (ms - start) / emergeDur
-        out.push({ x: lerp(inBubble.x, mouth.x, q), y: lerp(inBubble.y, mouth.y, q), where: 'gap' })
+        out.push({
+          x: lerp(inBubble.x, mouth.x, q),
+          y: lerp(inBubble.y, mouth.y, q),
+          where: 'gap',
+        })
         continue
       }
       // …then along the gap to its standing place, AT THE SAME SPEED — the
@@ -419,7 +463,12 @@ export function transmitterCast(
         // schedules it off the door's own close (glow off → fly away → shut).
         const tRel = receptorSeatWindow(g, run, cleft, myFate.r).releasedAt
         if (tRel === null || ms < tRel) {
-          const seat = ntSeatAt(g, myFate.r, myFate.k, receptorOpenFrac(g, run, cleft, myFate.r, ms))
+          const seat = ntSeatAt(
+            g,
+            myFate.r,
+            myFate.k,
+            receptorOpenFrac(g, run, cleft, myFate.r, ms),
+          )
           // Plugged means PLUGGED: no wobble — the stillness is the boundness.
           out.push({ x: seat.x, y: seat.y, where: 'seat' })
           continue
@@ -433,13 +482,21 @@ export function transmitterCast(
         // Lift-off starts from wherever the seat stands AT release — the
         // subunits are still parted then, so leaving from the closed seat
         // would be a sideways teleport.
-        const seatRel = ntSeatAt(g, myFate.r, myFate.k, receptorOpenFrac(g, run, cleft, myFate.r, tRel))
+        const seatRel = ntSeatAt(
+          g,
+          myFate.r,
+          myFate.k,
+          receptorOpenFrac(g, run, cleft, myFate.r, tRel),
+        )
         const seatRelF = gapFrac(g, seatRel.x, seatRel.y)
         const liftF = Math.max(0.15, seatRelF - 0.45)
         const lingerX = spanX(site.x + (H(id, 6) - 0.5) * 40)
         if (ms < tRel + RELEASE_MS) {
           const q = (ms - tRel) / RELEASE_MS
-          out.push({ ...alongGap(g, seatRel.x, seatRelF, lingerX, liftF, q), where: 'gap' })
+          out.push({
+            ...alongGap(g, seatRel.x, seatRelF, lingerX, liftF, q),
+            where: 'gap',
+          })
           continue
         }
         const linger = inGap(g, lingerX, liftF)
@@ -492,7 +549,10 @@ export interface CaDot {
  *  average falls back below that same rung, it is grabbed by the buffers and
  *  drifts deeper inside (BUFFER_RATIO is the model's own fact), where it
  *  stays. Nothing dims. Memoised per run: the answer never changes. */
-const CA_TIMES = new WeakMap<SynapseRun, { te: (number | null)[]; tc: (number | null)[] }>()
+const CA_TIMES = new WeakMap<
+  SynapseRun,
+  { te: (number | null)[]; tc: (number | null)[] }
+>()
 
 function calciumTimes(run: SynapseRun): { te: (number | null)[]; tc: (number | null)[] } {
   const hit = CA_TIMES.get(run)
@@ -591,10 +651,16 @@ export function calciumCast(
     const wait = inGap(g, waitX, waitF)
     const enter = te[i]
     if (enter === null || ms < enter) {
-      out.push({ x: wait.x + wobX(jiggleMs, i + 40), y: wait.y + wobY(jiggleMs, i + 40), where: 'cleft' })
+      out.push({
+        x: wait.x + wobX(jiggleMs, i + 40),
+        y: wait.y + wobY(jiggleMs, i + 40),
+        where: 'cleft',
+      })
       continue
     }
-    const door = doors.reduce((a, b) => (Math.abs(a.x - waitX) < Math.abs(b.x - waitX) ? a : b))
+    const door = doors.reduce((a, b) =>
+      Math.abs(a.x - waitX) < Math.abs(b.x - waitX) ? a : b,
+    )
     const belowF = gapFrac(g, door.x, wallAt(g, door.x) + MEM_PX + 10)
     const above = { x: door.x, y: wallAt(g, door.x) - MEM_PX - 12 }
     const anchor = docked[i % docked.length]
@@ -626,7 +692,11 @@ export function calciumCast(
     }
     if (ms < enter + CA_APPROACH_MS + CA_CROSS_MS + CA_SETTLE_MS) {
       const q = (ms - enter - CA_APPROACH_MS - CA_CROSS_MS) / CA_SETTLE_MS
-      out.push({ x: lerp(above.x, feet.x, q), y: lerp(above.y, feet.y, q), where: 'zone' })
+      out.push({
+        x: lerp(above.x, feet.x, q),
+        y: lerp(above.y, feet.y, q),
+        where: 'zone',
+      })
       continue
     }
     const clear = tc[i]
@@ -851,7 +921,11 @@ export function sodiumCast(
       const wait = inGap(g, waitX, waitF)
       const t0 = tUp === null ? null : tUp + k * 0.8
       if (t0 === null || ms < t0) {
-        out.push({ x: wait.x + wobX(jiggleMs, id), y: wait.y + wobY(jiggleMs, id), where: 'cleft' })
+        out.push({
+          x: wait.x + wobX(jiggleMs, id),
+          y: wait.y + wobY(jiggleMs, id),
+          where: 'cleft',
+        })
         continue
       }
       // ⚠ STRICTLY THROUGH THE PORE (user, 2026-09-01): both balls cross at
@@ -877,7 +951,11 @@ export function sodiumCast(
       }
       if (ms < t0 + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS) {
         const q = (ms - t0 - NA_APPROACH_MS - NA_CROSS_MS) / NA_SETTLE_MS
-        out.push({ x: lerp(inside.x, rest.x, q), y: lerp(inside.y, rest.y, q), where: 'spine' })
+        out.push({
+          x: lerp(inside.x, rest.x, q),
+          y: lerp(inside.y, rest.y, q),
+          where: 'spine',
+        })
         continue
       }
       // ⚠ STILL once settled (user, 2026-09-01: "bound ions stay put — they do

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRestingStore } from '../state/restingStore'
 import { SideDrawer } from './SideDrawer'
+import { LabelsSwitch } from './LabelsSwitch'
+import { useLabelsStore } from '../state/labelsStore'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
 import { spokenTermAt } from '../stage/spokenLabels'
@@ -37,6 +39,12 @@ import { VM_SETTLE_MS } from '../core/voltage'
 type Drag = { kind: DoorKind; x: number; y: number; from: 'tray' | 'wall' }
 
 export function RestingBench() {
+  // ⚠ The app's one 🏷 switch (2026-09-04). Held in a ref too: the drawing
+  // runs in an animation loop, not on React's clock.
+  const labelsOn = useLabelsStore((st) => st.labelsOn)
+  const labelsRef = useRef(labelsOn)
+  labelsRef.current = labelsOn
+
   const open = useRestingStore((s) => s.open)
   const closeBench = useRestingStore((s) => s.closeBench)
   const doors = useRestingStore((s) => s.doors)
@@ -56,7 +64,6 @@ export function RestingBench() {
    *  and off a capacitor. */
   const shownRef = useRef(restingMvOf(doors))
 
-
   useEffect(() => {
     if (!open) return
     const canvas = ref.current
@@ -75,7 +82,14 @@ export function RestingBench() {
       // A first-order approach, which is what a membrane's time constant IS.
       shownRef.current += (target - shownRef.current) * (1 - Math.exp(-dt / VM_SETTLE_MS))
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      drawResting(ctx, doorsRef.current, shownRef.current, ms, dragRef.current)
+      drawResting(
+        ctx,
+        doorsRef.current,
+        shownRef.current,
+        ms,
+        dragRef.current,
+        labelsRef.current,
+      )
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
@@ -142,7 +156,11 @@ export function RestingBench() {
   const st = stateOf(doors)
 
   return (
-    <SideDrawer open={open} onClose={closeBench} ariaLabel="Where the resting potential comes from">
+    <SideDrawer
+      open={open}
+      onClose={closeBench}
+      ariaLabel="Where the resting potential comes from"
+    >
       <div className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)] gap-x-6 overflow-hidden pt-2">
         <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/40 p-3">
           <Section title="What this is" paragraphs={RESTING_PARTS} />
@@ -155,7 +173,14 @@ export function RestingBench() {
             what this is far better than a title repeating the menu row. The
             speaker follows the word it pronounces. */}
         <div className="flex min-h-0 min-w-0 flex-col gap-3">
-          <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+          <div className="relative min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+            <LabelsSwitch
+              on={labelsOn}
+              onToggle={() => useLabelsStore.getState().toggleLabels()}
+              titleOn="Hide the names on the picture"
+              titleOff="Show the names on the picture"
+              className="absolute right-3 top-3 z-10"
+            />
             <canvas
               ref={ref}
               onPointerDown={down}

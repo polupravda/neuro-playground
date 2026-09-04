@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ION_KINDS, IONS, particlesFor, type IonKind, type Side } from '../core/ions'
 import type { IonCounts } from '../state/ionStore'
-import { MEMBRANE_PX, MEMBRANE_ZOOM } from './layout'
+import { MEMBRANE_PX, MEMBRANE_ZOOM, PX_PER_UM } from './layout'
 import { ION_SCALE, ionAt, ionCloud, ionRadius, minDepth } from './ions'
 
 const real: IonCounts = ION_KINDS.reduce((acc, kind) => {
@@ -21,7 +21,9 @@ describe('ion sizes on screen', () => {
   it('draws every ion smaller than a lipid head, as in life', () => {
     for (const kind of ION_KINDS) {
       // A lipid head is 1 nm across; every hydrated ion here is under that.
-      expect(ionRadius(kind) * 2).toBeLessThan(0.001 * 4.4)
+      // (In the scene's own scale, not a hardcoded 4.4 px/µm — the honest
+      // scale is solved from the traced soma since 2026-09-04.)
+      expect(ionRadius(kind) * 2).toBeLessThan(0.001 * PX_PER_UM)
     }
   })
 
@@ -144,7 +146,9 @@ describe('changing one count must not disturb the rest', () => {
     }
     // And the surviving sodium keeps its own places, rather than reshuffling.
     const survivors = after.filter((i) => i.kind === 'na')
-    expect(survivors).toEqual(before.filter((i) => i.kind === 'na').slice(0, survivors.length))
+    expect(survivors).toEqual(
+      before.filter((i) => i.kind === 'na').slice(0, survivors.length),
+    )
   })
 
   it('never changes an untouched ion’s jiggle rhythm, so nothing twitches', () => {

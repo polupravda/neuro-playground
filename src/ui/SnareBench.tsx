@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useSnareStore } from '../state/snareStore'
+import { useLabelsStore } from '../state/labelsStore'
+import { LabelsSwitch } from './LabelsSwitch'
 import { SideDrawer } from './SideDrawer'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
@@ -14,7 +16,13 @@ import {
   snareGeometry,
   snareLabels,
 } from '../stage/snareScene'
-import { SNARE_HONESTY, SNARE_PARTS, STAGES, STAGE_SPANS, stageAt } from '../core/vesicleCycle'
+import {
+  SNARE_HONESTY,
+  SNARE_PARTS,
+  STAGES,
+  STAGE_SPANS,
+  stageAt,
+} from '../core/vesicleCycle'
 import { TransportBar } from './Timeline'
 
 // D06 — the vesicle life cycle and the SNARE machinery.
@@ -28,7 +36,7 @@ export function SnareBench() {
   const closeBench = useSnareStore((s) => s.closeBench)
   const u = useSnareStore((s) => s.u)
   const playing = useSnareStore((s) => s.playing)
-  const labelsOn = useSnareStore((s) => s.labelsOn)
+  const labelsOn = useLabelsStore((s) => s.labelsOn)
 
   const ref = useRef<HTMLCanvasElement>(null)
   const state = useRef({ u, playing, labelsOn })
@@ -110,12 +118,18 @@ export function SnareBench() {
   const here = stageAt(u)
 
   return (
-    <SideDrawer open={open} onClose={closeBench} ariaLabel="Vesicle life cycle and SNARE machinery">
+    <SideDrawer
+      open={open}
+      onClose={closeBench}
+      ariaLabel="Vesicle life cycle and SNARE machinery"
+    >
       <div className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)] gap-x-6 overflow-hidden pt-2">
         <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/40 p-3">
           <Section
             title="Right now"
-            paragraphs={[{ icon: '👀', text: `${here.stage.title}. ${here.stage.watch}` }]}
+            paragraphs={[
+              { icon: '👀', text: `${here.stage.title}. ${here.stage.watch}` },
+            ]}
           />
           <Section title="What this is" paragraphs={SNARE_PARTS} />
           <Section title="Keep in mind" paragraphs={SNARE_HONESTY} />
@@ -155,47 +169,32 @@ export function SnareBench() {
                 onResume={() => useSnareStore.getState().play()}
                 ariaLabel="Position through the cycle"
               />
-              <div className="mt-2 flex items-start gap-2">
+              {/* ⚠ Labels to the RIGHT, under the timeline (user, 2026-09-04).
+                  The action button and the switch are different kinds of
+                  control — one starts the run, one changes how it is read —
+                  and pushing them to opposite ends says so, while leaving the
+                  middle of the bar free of chrome. */}
+              <div className="mt-2 flex items-start justify-between gap-2">
                 <button
                   type="button"
                   onClick={() =>
-                    playing ? useSnareStore.getState().pause() : useSnareStore.getState().play()
+                    playing
+                      ? useSnareStore.getState().pause()
+                      : useSnareStore.getState().play()
                   }
                   className="pointer-events-auto h-[38px] w-[104px] shrink-0 rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 shadow-lg backdrop-blur transition hover:bg-amber-500/30"
                 >
                   {playing ? '⏸ Pause' : '▶ Play'}
                 </button>
                 {/* ⚠ The labels switch (user, 2026-09-04): off = the run never
-                    pauses to name things and no label is drawn anywhere.
-                    A TRACK-AND-KNOB toggle, the aquaporin switch's own grammar
-                    (user: "similar to 'aquaporin'") — same sky-500 on-colour,
-                    same sliding knob, readable without reading. */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={labelsOn}
-                  title={
-                    labelsOn
-                      ? 'Labels on: the run pauses at the marked moments to name things'
-                      : 'Labels off: the run plays through without naming pauses'
-                  }
-                  onClick={() => useSnareStore.getState().toggleLabels()}
-                  className="pointer-events-auto flex h-[38px] shrink-0 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/85 px-3 text-[13px] font-semibold text-slate-200 shadow-lg backdrop-blur transition hover:bg-slate-800"
-                >
-                  <span>🏷 labels</span>
-                  <span
-                    aria-hidden
-                    className={`relative h-[18px] w-[34px] rounded-full border transition ${
-                      labelsOn ? 'border-sky-400 bg-sky-500' : 'border-slate-600 bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-[2px] h-[13px] w-[13px] rounded-full transition-all ${
-                        labelsOn ? 'left-[17px] bg-slate-50' : 'left-[2px] bg-slate-400'
-                      }`}
-                    />
-                  </span>
-                </button>
+                    pauses to name things and no label is drawn anywhere. The
+                    shared track-and-knob affordance — see LabelsSwitch. */}
+                <LabelsSwitch
+                  on={labelsOn}
+                  onToggle={() => useLabelsStore.getState().toggleLabels()}
+                  titleOn="Labels on: the run pauses at the marked moments to name things"
+                  titleOff="Labels off: the run plays through without naming pauses"
+                />
               </div>
             </div>
             <canvas
@@ -207,13 +206,22 @@ export function SnareBench() {
                   LABEL_STOPS.some((s) => Math.abs(state.current.u - s) < 0.002)
                 const box = e.currentTarget.getBoundingClientRect()
                 const term = spokenTermAt(
-                  snareLabels(snareGeometry(), state.current.u, hold.current.active || atStop),
+                  snareLabels(
+                    snareGeometry(),
+                    state.current.u,
+                    hold.current.active || atStop,
+                  ),
                   e.clientX - box.left,
                   e.clientY - box.top,
                 )
                 if (term) speakAloud(term)
               }}
-              style={{ width: SN_W, height: SN_H, touchAction: 'none', cursor: 'pointer' }}
+              style={{
+                width: SN_W,
+                height: SN_H,
+                touchAction: 'none',
+                cursor: 'pointer',
+              }}
               aria-label="A synaptic vesicle fusing with the terminal membrane, and the proteins that pull it in"
             />
           </div>
@@ -222,4 +230,3 @@ export function SnareBench() {
     </SideDrawer>
   )
 }
-

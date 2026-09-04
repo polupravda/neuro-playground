@@ -115,6 +115,7 @@ export interface Destination {
     | 'gating'
     | 'scales'
     | 'snare'
+    | 'reuptake'
     | null
   then?: 'race'
 }
@@ -162,83 +163,239 @@ const soon = (
   icon: string,
   title: string,
   asks: string,
-): Entry => ({ id: `soon-${spec.toLowerCase()}`, spec, part, lecture, icon, title, asks, to: null, planned: true })
+): Entry => ({
+  id: `soon-${spec.toLowerCase()}`,
+  spec,
+  part,
+  lecture,
+  icon,
+  title,
+  asks,
+  to: null,
+  planned: true,
+})
 
 /** Everything the spec names and the app has not built. Ordered within each
  *  Part by the lecture it belongs to, exactly like the built rows, so a Part
  *  reads as one list rather than as two. */
 export const PLANNED: Entry[] = [
   // ── Part I — Cellular Foundations
-  soon('D14', 'I', 2, '🧰', 'Membrane constructor',
-    'Can I build my own membrane and see what it can do?'),
+  soon(
+    'D14',
+    'I',
+    2,
+    '🧰',
+    'Membrane constructor',
+    'Can I build my own membrane and see what it can do?',
+  ),
 
   // ── Part II — Ion Channels & Electrical Signalling
-  soon('X03', 'II', 6, '🚫', 'Channel blockers',
-    'What happens to the spark if I block one kind of door?'),
-  soon('N23', 'II', 7, '🌿', 'Dendritic spikes',
-    'Can a dendrite make a spark of its own?'),
+  soon(
+    'X03',
+    'II',
+    6,
+    '🚫',
+    'Channel blockers',
+    'What happens to the spark if I block one kind of door?',
+  ),
+  soon(
+    'N23',
+    'II',
+    7,
+    '🌿',
+    'Dendritic spikes',
+    'Can a dendrite make a spark of its own?',
+  ),
 
   // ── Part III — Synaptic Communication
-  soon('S13', 'III', 9, '🎯', 'The synapse: receptors to the hillock',
-    'What does the next neuron feel, and where does that feeling go?'),
-  soon('D07', 'III', 9, '🔩', 'AMPA & NMDA receptors, close up',
-    'What do the catchers look like, and why does one need TWO things at once?'),
-  soon('D08', 'III', 9, '⏱️', 'Receptor kinetics bench',
-    'Why is one catcher fast and the other slow?'),
-  soon('S14', 'III', 10, '🧹', 'The synapse: clearance & recycling',
-    'Who cleans the gap up afterwards, and where do the bubbles come from?'),
-  soon('D11', 'III', 10, '🖼️', 'Synapse gallery',
-    'Are all synapses the same shape?'),
+  soon(
+    'S13',
+    'III',
+    9,
+    '🎯',
+    'The synapse: receptors to the hillock',
+    'What does the next neuron feel, and where does that feeling go?',
+  ),
+  soon(
+    'D07',
+    'III',
+    9,
+    '🔩',
+    'AMPA & NMDA receptors, close up',
+    'What do the catchers look like, and why does one need TWO things at once?',
+  ),
+  soon(
+    'D08',
+    'III',
+    9,
+    '⏱️',
+    'Receptor kinetics bench',
+    'Why is one catcher fast and the other slow?',
+  ),
+  soon(
+    'S14',
+    'III',
+    10,
+    '🧹',
+    'The synapse: clearance & recycling',
+    'Who cleans the gap up afterwards, and where do the bubbles come from?',
+  ),
+  soon('D11', 'III', 10, '🖼️', 'Synapse gallery', 'Are all synapses the same shape?'),
 
   // ── Part IV — Neurotransmitters & Modulation
-  soon('D09', 'IV', 11, '⚖️', 'Glutamate & GABA, side by side',
-    'Why does one chemical excite and the other calm — when they are almost the same molecule?'),
-  soon('M05', 'IV', 11, '🧪', 'Acetylcholine & the nicotinic receptor',
-    'What tells a muscle to move?'),
-  soon('M04', 'IV', 12, '🌀', 'Dopamine & the slow receptors',
-    'What does a chemical do when it does NOT open a door?'),
-  soon('M07', 'IV', 12, '🔗', 'Second-messenger cascade',
-    'How does one molecule outside change a whole cell inside?'),
-  soon('D10', 'IV', 12, '💊', 'Benzodiazepine bench',
-    'How can a drug make a door open more often without opening it itself?'),
-  soon('M06', 'IV', 13, '🎚️', 'Neuromodulation across a network',
-    'Can one chemical change the mood of a whole crowd of neurons?'),
+  soon(
+    'D09',
+    'IV',
+    11,
+    '⚖️',
+    'Glutamate & GABA, side by side',
+    'Why does one chemical excite and the other calm — when they are almost the same molecule?',
+  ),
+  soon(
+    'M05',
+    'IV',
+    11,
+    '🧪',
+    'Acetylcholine & the nicotinic receptor',
+    'What tells a muscle to move?',
+  ),
+  soon(
+    'M04',
+    'IV',
+    12,
+    '🌀',
+    'Dopamine & the slow receptors',
+    'What does a chemical do when it does NOT open a door?',
+  ),
+  soon(
+    'M07',
+    'IV',
+    12,
+    '🔗',
+    'Second-messenger cascade',
+    'How does one molecule outside change a whole cell inside?',
+  ),
+  soon(
+    'D10',
+    'IV',
+    12,
+    '💊',
+    'Benzodiazepine bench',
+    'How can a drug make a door open more often without opening it itself?',
+  ),
+  soon(
+    'M06',
+    'IV',
+    13,
+    '🎚️',
+    'Neuromodulation across a network',
+    'Can one chemical change the mood of a whole crowd of neurons?',
+  ),
 
   // ── Part V — Plasticity & Learning
-  soon('P03', 'V', 14, '🔁', 'Post-tetanic potentiation',
-    'Why is the next signal bigger just after a burst?'),
-  soon('P04', 'V', 14, '📈', 'Long-term potentiation',
-    'How does a connection get stronger and STAY stronger?'),
-  soon('P05', 'V', 15, '📉', 'Long-term depression',
-    'How does a connection get weaker again?'),
-  soon('P02', 'V', 15, '🎓', 'Learning by repetition',
-    'What actually changes in a brain when you practise something?'),
+  soon(
+    'P03',
+    'V',
+    14,
+    '🔁',
+    'Post-tetanic potentiation',
+    'Why is the next signal bigger just after a burst?',
+  ),
+  soon(
+    'P04',
+    'V',
+    14,
+    '📈',
+    'Long-term potentiation',
+    'How does a connection get stronger and STAY stronger?',
+  ),
+  soon(
+    'P05',
+    'V',
+    15,
+    '📉',
+    'Long-term depression',
+    'How does a connection get weaker again?',
+  ),
+  soon(
+    'P02',
+    'V',
+    15,
+    '🎓',
+    'Learning by repetition',
+    'What actually changes in a brain when you practise something?',
+  ),
 
   // ── Part VI — Neural Circuits
-  soon('C01', 'VI', 16, '🔌', 'Two neurons connected',
-    'What happens when one neuron talks to another?'),
-  soon('C02', 'VI', 16, '⛓️', 'A chain of neurons',
-    'How does a message get passed along a line?'),
-  soon('C03', 'VI', 17, '🛑', 'Inhibition in a circuit',
-    'How does one neuron tell another to be QUIET?'),
-  soon('C04', 'VI', 17, '♻️', 'A feedback loop',
-    'What happens when a signal comes back round to where it started?'),
-  soon('C06', 'VI', 18, '🎮', 'Circuit challenge',
-    'Can I make neuron B fire?'),
+  soon(
+    'C01',
+    'VI',
+    16,
+    '🔌',
+    'Two neurons connected',
+    'What happens when one neuron talks to another?',
+  ),
+  soon(
+    'C02',
+    'VI',
+    16,
+    '⛓️',
+    'A chain of neurons',
+    'How does a message get passed along a line?',
+  ),
+  soon(
+    'C03',
+    'VI',
+    17,
+    '🛑',
+    'Inhibition in a circuit',
+    'How does one neuron tell another to be QUIET?',
+  ),
+  soon(
+    'C04',
+    'VI',
+    17,
+    '♻️',
+    'A feedback loop',
+    'What happens when a signal comes back round to where it started?',
+  ),
+  soon('C06', 'VI', 18, '🎮', 'Circuit challenge', 'Can I make neuron B fire?'),
 
   // ── Part VII — Brain Systems
-  soon('B01', 'VII', 19, '🧠', 'The whole brain',
-    'Where in a head does all of this happen?'),
-  soon('B02', 'VII', 19, '🗺️', 'Brain regions',
-    'Which bit does which job?'),
-  soon('B06', 'VII', 20, '🦵', 'The reflex arc',
-    'Why does your leg kick before you have decided to?'),
-  soon('B04', 'VII', 20, '👂', 'A sensory pathway',
-    'How does a touch on your hand get to your brain?'),
-  soon('B05', 'VII', 21, '🏃', 'A motor pathway',
-    'How does a thought get to your foot?'),
-  soon('B07', 'VII', 21, '🐁', 'Brains compared',
-    'Is a mouse brain just a small human one?'),
+  soon(
+    'B01',
+    'VII',
+    19,
+    '🧠',
+    'The whole brain',
+    'Where in a head does all of this happen?',
+  ),
+  soon('B02', 'VII', 19, '🗺️', 'Brain regions', 'Which bit does which job?'),
+  soon(
+    'B06',
+    'VII',
+    20,
+    '🦵',
+    'The reflex arc',
+    'Why does your leg kick before you have decided to?',
+  ),
+  soon(
+    'B04',
+    'VII',
+    20,
+    '👂',
+    'A sensory pathway',
+    'How does a touch on your hand get to your brain?',
+  ),
+  soon('B05', 'VII', 21, '🏃', 'A motor pathway', 'How does a thought get to your foot?'),
+  soon(
+    'B07',
+    'VII',
+    21,
+    '🐁',
+    'Brains compared',
+    'Is a mouse brain just a small human one?',
+  ),
 ]
 
 export const ENTRIES: BuiltEntry[] = [
@@ -427,6 +584,16 @@ export const ENTRIES: BuiltEntry[] = [
     to: { zoom: 'outgoing-synapse', drawer: 'snare' },
   },
   {
+    id: 'reuptake',
+    spec: 'D17',
+    part: 'III',
+    lecture: 12,
+    title: 'Where the transmitter goes',
+    icon: '♻️',
+    asks: 'The gap is full of transmitter — who clears it up, and where does it go?',
+    to: { zoom: 'outgoing-synapse', drawer: 'reuptake' },
+  },
+  {
     id: 'propagation',
     part: 'II',
     lecture: 7,
@@ -470,5 +637,4 @@ export function notBuiltYet(): string {
 }
 
 /** Every entry a child can actually reach, in course order. */
-export const inCourseOrder = (): Entry[] =>
-  PARTS.flatMap((p) => builtIn(p.id))
+export const inCourseOrder = (): Entry[] => PARTS.flatMap((p) => builtIn(p.id))

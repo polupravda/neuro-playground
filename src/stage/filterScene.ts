@@ -1,6 +1,11 @@
 import { IONS } from '../core/ions'
 import { FILTER_SITES } from '../core/channelStructure'
-import { drawChargeDot, drawGlossyIon, drawIonCharge, glossySphere } from './particleStyle'
+import {
+  drawChargeDot,
+  drawGlossyIon,
+  drawIonCharge,
+  glossySphere,
+} from './particleStyle'
 import { drawTraveller, TRAVELLER_MAG, ATOM_R_NM } from './permeaScene'
 import { PX_PER_NM } from './bilayer'
 import { PX_PER_UM } from './layout'
@@ -112,7 +117,6 @@ const WALL_X = LANE_HALF_NM * FZ_PX_PER_NM
 const OXY = ELEMENT_COLOR.O
 const CARB = ELEMENT_COLOR.C
 const RING = '#f59e0b'
-const LABEL = '#cbd5e1'
 
 /** The daylight left round an ion once the oxygens have closed as far as the
  *  cage allows: zero for the ion the cage was built for, and a real distance
@@ -237,10 +241,13 @@ export function drawLane(
   ctx: CanvasRenderingContext2D,
   kind: LaneKind,
   ms: number | null,
+  labelsOn = true,
 ): void {
   const cx = LANE_W / 2
   const pose =
-    ms === null ? { t: 0, coat: 1, reach: 0, settled: false, gone: 0 } : lanePoseAt(kind, ms)
+    ms === null
+      ? { t: 0, coat: 1, reach: 0, settled: false, gone: 0 }
+      : lanePoseAt(kind, ms)
   const ion = IONS[kind]
   const bare = (ion.bareNm / 2) * FZ_PX_PER_NM
   const coatR = (ion.hydratedNm / 2) * FZ_PX_PER_NM
@@ -249,7 +256,12 @@ export function drawLane(
   // The wall the passage runs through, in the channel's own violet.
   const wallW = LANE_W / 2 - WALL_X
   for (const side of [-1, 1] as const) {
-    const g = ctx.createLinearGradient(cx + side * WALL_X, 0, cx + side * (WALL_X + wallW), 0)
+    const g = ctx.createLinearGradient(
+      cx + side * WALL_X,
+      0,
+      cx + side * (WALL_X + wallW),
+      0,
+    )
     g.addColorStop(0, `rgba(${BODY_RGB}, 0.85)`)
     g.addColorStop(1, `rgba(${BODY_RGB}, 0.3)`)
     ctx.fillStyle = g
@@ -346,13 +358,16 @@ export function drawLane(
   ctx.restore()
   drawInset(ctx, kind, ix, iy, pose.reach)
 
-  ctx.fillStyle = LABEL
-  ctx.font = '11px system-ui, sans-serif'
+  // ⚠ The lane's title used to repeat `ion.name` here, directly above the
+  // spoken name for the same ion (found 2026-09-04) — the canvas saying one
+  // thing twice, in two different styles. The spoken name below is the name.
   ctx.textAlign = 'center'
-  ctx.fillText(ion.name, cx, 24)
   ctx.fillStyle = HELIX_LIGHT
   ctx.font = '10px system-ui, sans-serif'
   ctx.fillText(`×${FZ_MAG.toLocaleString('en-US')} life size`, cx, LANE_H - 34)
 
-  for (const l of laneLabels(kind)) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of laneLabels(kind)) drawSpoken(ctx, l)
 }

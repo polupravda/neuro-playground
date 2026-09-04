@@ -21,6 +21,8 @@ interface SynapseState {
   /** Position through the run, 0→1, or null at rest. */
   u: number | null
   playing: boolean
+  /** ⚠ The labels switch (user, 2026-09-04, same grammar as D06's): off = no
+   *  callout is drawn or clickable on either synapse framing. */
   fire: () => void
   pause: () => void
   resume: () => void

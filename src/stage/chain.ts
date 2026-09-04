@@ -1,5 +1,9 @@
-import { amplitudeAtHillock, reachesThreshold, rippleAmplitude } from '../core/integration'
-import { clamp01 } from './layout'
+import {
+  amplitudeAtHillock,
+  reachesThreshold,
+  rippleAmplitude,
+} from '../core/integration'
+import { ARBOR_MAX_LEN, AXON_POLYLINE, clamp01, pathLength } from './layout'
 
 // The causal chain, as a pure function of elapsed time. Every signal on the
 // stage comes from here, which is what keeps signals from appearing out of
@@ -22,12 +26,25 @@ export const TERMINAL_MS = 1000
 export const POSTSYN_MS = 1200
 export const FIZZLE_MS = 1100
 
+/** ⚠ THE ARBOR IS INVADED, NOT SWITCHED ON (corrections 2026-09-04: "the
+ *  whole thing lights up at once… not consistent with the rest of the
+ *  neuron"). The spike actively propagates into the terminal arborization,
+ *  forking at each branch point, reaching the near boutons first — an arbor
+ *  lighting as a unit is the axon misconception replayed at the last fork.
+ *  The leg's duration is MEASURED, not chosen: the wave keeps the axon leg's
+ *  own pace (pixels per screen-millisecond) through the forks, so the journey
+ *  does not change speed where the cable branches. Choreography like every
+ *  duration here — a real arbor is invaded in tens of microseconds. */
+export const ARBOR_MS =
+  Math.round((AXON_AP_MS * ARBOR_MAX_LEN) / pathLength(AXON_POLYLINE) / 10) * 10
+
 const T_RELEASE = PRESYN_AP_MS
 const T_RIPPLE = T_RELEASE + SYNAPTIC_DELAY_MS
 const T_ARRIVE = T_RIPPLE + DENDRITE_MS
 const T_DECIDE = T_ARRIVE + SUM_HOLD_MS
 const T_AXON_END = T_DECIDE + AXON_AP_MS
-const T_TERMINAL_END = T_AXON_END + TERMINAL_MS
+const T_ARBOR_END = T_AXON_END + ARBOR_MS
+const T_TERMINAL_END = T_ARBOR_END + TERMINAL_MS
 const T_POST_END = T_TERMINAL_END + POSTSYN_MS
 
 export const FIRING_RUN_MS = T_POST_END
@@ -74,6 +91,10 @@ export interface ChainState {
    *  until a release glow appeared half a second later — the arrival, which is the
    *  whole point of the journey, was the one moment not drawn. */
   terminalAP: number
+  /** The wave's front through the arbor: distance travelled as a fraction of
+   *  the LONGEST terminal route (read per route with layout's terminalReach).
+   *  Null until the wave enters the arbor; 1 once every bouton is reached. */
+  terminalHead: number | null
   /** Vesicles drifting to the membrane in our boutons. */
   terminalDrift: number
   /** Release glow at our boutons. */
@@ -98,6 +119,7 @@ export const IDLE: ChainState = {
   hillockFlash: 0,
   axonHead: null,
   terminalAP: 0,
+  terminalHead: null,
   terminalDrift: 0,
   terminalRelease: 0,
   outgoingCrossing: null,
@@ -164,17 +186,28 @@ export function chainStateAt(ms: number, inputCount: number): ChainState {
     s.hillockLevel = peak
     s.hillockFlash = 1 - clamp01(p / 0.18)
     s.axonHead = p
-    // The arbor lights as the spike reaches it, rather than at a stroke when the
-    // phase changes: the branches are part of the axon and it arrives in them.
-    s.terminalAP = clamp01((p - 0.86) / 0.14)
+    return s
+  }
+
+  if (ms < T_ARBOR_END) {
+    // The spike INVADES the arbor: one wave at the axon's own pace, forking
+    // at the branch points, near boutons first (per-route coverage is
+    // layout's terminalReach) — it takes over at the tip the moment the axon
+    // head lands there, so the journey never blinks.
+    const p = clamp01((ms - T_AXON_END) / ARBOR_MS)
+    s.phase = 'terminal'
+    s.hillockLevel = peak
+    s.terminalHead = p
+    s.terminalAP = 1
     return s
   }
 
   if (ms < T_TERMINAL_END) {
-    // Arrival at the boutons: vesicles move to the membrane and release.
-    const p = clamp01((ms - T_AXON_END) / TERMINAL_MS)
+    // Arrived at every bouton: vesicles move to the membrane and release.
+    const p = clamp01((ms - T_ARBOR_END) / TERMINAL_MS)
     s.phase = 'terminal'
     s.hillockLevel = peak * (1 - p)
+    s.terminalHead = 1
     // Still lit on arrival, fading as the release takes over — so the two read as
     // cause and consequence rather than as one glow doing both jobs.
     s.terminalAP = 1 - clamp01(p / 0.5)

@@ -8,6 +8,45 @@
 const AMBER = '#f59e0b'
 const LABEL = '#cbd5e1'
 
+// ⚠ THE APP'S ONE LABEL STYLE (user, 2026-09-04: "unify labels across the
+// app. Source of truth: vesicle view"). Every NAME drawn on any canvas is
+// this plate, this font, this ink — the vesicle view's own — so a child who
+// learns what a name looks like in one exhibit reads names everywhere. The
+// whole-neuron scene used to run a second system entirely (13px
+// `ui-sans-serif`, plate rgba(15,23,42,0.92), ink #64748b), which is how one
+// visual language quietly became two.
+//
+// ⚠ WHAT "UNIFIED" DOES NOT COVER: which terms SPEAK. Voice is granted per
+// term, on request ("add voice to term A" — CLAUDE.md), and unifying the
+// look of labels must not hand forty terms a speaker nobody asked for
+// (ruled by the user, 2026-09-04, against the reading that the vesicle
+// view's speakers came with its style).
+export const LABEL_PLATE = 'rgba(2, 6, 23, 0.72)'
+export const LABEL_INK = LABEL
+export const LABEL_PX = 11
+export const labelFont = (px: number = LABEL_PX): string =>
+  `${px}px system-ui, sans-serif`
+
+/** The leader from a name to the thing it names. One ink, one weight, and it
+ *  leaves the label's BOX CENTRE — the vesicle view's own geometry. Views
+ *  used to start it at the ink's edge, which reads as a different idiom. */
+export const CONNECTOR_INK = 'rgba(148, 163, 184, 0.85)'
+
+export function drawConnector(
+  ctx: CanvasRenderingContext2D,
+  l: { x: number; y: number; w: number; h: number },
+  to: { x: number; y: number },
+): void {
+  ctx.save()
+  ctx.strokeStyle = CONNECTOR_INK
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(l.x + l.w / 2, l.y + l.h / 2)
+  ctx.lineTo(to.x, to.y)
+  ctx.stroke()
+  ctx.restore()
+}
+
 export interface SpokenLabel {
   term: string
   /** Text anchor (baseline), in the canvas's CSS pixel space. */
@@ -97,15 +136,56 @@ export function drawSpoken(ctx: CanvasRenderingContext2D, l: SpokenLabel) {
   // with that. It also put a ruled rectangle on top of drawings the app has
   // taken a lot of trouble to keep unruled.
   ctx.save()
-  ctx.fillStyle = 'rgba(2, 6, 23, 0.72)'
+  ctx.fillStyle = LABEL_PLATE
   ctx.beginPath()
   ctx.roundRect(l.x + 2, l.y + 2, l.w - 4, l.h - 4, 5)
   ctx.fill()
   ctx.restore()
 
-  ctx.fillStyle = LABEL
-  ctx.font = '11px system-ui, sans-serif'
+  ctx.fillStyle = LABEL_INK
+  ctx.font = labelFont()
   ctx.textAlign = l.align
   ctx.fillText(l.term, l.ax, l.ay)
   speakerGlyph(ctx, l.align === 'left' ? l.ax - 11 : l.ax + 11, l.ay - 4)
+}
+
+/** A NAME that does not speak: the same plate, font and ink, without the F04
+ *  glyph. Voice is per term (see above), so most names on most canvases are
+ *  drawn with this — and they still look like every other name in the app. */
+export function drawName(ctx: CanvasRenderingContext2D, l: SpokenLabel): void {
+  ctx.save()
+  ctx.fillStyle = LABEL_PLATE
+  ctx.beginPath()
+  ctx.roundRect(l.x + 2, l.y + 2, l.w - 4, l.h - 4, 5)
+  ctx.fill()
+  ctx.restore()
+
+  ctx.fillStyle = LABEL_INK
+  ctx.font = labelFont()
+  ctx.textAlign = l.align
+  ctx.fillText(l.term, l.ax, l.ay)
+}
+
+/** A name whose hit box is sized for a word with no speaker glyph in front of
+ *  it — `spoken()` reserves 18 px for the glyph, which would leave a silent
+ *  name sitting off-centre on its own plate. */
+export const named = (
+  term: string,
+  ax: number,
+  ay: number,
+  align: 'left' | 'right' = 'left',
+): SpokenLabel => {
+  const tw = term.length * 6.2
+  const inkFrom = align === 'left' ? ax : ax - tw
+  const inkTo = align === 'left' ? ax + tw : ax
+  return {
+    term,
+    ax,
+    ay,
+    align,
+    x: inkFrom - HIT_PAD_X,
+    y: ay - 12 - HIT_PAD_Y,
+    w: inkTo - inkFrom + HIT_PAD_X * 2,
+    h: 16 + HIT_PAD_Y * 2,
+  }
 }

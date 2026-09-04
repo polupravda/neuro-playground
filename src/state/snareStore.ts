@@ -16,21 +16,18 @@ interface SnareState {
   /** ⚠ THE LABELS SWITCH (user, 2026-09-04): off = the run never pauses at
    *  the labelled checkpoints and no label is drawn anywhere — rest and end
    *  stills included. */
-  labelsOn: boolean
   openBench: () => void
   closeBench: () => void
   play: () => void
   pause: () => void
   scrubTo: (u: number) => void
   reset: () => void
-  toggleLabels: () => void
 }
 
 export const useSnareStore = create<SnareState>((set) => ({
   open: false,
   u: 0,
   playing: false,
-  labelsOn: true,
   // ⚠ Opening does NOT start it (user, 2026-09-02: "start animation on button
   // click only"). The drawer opens on the labelled still — callouts tying
   // each name to its part — and the run belongs to the ▶ button. (Supersedes
@@ -42,5 +39,4 @@ export const useSnareStore = create<SnareState>((set) => ({
   pause: () => set({ playing: false }),
   scrubTo: (u) => set({ u: Math.max(0, Math.min(1, u)), playing: false }),
   reset: () => set({ u: 0, playing: false }),
-  toggleLabels: () => set((s) => ({ labelsOn: !s.labelsOn })),
 }))

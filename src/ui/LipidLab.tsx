@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useLipidStore } from '../state/lipidStore'
 import { SideDrawer } from './SideDrawer'
+import { LabelsSwitch } from './LabelsSwitch'
+import { useLabelsStore } from '../state/labelsStore'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
 import { RealPhotoBlock } from './RealPhotoPanel'
@@ -52,6 +54,12 @@ const FRAMING = [
 ]
 
 export function LipidLab() {
+  // ⚠ The app's one 🏷 switch (2026-09-04). Held in a ref too: the drawing
+  // runs in an animation loop, not on React's clock.
+  const labelsOn = useLabelsStore((st) => st.labelsOn)
+  const labelsRef = useRef(labelsOn)
+  labelsRef.current = labelsOn
+
   const open = useLipidStore((s) => s.open)
   const phase = useLipidStore((s) => s.phase)
   const phaseStart = useLipidStore((s) => s.phaseStart)
@@ -120,13 +128,13 @@ export function LipidLab() {
       }
       labCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       labCtx.clearRect(0, 0, LAB_W * LAB_SCALE, LAB_H * LAB_SCALE)
-      drawLab(labCtx, s, ms)
+      drawLab(labCtx, s, ms, labelsRef.current)
       vesCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       vesCtx.clearRect(0, 0, VES_W * LAB_SCALE, VES_H * LAB_SCALE)
-      drawVesicle(vesCtx, s, ms)
+      drawVesicle(vesCtx, s, ms, labelsRef.current)
       molCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       molCtx.clearRect(0, 0, MOLECULE_W, MOLECULE_H)
-      drawMolecule(molCtx, ms)
+      drawMolecule(molCtx, ms, labelsRef.current)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
@@ -241,6 +249,12 @@ export function LipidLab() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          {/* ⚠ IN THE ROW, PUSHED RIGHT (user, 2026-09-04: "make sure 'labels'
+              are in the top right corner… align horizontally with other
+              buttons, if any"). A row of controls already exists here, so the
+              switch belongs IN it rather than in a strip of its own — one row
+              of chrome, the actions from the left, the way-of-reading control
+              at the right end. */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -257,10 +271,30 @@ export function LipidLab() {
             >
               {nextIsScatter ? <>💨 Scatter them</> : <>🌊 Let them settle</>}
             </button>
+            <LabelsSwitch
+              on={labelsOn}
+              onToggle={() => useLabelsStore.getState().toggleLabels()}
+              titleOn="Hide the names on the picture"
+              titleOff="Show the names on the picture"
+              className="ml-auto"
+            />
           </div>
 
           {/* Row 1 — the molecule and the bag it can close into, side by side
               and given the height; row 2 — the wall, shorter, given the width. */}
+          {/* ⚠ OUTSIDE THE PICTURE (user, 2026-09-04). This exhibit's canvas
+              is dense edge to edge, so a switch laid over any corner of it
+              covers something the exhibit is for. It sits above the picture
+              instead, right-aligned — chrome beside the drawing rather than
+              on it. */}
+          <div className="flex shrink-0 justify-end">
+            <LabelsSwitch
+              on={labelsOn}
+              onToggle={() => useLabelsStore.getState().toggleLabels()}
+              titleOn="Hide the names on the picture"
+              titleOff="Show the names on the picture"
+            />
+          </div>
           <div className="flex items-start gap-4">
             <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-2">
               <canvas

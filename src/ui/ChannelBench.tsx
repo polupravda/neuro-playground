@@ -4,6 +4,8 @@ import { SideDrawer } from './SideDrawer'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
 import { IonKey } from './IonKey'
+import { LabelsSwitch } from './LabelsSwitch'
+import { useLabelsStore } from '../state/labelsStore'
 import { IonSizeKey } from './IonSizeKey'
 import { spokenTermAt } from '../stage/spokenLabels'
 import {
@@ -84,14 +86,20 @@ export function ChannelBench() {
       if (run && tryPoseAt(run, ms).done) finishTry()
       sideCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       sideCtx.clearRect(0, 0, SIDE_W, CH_H)
-      drawSide(sideCtx, triedRef.current, ms)
+      drawSide(sideCtx, triedRef.current, ms, labelsRef.current)
       topCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       topCtx.clearRect(0, 0, TOP_W, CH_H)
-      drawTop(topCtx, triedRef.current, ms)
+      drawTop(topCtx, triedRef.current, ms, labelsRef.current)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
   }, [open, finishTry])
+
+  // ⚠ The app's one 🏷 switch (2026-09-04). Read into a ref because the
+  // drawing runs in an animation loop, not on React's clock.
+  const labelsOn = useLabelsStore((st) => st.labelsOn)
+  const labelsRef = useRef(labelsOn)
+  labelsRef.current = labelsOn
 
   const speakFrom =
     (labels: () => ReturnType<typeof sideLabels>, chip = false) =>
@@ -160,6 +168,13 @@ export function ChannelBench() {
                 rather than needing to be dismissed. A control whose only job
                 is to clear a sentence is furniture. */}
             <div className="relative min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+              <LabelsSwitch
+                on={labelsOn}
+                onToggle={() => useLabelsStore.getState().toggleLabels()}
+                titleOn="Hide the names on the picture"
+                titleOff="Show the names on the picture"
+                className="absolute right-3 top-3 z-10"
+              />
               <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2">
                 {(['k', 'na'] as const).map((kind) => (
                   <button

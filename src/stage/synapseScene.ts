@@ -15,7 +15,13 @@ import { SIGNAL_RGB, softGlow } from './signal'
 import { drawLigandChannel } from './ligandChannel'
 
 import { drawVoltageChannel } from './voltageChannel'
-import { CLEFT_NM, SPINE_REST_MV, SPINE_TAU_MS, sampleCleft, type CleftRun } from '../core/cleft'
+import {
+  CLEFT_NM,
+  SPINE_REST_MV,
+  SPINE_TAU_MS,
+  sampleCleft,
+  type CleftRun,
+} from '../core/cleft'
 import {
   CAST_ALPHA,
   NA_APPROACH_MS,
@@ -33,7 +39,7 @@ import {
 } from './synapseCast'
 import { paveMembrane, type LipidGeom, type WallPoint } from './bilayer'
 import { POOL, sampleSynapse, type SynapseRun } from '../core/synapse'
-import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
+import { spoken, drawSpoken, drawName, named, type SpokenLabel } from './spokenLabels'
 
 // S12 LEG 1 — THE SYNAPSE, ARRIVAL TO BINDING.
 //
@@ -106,13 +112,43 @@ export const CLOCK_LEGS: { from: number; to: number; share: number; what: string
   // ⚠ A FLASH IS FAST (user, 2026-09-01): the spike's leg was 13% and the
   // arrival crawled; the freed screen time went to the beat after it, so the
   // jolt is quick and the red it leaves behind is what gets dwelt on.
-  { from: 0.4 / 60, to: 1.6 / 60, share: 0.05, what: 'the spike arrives — the terminal goes red' },
-  { from: 1.6 / 60, to: 1.75 / 60, share: 0.06, what: 'a beat: depolarized, doors about to answer' },
-  { from: 1.75 / 60, to: 2.45 / 60, share: 0.13, what: 'the doors open; calcium finds the sensors' },
-  { from: 2.45 / 60, to: 2.56 / 60, share: 0.045, what: 'a beat: calcium seated, nothing moved yet' },
-  { from: 2.56 / 60, to: 2.9 / 60, share: 0.12, what: 'exocytosis — three vesicles open' },
+  {
+    from: 0.4 / 60,
+    to: 1.6 / 60,
+    share: 0.05,
+    what: 'the spike arrives — the terminal goes red',
+  },
+  {
+    from: 1.6 / 60,
+    to: 1.75 / 60,
+    share: 0.06,
+    what: 'a beat: depolarized, doors about to answer',
+  },
+  {
+    from: 1.75 / 60,
+    to: 2.45 / 60,
+    share: 0.13,
+    what: 'the doors open; calcium finds the sensors',
+  },
+  {
+    from: 2.45 / 60,
+    to: 2.56 / 60,
+    share: 0.045,
+    what: 'a beat: calcium seated, nothing moved yet',
+  },
+  {
+    from: 2.56 / 60,
+    to: 2.9 / 60,
+    share: 0.12,
+    what: 'exocytosis — three vesicles open',
+  },
   { from: 2.9 / 60, to: 3.0 / 60, share: 0.035, what: 'a beat: the gap is full' },
-  { from: 3.0 / 60, to: 5.5 / 60, share: 0.14, what: 'the gap: spreading, escaping, binding' },
+  {
+    from: 3.0 / 60,
+    to: 5.5 / 60,
+    share: 0.14,
+    what: 'the gap: spreading, escaping, binding',
+  },
   { from: 5.5 / 60, to: 9 / 60, share: 0.12, what: 'the spine answers' },
   // ⚠ THE CHAIN'S OWN LEG (user, 2026-09-01: "at 9.6 ms Na rushes; at ~10 the
   // animation speeds up"): opens, pauses, sodium and the flash used to fall
@@ -122,8 +158,18 @@ export const CLOCK_LEGS: { from: number; to: number; share: number; what: string
   // pauses, the nudge's launch (~17.7 ms), the glow-offs, the departures and
   // the doors' closings (up to ~24 ms) ALL play at this leg's ~0.28 s/ms
   // instead of falling off the boundary into the compressed tail.
-  { from: 9 / 60, to: 24.5 / 60, share: 0.194, what: 'gates open, sodium flows, the nudge departs' },
-  { from: 24.5 / 60, to: 1, share: 0.081, what: 'clearing up: calcium buffered, the bath settles' },
+  {
+    from: 9 / 60,
+    to: 24.5 / 60,
+    share: 0.194,
+    what: 'gates open, sodium flows, the nudge departs',
+  },
+  {
+    from: 24.5 / 60,
+    to: 1,
+    share: 0.081,
+    what: 'clearing up: calcium buffered, the bath settles',
+  },
 ]
 
 /** Screen position 0→1 → the model's own position 0→1. The last leg absorbs
@@ -151,7 +197,10 @@ export function screenOfModel(modelU: number): number {
   let acc = 0
   for (const leg of CLOCK_LEGS) {
     if (m <= leg.to) {
-      const t = Math.max(0, Math.min(1, (m - leg.from) / Math.max(1e-9, leg.to - leg.from)))
+      const t = Math.max(
+        0,
+        Math.min(1, (m - leg.from) / Math.max(1e-9, leg.to - leg.from)),
+      )
       return Math.max(0, Math.min(1, acc + t * leg.share))
     }
     acc += leg.share
@@ -173,7 +222,8 @@ export function synapseEvents(
   const sites = receptorSites(g)
   let fusion: number | null = null
   for (const v of run.vesicles)
-    if (v.fusedAtMs !== null && (fusion === null || v.fusedAtMs < fusion)) fusion = v.fusedAtMs
+    if (v.fusedAtMs !== null && (fusion === null || v.fusedAtMs < fusion))
+      fusion = v.fusedAtMs
   let seated: number | null = null
   let opens: number | null = null
   for (let r = 0; r < sites.length; r++) {
@@ -184,27 +234,64 @@ export function synapseEvents(
     if (ow && (opens === null || ow.openAt < opens)) opens = ow.openAt
   }
   const all: ({ id: string; label: string; ms: number; note: string } | null)[] = [
-    { id: 'spike', label: 'the spike', ms: 0.4, note: 'The action potential arrives — the terminal goes red' },
-    { id: 'calcium', label: 'calcium in', ms: 1.75, note: 'The voltage-gated doors open and calcium finds the sensors' },
+    {
+      id: 'spike',
+      label: 'the spike',
+      ms: 0.4,
+      note: 'The action potential arrives — the terminal goes red',
+    },
+    {
+      id: 'calcium',
+      label: 'calcium in',
+      ms: 1.75,
+      note: 'The voltage-gated doors open and calcium finds the sensors',
+    },
     fusion === null
       ? null
-      : { id: 'fusion', label: 'fusion', ms: fusion, note: 'The first vesicle opens into the gap' },
+      : {
+          id: 'fusion',
+          label: 'fusion',
+          ms: fusion,
+          note: 'The first vesicle opens into the gap',
+        },
     seated === null
       ? null
-      : { id: 'binding', label: 'binding', ms: seated, note: 'Transmitter seats on the first receptor' },
+      : {
+          id: 'binding',
+          label: 'binding',
+          ms: seated,
+          note: 'Transmitter seats on the first receptor',
+        },
     opens === null
       ? null
-      : { id: 'opens', label: 'gates open', ms: opens, note: 'The first ligand-gated channel opens; sodium flows' },
+      : {
+          id: 'opens',
+          label: 'gates open',
+          ms: opens,
+          note: 'The first ligand-gated channel opens; sodium flows',
+        },
     // ⚠ OBVIOUS EVENTS ONLY (user, 2026-09-01: "what is 'the nudge'? Nothing
     // significant seems to be happening"): the departing EPSP is drawn below
     // the bottom edge on purpose, so its dot pointed at almost nothing. The
     // ion flow is the visible event — the first gold pair crossing its pore.
     opens === null
       ? null
-      : { id: 'sodium-in', label: 'sodium in', ms: opens + NA_PAUSE_MS, note: 'The first pair of sodium ions flows through its channel' },
-    { id: 'clearing', label: 'clearing', ms: 24.5, note: 'Calcium is buffered away and the bath settles' },
+      : {
+          id: 'sodium-in',
+          label: 'sodium in',
+          ms: opens + NA_PAUSE_MS,
+          note: 'The first pair of sodium ions flows through its channel',
+        },
+    {
+      id: 'clearing',
+      label: 'clearing',
+      ms: 24.5,
+      note: 'Calcium is buffered away and the bath settles',
+    },
   ]
-  return all.filter((e): e is { id: string; label: string; ms: number; note: string } => e !== null)
+  return all.filter(
+    (e): e is { id: string; label: string; ms: number; note: string } => e !== null,
+  )
 }
 
 export const SYN_W = STAGE_W
@@ -259,7 +346,7 @@ export const OUTSIDE = '#11192b'
  *  of outside that was folded in is unfolded again. Two constants that happened
  *  to agree would be two things that could stop agreeing. */
 export const LUMEN = OUTSIDE
-const CYTOPLASM = 'rgba(148, 163, 184, 0.10)'
+export const CYTOPLASM = 'rgba(148, 163, 184, 0.10)'
 const LEAFLET = '#cbd5e1'
 const CORE = 'rgba(71, 85, 105, 0.75)'
 const INK = 'rgba(148, 163, 184, 0.85)'
@@ -369,7 +456,13 @@ export function synapseGeometry(width = SYN_W, height = SYN_H): SynapseGeometry 
   const activeHalf = bulbHalf * ACTIVE_OF_BULB
   const ry = Math.max(24, (below * FACE_OF_BELOW - CLEFT_PX) / (1 + SPINE_NECK))
   const head = { cx: foot.x, rx: activeHalf * (1 + FACE_OVER), ry }
-  return { fit, foot, head, shaftTop: foot.y + CLEFT_PX + ry * (1 + SPINE_NECK), activeHalf }
+  return {
+    fit,
+    foot,
+    head,
+    shaftTop: foot.y + CLEFT_PX + ry * (1 + SPINE_NECK),
+    activeHalf,
+  }
 }
 
 /** Where the docked vesicles and the calcium doors sit along the active zone,
@@ -615,7 +708,12 @@ function drawPocket(
  *  child can see that what came out is what was in.
  *
  *  Seeded and count-independent, and a named decision so a test can reach it. */
-export function cargoIn(cx: number, cy: number, r: number, n = 7): { x: number; y: number }[] {
+export function cargoIn(
+  cx: number,
+  cy: number,
+  r: number,
+  n = 7,
+): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = []
   for (let i = 0; i < n; i++) {
     const h = Math.sin(i * 61.9 + 2.7) * 43758.5453
@@ -830,7 +928,10 @@ export function pocketAt(
  *  (user, 2026-08-31). A named decision so a test can reach it, and so the
  *  drawing and any hit test can never disagree about where the two walls have
  *  become one. */
-export function mergeBand(g: SynapseGeometry, x: number): { top: number; bottom: number } {
+export function mergeBand(
+  g: SynapseGeometry,
+  x: number,
+): { top: number; bottom: number } {
   const y = wallAt(g, x)
   return { top: y - MEM_PX * 1.6, bottom: y + MEM_PX * 1.6 }
 }
@@ -887,7 +988,7 @@ export function tearsAt(g: SynapseGeometry, run: SynapseRun, ms: number): Tear[]
  *  `tears` are places where there is no wall any more. Clipped OUT rather than
  *  painted over: this view shares a Konva layer, so a shape that erases pixels
  *  erases its neighbours. */
-function membraneBand(
+export function membraneBand(
   ctx: CanvasRenderingContext2D,
   trace: () => void,
   tears?: Tear[],
@@ -928,7 +1029,7 @@ function membraneBand(
 /** The spine: a neck out of the shaft and a mushroom head facing the terminal.
  *  ⚠ This is the alteration to the handover — see `boutonShape` for why a
  *  glutamate synapse must land on a spine. */
-function spinePath(
+export function spinePath(
   ctx: CanvasRenderingContext2D,
   g: SynapseGeometry,
   _width: number,
@@ -1024,12 +1125,194 @@ export function receptorSites(g: SynapseGeometry, n = 5): { x: number; y: number
 // top-right scale switch — the AP views' own chrome patterns, HTML over the
 // stage (see NeuronStage).
 
-export function synapseLabels(g: SynapseGeometry): SpokenLabel[] {
+/** ⚠ EACH NAME TIED TO ITS PART (user, 2026-09-04: "labels on whole synapse
+ *  framing are misplaced — add connector lines between labels and objects
+ *  they define"): D06's callout grammar, brought to the scene. Every label
+ *  sits in measured open bath and points at the thing it names. */
+export function synapseCallouts(
+  g: SynapseGeometry,
+): { label: SpokenLabel; to: { x: number; y: number } }[] {
+  const fin = astrocyteFinger(g, 1)
+  const d0 = activeZone(g).docked[0]
+  const edgeX = g.foot.x + g.activeHalf
+  const gapMid = wallAt(g, edgeX) + CLEFT_PX * 0.5
   return [
-    spoken('synaptic cleft', g.foot.x + g.activeHalf + 26, g.foot.y + CLEFT_PX * 0.5 + 4),
-    spoken('dendritic spine', g.head.cx - g.head.rx - 150, faceAt(g, g.head.cx) + 40),
-    spoken('vesicle', g.foot.x - g.activeHalf - 130, g.foot.y - vesicleR(g) * 5.2),
+    {
+      // Far enough left that the whole box clears the bulb's flank (its old
+      // spot put a corner ON the bouton — the misplacement complaint).
+      label: spoken(
+        'vesicle',
+        g.foot.x - g.activeHalf - 235,
+        g.foot.y - vesicleR(g) * 5.2,
+      ),
+      to: { x: d0.x - d0.r * 0.7, y: d0.y - d0.r * 0.5 },
+    },
+    {
+      // ⚠ BOTTOM-RIGHT, not bottom-left (user, 2026-09-04: "bottom left label
+      // is covered by buttons container") — the shelf plate owns that corner.
+      // Measured clear of the right finger and above the cleft label's box,
+      // pointing at the face's right flank.
+      label: spoken(
+        'dendritic spine',
+        g.head.cx + g.head.rx + 15,
+        faceAt(g, g.head.cx) + 115,
+        'left',
+      ),
+      to: {
+        x: g.head.cx + g.head.rx * 0.55,
+        y: faceAt(g, g.head.cx + g.head.rx * 0.55) + 10,
+      },
+    },
+    {
+      // Moved off the spine's shoulder (it sat ON the postsynaptic face) to
+      // the open bath below the right finger, pointing into the gap's mouth.
+      label: spoken('synaptic cleft', edgeX + 160, g.foot.y + CLEFT_PX + 155, 'left'),
+      to: { x: edgeX - 20, y: gapMid },
+    },
+    {
+      // Above the right finger's tip, in the measured-empty bath beyond the
+      // bulb's flank.
+      label: spoken('astrocyte', fin.tip.x + 46, fin.tip.y - 44, 'left'),
+      to: { x: fin.tip.x + 8, y: fin.tip.y - 8 },
+    },
   ]
+}
+
+export function synapseLabels(g: SynapseGeometry): SpokenLabel[] {
+  return synapseCallouts(g).map((c) => c.label)
+}
+
+// ── the astrocyte's fingers (21b-1) ─────────────────────────────────────────
+//
+// ⚠ THE THIRD CELL (user, 2026-09-04: reuptake at three registers — this is
+// register one, "who and where"). A glial finger at EACH flank of the cleft,
+// at the scene's own band register: the bath pocket the escaped transmitter
+// already rested in IS the finger's interior now, entered through transporter
+// ticks — the cloud's decay, attributed. The active-zone framing simply crops
+// the fingers away (same scene, closer camera), which is the agreed close-up
+// treatment: the drain shows, the cell lives at the rim, off that frame.
+
+export interface AstroFinger {
+  side: 1 | -1
+  tip: { x: number; y: number }
+  base: { x: number; y: number }
+  rTip: number
+  rBase: number
+  /** The transporter ticks on the tip's synapse-facing cap — the only doors
+   *  the collected balls may cross the glial membrane at. */
+  ticks: { x: number; y: number }[]
+}
+
+export function astrocyteFinger(g: SynapseGeometry, side: 1 | -1): AstroFinger {
+  // ⚠ AT THE CLEFT'S MOUTH, not beside the spine's head (user, 2026-09-04:
+  // the fingers sat level with the spine's shoulders and read as a second
+  // postsynaptic specialization — "place it slightly further away or more
+  // towards synaptic cleft"). The tip now hovers at the GAP's own height,
+  // reaching for the mouth it drains, clear of both neurons' silhouettes.
+  const edgeX = g.foot.x + side * g.activeHalf
+  const tipY = wallAt(g, edgeX) + CLEFT_PX * 0.5
+  const tip = { x: g.foot.x + side * (g.activeHalf + 105), y: tipY }
+  // The body runs outward and gently down, off the page — the cell continues
+  // beyond the frame and is faded out toward it, never cut by an invented
+  // edge.
+  const base = { x: g.foot.x + side * (g.activeHalf + 330), y: tipY + 95 }
+  const rTip = 36
+  const rBase = 78
+  const ticks = [
+    { x: tip.x - side * rTip * 0.95, y: tip.y - rTip * 0.2 },
+    { x: tip.x - side * rTip * 0.8, y: tip.y + rTip * 0.48 },
+  ]
+  return { side, tip, base, rTip, rBase, ticks }
+}
+
+/** Whether a point lies inside the finger — the DECISION the collected balls
+ *  are guarded by (a capsule test on the finger's own centreline). */
+export function astrocyteHolds(f: AstroFinger, p: { x: number; y: number }): boolean {
+  const dx = f.base.x - f.tip.x
+  const dy = f.base.y - f.tip.y
+  const len2 = dx * dx + dy * dy || 1
+  const t = Math.max(0, Math.min(1, ((p.x - f.tip.x) * dx + (p.y - f.tip.y) * dy) / len2))
+  const cx = f.tip.x + dx * t
+  const cy = f.tip.y + dy * t
+  const r = f.rTip + (f.rBase - f.rTip) * t
+  return Math.hypot(p.x - cx, p.y - cy) <= r
+}
+
+/** A resting spot INSIDE the finger, seeded per ball — solved from the
+ *  capsule itself, so it cannot land outside it. */
+export function astroRest(
+  f: AstroFinger,
+  h1: number,
+  h2: number,
+): { x: number; y: number } {
+  const t = 0.12 + h1 * 0.55
+  const cx = f.tip.x + (f.base.x - f.tip.x) * t
+  const cy = f.tip.y + (f.base.y - f.tip.y) * t
+  const r = (f.rTip + (f.rBase - f.rTip) * t) * 0.6
+  const a = h2 * Math.PI * 2
+  return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }
+}
+
+// The glial cytoplasm's tint (134,184,158 — the neurons' wash, greened a
+// step) and its membrane band (the wall's own LEAFLET/CORE families) are all
+// carried inside the fade gradients below, so the third cell reads as a cell
+// and vanishes toward the frame edge without an invented boundary.
+/** ⚠ THE THIRD CELL'S FINGER, drawn ONCE for the whole app (exported
+ *  2026-09-04 for D17). The reuptake drawer shows the SAME synapse this view
+ *  shows, so it asks this function for the fingers rather than drawing a
+ *  second set — one biology, one drawing. If they ever diverge, a child would
+ *  meet two different astrocytes at one synapse. */
+export function drawAstroFinger(
+  ctx: CanvasRenderingContext2D,
+  g: SynapseGeometry,
+  side: 1 | -1,
+): void {
+  const f = astrocyteFinger(g, side)
+  const th = Math.atan2(f.base.y - f.tip.y, f.base.x - f.tip.x)
+  const n = { x: -Math.sin(th), y: Math.cos(th) }
+  const capsule = () => {
+    ctx.beginPath()
+    ctx.arc(f.tip.x, f.tip.y, f.rTip, th + Math.PI / 2, th - Math.PI / 2)
+    ctx.lineTo(f.base.x - n.x * f.rBase, f.base.y - n.y * f.rBase)
+    ctx.arc(f.base.x, f.base.y, f.rBase, th - Math.PI / 2, th + Math.PI / 2)
+    ctx.closePath()
+  }
+  // The cell fades toward the frame's edge: the gradient carries the fade so
+  // no invented boundary is ever drawn (globalAlpha stays multiplied-only).
+  const fadeStops = (rgb: string, near: number, far: number) => {
+    const grad = ctx.createLinearGradient(f.tip.x, f.tip.y, f.base.x, f.base.y)
+    grad.addColorStop(0, `rgba(${rgb}, ${near})`)
+    grad.addColorStop(0.55, `rgba(${rgb}, ${near})`)
+    grad.addColorStop(1, `rgba(${rgb}, ${far})`)
+    return grad
+  }
+  ctx.save()
+  capsule()
+  ctx.fillStyle = fadeStops('134, 184, 158', 0.1, 0)
+  ctx.fill()
+  capsule()
+  ctx.strokeStyle = fadeStops('203, 213, 225', 0.9, 0)
+  ctx.lineWidth = MEM_PX
+  ctx.stroke()
+  capsule()
+  ctx.strokeStyle = fadeStops('71, 85, 105', 0.75, 0)
+  ctx.lineWidth = MEM_PX * 0.42
+  ctx.stroke()
+  // The transporter ticks: the pump family's indigo (D06's own transporter
+  // colour, at this register a tick rather than a barrel), each set across
+  // the membrane at its point.
+  for (const t of f.ticks) {
+    const a = Math.atan2(t.y - f.tip.y, t.x - f.tip.x)
+    ctx.save()
+    ctx.translate(t.x, t.y)
+    ctx.rotate(a)
+    ctx.fillStyle = '#6366f1'
+    ctx.beginPath()
+    ctx.roundRect(-MEM_PX * 1.3, -2.6, MEM_PX * 2.6, 5.2, 2)
+    ctx.fill()
+    ctx.restore()
+  }
+  ctx.restore()
 }
 
 /** ⚠ WHERE THE 'active zone' CAPTION SITS (user, 2026-09-01: "adjust labels
@@ -1053,43 +1336,58 @@ export function activeZoneLabelAt(g: SynapseGeometry): { x: number; y: number } 
 export function snareMini(
   g: SynapseGeometry,
   d: { x: number; y: number; r: number },
-): { ropeFrom: { x: number; y: number }; ropeTo: { x: number; y: number }; knobs: { x: number; y: number }[] } {
+): {
+  ropes: { from: { x: number; y: number }; to: { x: number; y: number } }[]
+  knobs: { x: number; y: number }[]
+} {
   const wall = wallAt(g, d.x)
   // Each knob sits on the wall AT ITS OWN x — on the sloped outer slots a
   // knob hung off the slot-centre's height crossed the membrane.
   const knobAt = (x: number) => ({ x, y: wallAt(g, x) - MEM_PX - d.r * 0.28 })
+  // ⚠ TWO ropes since 2026-09-04 (user: "add another snare complex to each
+  // vesicle, to stay consistent between presentations") — the mirrored pair,
+  // a section through the ring, matching D06 at every register.
+  const rope = (sd: 1 | -1) => ({
+    from: { x: d.x + sd * d.r * 0.4, y: wall - MEM_PX * 0.6 },
+    to: { x: d.x + sd * d.r * 0.32, y: d.y + d.r * 0.82 },
+  })
   return {
-    ropeFrom: { x: d.x + d.r * 0.4, y: wall - MEM_PX * 0.6 },
-    ropeTo: { x: d.x + d.r * 0.32, y: d.y + d.r * 0.82 },
+    ropes: [rope(1), rope(-1)],
     knobs: [knobAt(d.x - d.r * 1.05), knobAt(d.x + d.r * 1.05)],
   }
 }
 
-function drawSnareMini(ctx: CanvasRenderingContext2D, g: SynapseGeometry, d: { x: number; y: number; r: number }): void {
+function drawSnareMini(
+  ctx: CanvasRenderingContext2D,
+  g: SynapseGeometry,
+  d: { x: number; y: number; r: number },
+): void {
   const m = snareMini(g, d)
-  const dx = m.ropeTo.x - m.ropeFrom.x
-  const dy = m.ropeTo.y - m.ropeFrom.y
-  const len = Math.hypot(dx, dy) || 1
-  const nx = -dy / len
-  const ny = dx / len
-  // The rope: the same three strands, in D06's own strand colours.
+  // The ropes: the same three strands, in D06's own strand colours.
   const strands = SNARE_STRANDS
   ctx.save()
   ctx.lineWidth = 1.4
   ctx.lineCap = 'round'
-  for (const [i, colour] of strands.entries()) {
-    ctx.strokeStyle = colour
-    ctx.beginPath()
-    const phase = (i / strands.length) * Math.PI * 2
-    for (let k = 0; k <= 10; k++) {
-      const t = k / 10
-      const off = Math.sin(t * Math.PI * 4.4 + phase) * 1.8
-      const x = m.ropeFrom.x + dx * t + nx * off
-      const y = m.ropeFrom.y + dy * t + ny * off
-      if (k === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
+  for (const rope of m.ropes) {
+    const dx = rope.to.x - rope.from.x
+    const dy = rope.to.y - rope.from.y
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    for (const [i, colour] of strands.entries()) {
+      ctx.strokeStyle = colour
+      ctx.beginPath()
+      const phase = (i / strands.length) * Math.PI * 2
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10
+        const off = Math.sin(t * Math.PI * 4.4 + phase) * 1.8
+        const x = rope.from.x + dx * t + nx * off
+        const y = rope.from.y + dy * t + ny * off
+        if (k === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      }
+      ctx.stroke()
     }
-    ctx.stroke()
   }
   // Synaptotagmin: the knobs the calcium seats against — D06's sensor grammar.
   for (const knob of m.knobs) {
@@ -1123,10 +1421,18 @@ export function membraneLipids(g: SynapseGeometry, tears: Tear[]): WallPoint[] {
     const underDoor = doors.some((d) => Math.abs(x - d.x) < 9)
     const underSite = sites.some((r) => Math.abs(x - r.x) < 10)
     if (!underDoor && !tears.some((t) => x > t.xL - 3 && x < t.xR + 3)) {
-      pts.push({ at: { x, y: wallAt(g, x) }, tangent: { x: 1, y: 0 }, inward: { x: 0, y: -1 } })
+      pts.push({
+        at: { x, y: wallAt(g, x) },
+        tangent: { x: 1, y: 0 },
+        inward: { x: 0, y: -1 },
+      })
     }
     if (!underSite && Math.abs(x - g.head.cx) <= g.head.rx * 0.98) {
-      pts.push({ at: { x, y: faceAt(g, x) }, tangent: { x: 1, y: 0 }, inward: { x: 0, y: 1 } })
+      pts.push({
+        at: { x, y: faceAt(g, x) },
+        tangent: { x: 1, y: 0 },
+        inward: { x: 0, y: 1 },
+      })
     }
   }
   return pts
@@ -1232,7 +1538,12 @@ export function arrivalFlash(
   return { x: top.x, y: top.y + p * (NECK_PX + 26), alpha, r: FLASH_R }
 }
 
-export type SoupIon = { kind: 'na' | 'k' | 'cl' | 'ca'; x: number; y: number; where: 'out' | 'pre' | 'post' }
+export type SoupIon = {
+  kind: 'na' | 'k' | 'cl' | 'ca'
+  x: number
+  y: number
+  where: 'out' | 'pre' | 'post'
+}
 
 /** ⚠ THE ION SOUP (user, 2026-09-01: "display ion soup in both pre- and
  *  postsynaptic and extracellular space"). Loose ions in every compartment,
@@ -1257,7 +1568,18 @@ export function ionSoup(g: SynapseGeometry): SoupIon[] {
     return h - Math.floor(h)
   }
   // ── outside: the bath either side of the bulb, and the cleft itself.
-  const OUT: SoupIon['kind'][] = ['na', 'na', 'na', 'cl', 'cl', 'na', 'cl', 'k', 'na', 'cl']
+  const OUT: SoupIon['kind'][] = [
+    'na',
+    'na',
+    'na',
+    'cl',
+    'cl',
+    'na',
+    'cl',
+    'k',
+    'na',
+    'cl',
+  ]
   const leftEdge = g.fit.ox + BOUTON_BOX.x * g.fit.k
   const rightEdge = g.fit.ox + (BOUTON_BOX.x + BOUTON_BOX.w) * g.fit.k
   for (const [i, kind] of OUT.entries()) {
@@ -1294,7 +1616,12 @@ export function ionSoup(g: SynapseGeometry): SoupIon[] {
     const j = jitter(i, 7.7)
     const j2 = jitter(i, 19.1)
     const x = g.head.cx + (j - 0.5) * 2 * g.head.rx * 0.55
-    out.push({ kind, x, y: faceAt(g, x) + MEM_PX * 2.6 + j2 * g.head.ry * 0.7, where: 'post' })
+    out.push({
+      kind,
+      x,
+      y: faceAt(g, x) + MEM_PX * 2.6 + j2 * g.head.ry * 0.7,
+      where: 'post',
+    })
   }
   return out
 }
@@ -1456,7 +1783,6 @@ export function spineTint(
   return (sum / n) * decay
 }
 
-
 export interface SynapseView {
   run: SynapseRun
   cleft: CleftRun
@@ -1474,6 +1800,9 @@ export interface SynapseView {
    *  doors. It dissolves on the dive to the active-zone place, where words
    *  and doors would be giant; the anatomy underneath keeps running. */
   chrome?: number
+  /** The labels switch (2026-09-04): false = the callouts are not drawn at
+   *  all, whatever the chrome. Defaults to on. */
+  labelsOn?: boolean
   width?: number
   height?: number
 }
@@ -1517,6 +1846,12 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
     }
   }
   drawSoup('out')
+
+  // ── the astrocyte's fingers (21b-1): the third cell, one at each flank of
+  // the cleft — the collectors the escaping transmitter travels to. Behind
+  // both neurons in the pile; the active-zone camera crops them away.
+  drawAstroFinger(ctx, g, 1)
+  drawAstroFinger(ctx, g, -1)
 
   // ── the postsynaptic side, bottom of the pile: the target's dendrite tip,
   // spine head to trunk, leaving through the bottom toward its soma.
@@ -1602,7 +1937,12 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   ctx.fillRect(0, 0, width, height)
   ctx.restore()
   drawSoup('pre')
-  membraneBand(ctx, () => boutonPath(ctx, g.fit), tears, (x) => wallAt(g, x))
+  membraneBand(
+    ctx,
+    () => boutonPath(ctx, g.fit),
+    tears,
+    (x) => wallAt(g, x),
+  )
 
   // ── the spike arriving down the stalk, in the app's own signal yellow.
   // ⚠ DRAWN HERE, with the wall — before the doors, the vesicles and the
@@ -1613,10 +1953,22 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   const vm = u === null ? null : sampleSynapse(v.run, 'vm', u)
   if (vm !== null && vm > -40) {
     const hot = Math.min(1, (vm + 40) / 80)
-    softGlow(ctx, g.foot.x, g.foot.y - g.activeHalf * 2.4, 90 * hot, SIGNAL_RGB, 0.35 * hot)
+    softGlow(
+      ctx,
+      g.foot.x,
+      g.foot.y - g.activeHalf * 2.4,
+      90 * hot,
+      SIGNAL_RGB,
+      0.35 * hot,
+    )
     ctx.save()
     ctx.globalAlpha *= hot
-    membraneBand(ctx, () => boutonPath(ctx, g.fit), tears, (x) => wallAt(g, x))
+    membraneBand(
+      ctx,
+      () => boutonPath(ctx, g.fit),
+      tears,
+      (x) => wallAt(g, x),
+    )
     ctx.restore()
   }
 
@@ -1657,7 +2009,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   // ruling says: while a fusing vesicle is sinking THROUGH the wall.
   for (const d of zone.docked) {
     const r = d.r
-    const gone = u === null ? null : v.run.vesicles[d.index]?.fusedAtMs ?? null
+    const gone = u === null ? null : (v.run.vesicles[d.index]?.fusedAtMs ?? null)
     if (gone !== null && ms >= gone) {
       // ⚠ FUSED, and drawn as what fusion IS. `fusedShape` sinks the circle
       // through the wall on the declared schedule; the moment it crosses the
@@ -1710,9 +2062,13 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   if (depth > 0.05) {
     ctx.save()
     ctx.globalAlpha *= depth
-    paveMembrane(ctx, membraneLipids(g, tears), { geom: ZONE_LIPID, first: 0, taperOver: 3 })
+    paveMembrane(ctx, membraneLipids(g, tears), {
+      geom: ZONE_LIPID,
+      first: 0,
+      taperOver: 3,
+    })
     for (const d of zone.docked) {
-      const gone = u === null ? null : v.run.vesicles[d.index]?.fusedAtMs ?? null
+      const gone = u === null ? null : (v.run.vesicles[d.index]?.fusedAtMs ?? null)
       if (gone !== null && ms >= gone) {
         // Fusing: the standing omega keeps its molecules; the submerged part
         // has become wall (whose own rows part at the tear).
@@ -1739,7 +2095,11 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
         )
         continue
       }
-      paveMembrane(ctx, vesicleLipids(d.x, d.y, d.r), { geom: ZONE_LIPID, first: 500, taperOver: 0 })
+      paveMembrane(ctx, vesicleLipids(d.x, d.y, d.r), {
+        geom: ZONE_LIPID,
+        first: 500,
+        taperOver: 0,
+      })
     }
     for (const [i, p] of reservePool(g).entries()) {
       paveMembrane(ctx, vesicleLipids(p.x, p.y, vesicleR(g) * vesicleScale(i + 40)), {
@@ -1756,7 +2116,14 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   if (local > v.run.restUm * 1.2) {
     const lit = Math.min(1, local / Math.max(1e-6, v.run.peakLocalUm))
     for (const d of zone.doors) {
-      softGlow(ctx, d.x, d.y - MEM_PX * 2, 10 + 26 * lit, GLOSSY_COLORS.ca.glow, 0.5 * lit)
+      softGlow(
+        ctx,
+        d.x,
+        d.y - MEM_PX * 2,
+        10 + 26 * lit,
+        GLOSSY_COLORS.ca.glow,
+        0.5 * lit,
+      )
     }
   }
 
@@ -1801,16 +2168,29 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   if (chrome > 0.02) {
     ctx.save()
     ctx.globalAlpha *= chrome
-    ctx.fillStyle = INK
-    ctx.font = '12px system-ui, sans-serif'
-    ctx.textAlign = 'left'
-    const azl = activeZoneLabelAt(g)
-    ctx.fillText('active zone', azl.x, azl.y)
-
     // ⚠ No magnifiers here any more (user, 2026-09-01): the way deeper is
     // the scale switch top-right, and the way into D06 is the shelf button
     // bottom-left — the AP views' own patterns, HTML chrome over the stage.
-    for (const l of synapseLabels(g)) drawSpoken(ctx, l)
+    // Each name tied to its part by a connector (2026-09-04), the D06 way —
+    // unless the labels switch is off.
+    //
+    // ⚠ 'active zone' USED TO BE DRAWN OUTSIDE THIS GUARD, as a bare 12px
+    // fillText with no plate and no leader (found 2026-09-04): a name that
+    // the labels switch could not hide, sitting beside three names it could.
+    // It is a name like the others now.
+    if (v.labelsOn !== false) {
+      for (const co of synapseCallouts(g)) {
+        ctx.strokeStyle = INK
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(co.label.x + co.label.w / 2, co.label.y + co.label.h / 2)
+        ctx.lineTo(co.to.x, co.to.y)
+        ctx.stroke()
+        drawSpoken(ctx, co.label)
+      }
+      const azl = activeZoneLabelAt(g)
+      drawName(ctx, named('active zone', azl.x, azl.y))
+    }
     ctx.restore()
   }
   ctx.restore()

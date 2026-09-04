@@ -6,11 +6,7 @@ import {
   ionsInFlight,
   unitaryPa,
 } from '../core/patchClamp'
-import {
-  drawLipids,
-  HALF_MEM,
-  PX_PER_NM,
-} from './bilayer'
+import { drawLipids, HALF_MEM, PX_PER_NM } from './bilayer'
 import {
   GLOSSY_COLORS,
   chargeWash,
@@ -261,8 +257,16 @@ function drawStrip(ctx: CanvasRenderingContext2D, vm: number, now: number): void
   ctx.fillText(`${PATCH_WINDOW_MS} ms`, TRACE_X + TRACE_W, shutY + 26)
 }
 
-export function drawPatch(ctx: CanvasRenderingContext2D, vm: number, now: number): void {
+export function drawPatch(
+  ctx: CanvasRenderingContext2D,
+  vm: number,
+  now: number,
+  labelsOn = true,
+): void {
   drawRig(ctx, vm, now)
   drawStrip(ctx, vm, now)
-  for (const l of patchLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of patchLabels()) drawSpoken(ctx, l)
 }

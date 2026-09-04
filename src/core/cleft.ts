@@ -227,7 +227,7 @@ export function integrateCleft(terminal: SynapseRun): CleftRun {
     const o = BETA * c2 - ALPHA * open
     const d = K_DESENS * c2 - K_RESENS * des
 
-    c0 += (-b1) * DT
+    c0 += -b1 * DT
     c1 += (b1 - b2) * DT
     c2 += (b2 - o - d) * DT
     open += o * DT
@@ -314,6 +314,10 @@ export function cleftFacts(run: CleftRun): TeachingPara[] {
       )} ms. Transmitter is not left lying about: it spreads sideways out of the gap and gets pumped back in. A synapse has to be able to say the next thing.`,
     },
     {
+      icon: '🧤',
+      text: 'Watch WHERE the escaping balls end up. The two pale fingers hugging the synapse belong to an ASTROCYTE — a third cell, not a neuron — and its transporters catch most of what leaves the gap: for this transmitter, glutamate, the astrocyte does most of the clearing (up to about nine parts in ten), the neuron itself only a little. Each catch is paid for with the sodium gradient — the pump’s stored work. The balls that stay in the gap really do linger: the transporters work on a slower clock than this run.',
+    },
+    {
       icon: '🔑',
       text: `On the far side the receptor is a lock that takes TWO keys: two transmitter molecules have to be stuck to it before the gate will open at all. That is why a small amount of transmitter does almost nothing and a full packet does a lot — the response follows the square, not the amount.`,
     },
@@ -321,7 +325,9 @@ export function cleftFacts(run: CleftRun): TeachingPara[] {
       icon: '🚪',
       text: `At most ${Math.round(
         run.peakOpen * 100,
-      )}% of the receptors are open at once, ${(run.peakOpenAtMs - run.firstFusionMs).toFixed(
+      )}% of the receptors are open at once, ${(
+        run.peakOpenAtMs - run.firstFusionMs
+      ).toFixed(
         2,
       )} ms after the packet arrives, and they are open for only about ${run.responseMs.toFixed(
         2,

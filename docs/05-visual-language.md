@@ -698,6 +698,181 @@ Five changes, on the user's instruction, after seeing it built.
    channels in the active zone beside the docked vesicles** (the reference has
    none; their absence beside a fusing vesicle was step 19b's error).
 
+**Reconciliation — astrocyte.svg (2026-09-04; re-created same day).** The
+user's handover (~/Downloads/astrocyte.svg): a SIX-point star soma with
+CONCAVE valleys (six pointy anchors at ~1.0 of the tip radius, valleys at
+0.60 — measured off the paths), each point owning a long wavy process with
+one short side-branch drawn slightly detached, as sketches are; outline
+only, stroke #be5757, no fill. The first pass APPROXIMATED this procedurally
+and miscounted it as five-point; on the user's correction ("re-create based
+on astrocyte.svg") the glyph is now the TRACE itself — the SVG's own cubics,
+machine-extracted into `ASTRO_TRACE` (layout.ts) and flattened, so the star
+on screen is the drawing, not an imitation of it. Changed, with reasons:
+(1) INK — #be5757 is a muted red, and red is the +charge colour both
+playgrounds reserve; the cells keep the established glial green
+(134,184,158), which also ties them to the fingers the synapse view
+magnifies. (2) The top arm as drawn is ELONGATED into the reach: the glyph
+turns to face its synapse mouth and a similarity about the arm's soma-side
+end lands its tip exactly on the fingertip, the side-branch riding the same
+map (the user allowed direction changes). (3) The body is FILLED in the
+glial wash (0.40 on the scene, 0.45 on the map) under a 2.5 px outline at
+the scene's register — corrections of 2026-09-04: the first 0.10 wash read
+as hollow. (4) The glyph is ONE geometry
+(`astroShape`) consumed by both the canvas scene and the miniature's SVG —
+same shape at both registers, because the miniature's job is recognition and
+the kids don't read. (5) On the map the cells sit slightly inboard of their
+scene spots (`MAP_ASTROCYTES`) so their bodies stay on the sheet — the true
+spots are half off the map's box.
+
+**The astrocytes at every register (steps 21b-1/1b, 2026-09-04).** On the
+whole-cell scene: two star cells (the traced astrocyte.svg glyph — six
+points, six branched processes — in the glial greened wash 134,184,158)
+flanking the outgoing synapse above and
+below — the landing quarter-turn maps them to the landed view's left/right
+fingers — each with one long process reaching to its own mouth of the
+synapse; they dissolve out on the dive as the seated anatomy's mouth-fingers
+dissolve in. On the miniature: shown only on the synapse framings, cropped
+by the map's frame. Labels on the synapse view carry the shared 🏷 switch
+(`LabelsSwitch`, extracted from D06).
+
+**Reconciliation — neuron (1).svg (2026-09-04).** The user's handover
+(~/Downloads/neuron (1).svg): one complete neuron in the same red-outline
+sketch style as astrocyte.svg — a fan of 17 wavy dendrite strokes (measured:
+11 root on the soma outline at < 4 units, 6 are twigs hanging on siblings,
+with the sketch's own small detachment gaps), a SEVEN-point star soma with
+concave valleys (14 anchors, mean radius 18.4 units, max 27.6 where the
+outline stretches into the axon root — the hillock cone is drawn into the
+soma), ONE long axon arcing 159 units, and a terminal arbor: the axon tip
+splits into two limbs which fork at four junctions into SEVEN teardrop
+boutons. Adopted whole, as the neuron's actual GEOMETRY, not just its ink
+(user's alignment answer, 2026-09-04): the traced outlines replace the
+circle-soma, straight-segment dendrites, quadratic axon and four
+line-terminals everywhere the big cell and the small (miniature) cell are
+drawn. Changed, with reasons: (1) INK — the app's established neuron
+palette, not the sketch's #be5757 red (reserved for + charge; precedent set
+at the astrocyte reconciliation). (2) ORIENTATION — rotated a quarter-turn,
+portrait (dendrites at the bottom, axon climbing) → landscape (dendrites
+left, axon arcing right), so the signal keeps reading left→right (user's
+alignment answer). (3) SCALE AND PLACE are SOLVED from the stage budget,
+not taken from the SVG's page box; what the solve reached is measured and
+recorded in the roadmap, and PX_PER_UM re-derives from the soma it
+produces. (4) THE MODEL UNDER THE INK — the ripple's trunk paths
+(soma→tip) and the lighting's terminal paths (axon tip→bouton centre,
+chained through the limbs by measured endpoint affinity, every join < 3.1
+units) are derived from the trace, not re-authored; the drawn strokes stay
+verbatim, gaps included. (5) SYNAPSE SPOTS are solved onto the trace: each
+input cell synapses on the traced dendrite tip nearest it, the outgoing
+synapse sits on the bouton nearest the target cell. (6) NEIGHBOURS (three
+input cells, one target) are the same species REDUCED — the traced star
+soma plus the synapse-bound process at full detail, the far side fading at
+the frame edge (user's alignment answer; never invent a surface off the
+page). (7) The attached elements — zoom-target magnifier markers, the
+miniature's dashed ring, labels, astrocyte spots — re-anchor to the new
+anatomy through the same layout exports they already read.
+
+**⚠ Amended 2026-09-04 — a neighbour is a WHOLE cell, and polarity is what
+tells a neuron from an astrocyte.** Reconciliation point (6) above said the
+neighbours were "the same species REDUCED" — a star soma plus three stub
+processes. On screen that is the astrocyte glyph: a star body with processes
+radiating evenly (user: "neighbour neurons require more detailed
+visualisation, as at the moment they look like astrocytes"). The real
+difference is not detail, it is POLARITY — an astrocyte is radially
+symmetric and has no axon; a neuron's dendrites are all on one side and its
+one axon leaves the other. So every partner is now the whole traced cell,
+reduced and turned so it PROJECTS toward what it talks to: its complete
+17-stroke fan (far ends fading at the frame), its soma with a nucleus, its
+axon, and its terminal arbor. An input's axon runs soma → hub → its own
+bouton along the traced arbor route, landing exactly on the cleft, and its
+six OTHER terminals are drawn faint — that axon contacts other cells too,
+which is what stops one bouton reading as the whole ending. The cell is
+turned about the axis soma → axon tip (`NEURON_FACING`), not the hillock
+cone, which had been turning every partner's fan by the 53° between them.
+
+**⚠ The postsynaptic specialization at the scene's register (2026-09-04).**
+User: "let dendrites start with thickenings — to imitate the way we
+displayed postsynaptic specialization." A dendrite that receives a synapse
+does not simply end: it swells into a spine head on a narrow neck — the
+object the synapse view magnifies — so the stand-in now looks like what it
+dissolves into. A thickening is a CLAIM, and it is made only where a synapse
+lands: the three tips of our fan that receive an input, and the three
+dendrites of the target that receive our boutons. The other eight tips taper
+to a point. Not drawn on the miniature or the bench inset: at those sizes a
+spine head is two pixels, and level of detail cuts both ways.
+
+**⚠ Re-seated, and filled, the same day.** The head was first offset by its
+own radius along the line to the PARTNER'S bouton — a direction the dendrite
+knows nothing about — so on a two-pixel branch the swelling sat visibly
+beside the end of its own line (user: "thickening on the ends of dendrites
+look misaligned"). It is now centred ON the dendrite's tip and takes its
+bearing from the dendrite alone, so it cannot be out of line with anything;
+the clearance across the gap is made by placing the BOUTON, which is the
+thing that is free to move (an input's terminal stands off by `CLEFT +
+SPINE_HEAD_R`, leaving the drawn gap exactly as it was, 5.5 px). The neck's
+direction is taken over a real arc distance back down the branch, never from
+the neighbouring sample — the traced strokes are sampled every few pixels,
+so a one-sample tangent is noise. And the head is FILLED, not a ring (user:
+"make dendritic thickenings filled"): the 0.12 cytoplasm wash the branches
+carry reads as nothing at a six-pixel bulb.
+
+**Glia are not a decoration of one synapse (2026-09-04).** Two astrocytes at
+the outgoing synapse and nowhere else said that glia belong to whichever
+synapse the app happens to teach. A protoplasmic astrocyte's territory tiles
+the whole neuropil and the dendritic field is where they are densest, so
+four more sit among the dendrites (`DENDRITE_ASTROCYTES`), each reaching to
+the nearest point on a branch — that contact is what an astrocyte is for.
+Their spots are SOLVED, not placed: a grid over the fan's own bounding box,
+keeping only spots clear of every dendrite, of the soma and axon, of every
+zoom marker and of the input cells' axons, then the roomiest first, each a
+cell's width from the last. They are drawn at half strength (user: "not as
+prominent"): they are the neighbourhood the branches run through, not the
+subject. The two at the synapse stay at full strength, because that synapse
+is a place the app teaches.
+
+**Back in the neuron reconciliation's list — (8) the registers.** At the
+miniature's and the inset's registers the seven boutons are DISCS, not
+teardrops (a teardrop three pixels wide is a disc); the soma and the arbor's
+branches are the trace at every register. Measured outcomes of the solve are
+recorded in the roadmap (step 21b-1g).
+
+**Reconciliation — glutamine's ink (D17, 2026-09-04).** The reuptake drawer
+has to show a CHANGE OF KIND: a glutamate that goes into the astrocyte comes
+out as glutamine. Every other hue in the cast was already spoken for —
+glutamate/transmitter teal `#2dd4bf`, Na⁺ yellow `#facc15`, K⁺ violet
+`#a78bfa`, Cl⁻ green `#4ade80`, the glial wash green `134,184,158`, the SNARE
+strands fuchsia/sky/lime, the signal's own yellow `250,204,21`, and RED
+reserved across both playgrounds for + charge.
+
+**Glutamine is ORANGE `#fb923c`** (chosen by the user from three candidates).
+Its rivals and why they lost, recorded so this is not re-argued: a PALE TEAL
+(`#99f6e4`) would have said "the same carbon coming home, changed", which is
+the true biology of the glutamine cycle — but at dot size it reads as FADED
+glutamate, and "this one is running out" is the one thing it must not say. A
+ROSE (`#fb7185`) separates best from teal and was refused for the standing
+reason: red is + charge, and a rose dot beside an ion crowd is a charge.
+Orange's own risk is declared and bounded: it sits between Na⁺'s yellow and
+the reserved red, so it is kept plainly orange, drawn at transmitter size,
+and never placed against a charge mark.
+
+**D17's anatomy plan (03 → *Plan the anatomy before the picture*).** The
+tripartite synapse in section at D06's register: the presynaptic bouton's
+wall across the top with its inside ABOVE (D06's established orientation and
+the scene's own, since the synapse now stands vertically), the postsynaptic
+face across the bottom, the cleft between them, and an astrocyte process
+wrapping in from one side in the glial green — its own bilayer, paved by the
+same `paveMembrane`, fading out at the frame's edge rather than inventing a
+surface off the page. Every membrane a liquid. The camera does not move: the
+dots make the journey and the round TRIP is legible as a loop on one picture
+(user's alignment answer), which is what the exhibit is for.
+
+**The astrocyte fingers (step 21b-1, 2026-09-04).** The third cell, one
+capsule per flank of the cleft at the scene's band register: membrane in the
+wall's own LEAFLET/CORE inks, cytoplasm the neurons' wash greened a step
+(134,184,158), the body fading to nothing toward the frame's edge via
+gradient. Two indigo transporter ticks per tip (the pump family's colour at
+this register). Escaped transmitter enters ONLY at the ticks and rests
+visibly inside; the active-zone framing crops the fingers away — the drain
+without the cell, as agreed.
+
 ### Corrections of 2026-09-01 — "the animation looks broken"
 
 12. **The bouton takes two thirds of the frame**, the postsynaptic face and its

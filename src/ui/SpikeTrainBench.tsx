@@ -18,7 +18,11 @@ import {
   trainStart,
   type TrainState,
 } from '../core/spikeTrain'
-import { absoluteRefractoryMs, refractoryFacts, relativeRefractoryMs } from '../core/refractory'
+import {
+  absoluteRefractoryMs,
+  refractoryFacts,
+  relativeRefractoryMs,
+} from '../core/refractory'
 import { drawNeuronInset, drawTrain, electrodeHitAt, insetBox } from '../stage/trainGraph'
 import { thresholdStimulus, trajectory } from '../core/spikeModel'
 import { ZOOM_TARGETS, regionOfZoom } from '../stage/layout'
@@ -50,8 +54,14 @@ export function SpikeTrainBench() {
   // moves the bands on the graph. Expensive (each one bisects over whole runs of
   // the model), which is exactly what useMemo is for — and why it is keyed on the
   // gradients rather than recomputed per frame.
-  const absoluteMs = useMemo(() => absoluteRefractoryMs(counts, leaksOn), [counts, leaksOn])
-  const relativeMs = useMemo(() => relativeRefractoryMs(counts, leaksOn), [counts, leaksOn])
+  const absoluteMs = useMemo(
+    () => absoluteRefractoryMs(counts, leaksOn),
+    [counts, leaksOn],
+  )
+  const relativeMs = useMemo(
+    () => relativeRefractoryMs(counts, leaksOn),
+    [counts, leaksOn],
+  )
   const threshold = useMemo(() => thresholdStimulus(counts, leaksOn), [counts, leaksOn])
   // What a full spike on THIS membrane rests at and reaches, so the little
   // cell's brightness is measured against the cell rather than against a
@@ -210,7 +220,28 @@ export function SpikeTrainBench() {
               particular: a child watching a line climb has no reason to
               connect it to a neuron. Same panel, same size, same place, and
               it lights with the very press that moves the line. */}
-          <div className="shrink-0 rounded-xl border border-slate-700 bg-slate-800/60 p-2">
+          {/* ⚠ THE WAY OUT TRAVELS WITH THE MAP (user, 2026-09-04: "place
+              'back' button also in drawers, so everywhere where 'map neuron'
+              is present. E.g. 'Spike trains'").
+              
+              A drawer's ✕ closes the drawer, which is not the same act: this
+              bench is opened AT the axon-membrane zoom, so closing it leaves
+              you inside a patch rather than on the whole cell. Wherever a
+              picture of the whole neuron appears, the control that returns
+              you to the whole neuron appears with it — same corner, same
+              words, and here it does both steps: close, then pull out. */}
+          <div className="relative shrink-0 rounded-xl border border-slate-700 bg-slate-800/60 p-2">
+            <button
+              type="button"
+              onClick={() => {
+                closeTrain()
+                useNeuronStore.getState().zoomOut()
+              }}
+              title="Back to the whole picture"
+              className="absolute bottom-3 left-3 z-10 rounded-md border border-slate-600/80 bg-slate-950/80 px-1.5 py-0.5 text-[11px] leading-none text-amber-200/90 backdrop-blur transition hover:border-amber-500/60 hover:text-amber-100"
+            >
+              ⤢ back
+            </button>
             <canvas
               ref={cellRef}
               className="h-[136px] w-full"
@@ -237,29 +268,31 @@ export function SpikeTrainBench() {
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800/40 p-3">
             <Section title="Right now" paragraphs={live} />
-          <Section
-            title="What the bands mean"
-            paragraphs={refractoryFacts(counts, leaksOn)}
-          />
-          <Section
-            title="Why a weak push does nothing"
-            paragraphs={[
-              {
-                icon: '📏',
-                text: `This membrane needs about ${
-                  Number.isFinite(threshold) ? threshold.toFixed(0) : 'more than anything on offer'
-                } µA/cm² to fire. The weak push is ${
-                  STIMULI.nudge.amplitude
-                }, so on its own it never gets there — the line twitches and slides back. That is not the button failing. It is what a threshold IS: below it, nothing; above it, the same full-sized spike every time.`,
-              },
-              {
-                icon: '➕',
-                text: 'On its own. Press the weak one several times QUICKLY and it does fire — because each push lands before the last one has faded, and they add up. That is temporal summation, and it is the same thing that happens on the whole-neuron view when two input cells fire together. A cell is not deaf to small signals; it adds them.',
-              },
-              {
-                icon: '🧪',
-                text: 'Change the cell and the number changes with it. Block the potassium leaks back on the main view and the threshold falls far enough that a single weak push starts firing this membrane — which is what leak channels are for.',
-              },
+            <Section
+              title="What the bands mean"
+              paragraphs={refractoryFacts(counts, leaksOn)}
+            />
+            <Section
+              title="Why a weak push does nothing"
+              paragraphs={[
+                {
+                  icon: '📏',
+                  text: `This membrane needs about ${
+                    Number.isFinite(threshold)
+                      ? threshold.toFixed(0)
+                      : 'more than anything on offer'
+                  } µA/cm² to fire. The weak push is ${
+                    STIMULI.nudge.amplitude
+                  }, so on its own it never gets there — the line twitches and slides back. That is not the button failing. It is what a threshold IS: below it, nothing; above it, the same full-sized spike every time.`,
+                },
+                {
+                  icon: '➕',
+                  text: 'On its own. Press the weak one several times QUICKLY and it does fire — because each push lands before the last one has faded, and they add up. That is temporal summation, and it is the same thing that happens on the whole-neuron view when two input cells fire together. A cell is not deaf to small signals; it adds them.',
+                },
+                {
+                  icon: '🧪',
+                  text: 'Change the cell and the number changes with it. Block the potassium leaks back on the main view and the threshold falls far enough that a single weak push starts firing this membrane — which is what leak channels are for.',
+                },
               ]}
             />
           </div>
@@ -301,7 +334,10 @@ export function SpikeTrainBench() {
               <span className="tabular-nums">
                 {state?.presses ?? 0} pressed · {state?.spikes ?? 0} fired
               </span>
-              <ResetButton onClick={reset} title="Clear the record and start the train again" />
+              <ResetButton
+                onClick={reset}
+                title="Clear the record and start the train again"
+              />
             </span>
           </div>
         </div>
@@ -311,8 +347,8 @@ export function SpikeTrainBench() {
           {/* The one thing the picture cannot say about itself: how slowed down
               it is. Everything else the graph draws. */}
           <p className="px-1 pt-1 text-[11px] text-slate-500">
-            {TRAIN_WINDOW_MS} thousandths of a second across, slowed {TRAIN_SLOWDOWN}× so a
-            press can land where you meant it to.
+            {TRAIN_WINDOW_MS} thousandths of a second across, slowed {TRAIN_SLOWDOWN}× so
+            a press can land where you meant it to.
           </p>
         </div>
       </div>

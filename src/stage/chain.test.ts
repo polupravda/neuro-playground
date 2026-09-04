@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { THRESHOLD } from '../core/integration'
-import { FIRING_RUN_MS, FIZZLED_RUN_MS, chainStateAt, runDuration } from './chain'
+import {
+  ARBOR_MS,
+  FIRING_RUN_MS,
+  FIZZLED_RUN_MS,
+  chainStateAt,
+  runDuration,
+} from './chain'
 
 /** Dense sampling of a whole run. */
 const sweep = (inputs: number, until = FIRING_RUN_MS + 400) =>
@@ -61,7 +67,34 @@ describe('the action potential is always caused (the core guardrail)', () => {
   })
 
   it('never lights the arbor on a run that does not fire', () => {
-    for (const { s } of sweep(1)) expect(s.terminalAP).toBe(0)
+    for (const { s } of sweep(1)) {
+      expect(s.terminalAP).toBe(0)
+      expect(s.terminalHead).toBeNull()
+    }
+  })
+
+  // Guards A1 of the corrections round (2026-09-04): "the whole thing lights
+  // up at once" — the arbor must be INVADED over its own leg, walked here.
+  it('A1: invades the arbor as a travelling wave, not a flash', () => {
+    const inTransit = sweep(3).filter(
+      ({ s }) => s.terminalHead !== null && s.terminalHead > 0 && s.terminalHead < 1,
+    )
+    // Many sampled moments mid-journey — the flash this replaces had none.
+    expect(inTransit.length).toBeGreaterThan(10)
+    // The wave only ever advances.
+    const heads = inTransit.map(({ s }) => s.terminalHead!)
+    for (let i = 1; i < heads.length; i++) {
+      expect(heads[i]).toBeGreaterThanOrEqual(heads[i - 1])
+    }
+    // And it is a real leg of the journey, not a token.
+    expect(ARBOR_MS).toBeGreaterThan(200)
+  })
+
+  it('A1: reaches every bouton before anything is released', () => {
+    const frames = sweep(3)
+    const fullAt = frames.find(({ s }) => s.terminalHead === 1)!.ms
+    const releaseAt = frames.find(({ s }) => s.terminalRelease > 0)?.ms ?? -1
+    expect(releaseAt).toBeGreaterThan(fullAt)
   })
 
   it('flashes the hillock as the action potential is launched', () => {
@@ -113,8 +146,12 @@ describe('causal ordering of a firing run', () => {
 describe('graded vs all-or-nothing', () => {
   it('decays the dendritic ripple as it travels inward', () => {
     const samples = sweep(3).filter(({ s }) => s.ripple !== null)
-    const early = samples.filter(({ s }) => s.ripple! < 0.15).map(({ s }) => s.rippleStrength)
-    const late = samples.filter(({ s }) => s.ripple! > 0.85).map(({ s }) => s.rippleStrength)
+    const early = samples
+      .filter(({ s }) => s.ripple! < 0.15)
+      .map(({ s }) => s.rippleStrength)
+    const late = samples
+      .filter(({ s }) => s.ripple! > 0.85)
+      .map(({ s }) => s.rippleStrength)
     expect(Math.min(...early)).toBeGreaterThan(Math.max(...late))
   })
 

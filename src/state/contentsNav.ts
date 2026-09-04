@@ -13,6 +13,7 @@ import { useFilterStore } from './filterStore'
 import { usePatchStore } from './patchStore'
 import { useGatingStore } from './gatingStore'
 import { useSnareStore } from './snareStore'
+import { useReuptakeStore } from './reuptakeStore'
 
 // TAKING SOMEONE SOMEWHERE, rather than showing them a page.
 //
@@ -41,6 +42,7 @@ const OPENERS: Record<string, () => void> = {
   patch: () => usePatchStore.getState().openBench(),
   scales: () => useTourStore.getState().openBench(),
   snare: () => useSnareStore.getState().openBench(),
+  reuptake: () => useReuptakeStore.getState().openBench(),
 }
 
 /** Everything a route does, as data — so a test can check the plan without

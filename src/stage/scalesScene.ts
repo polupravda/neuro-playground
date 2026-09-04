@@ -9,7 +9,7 @@ import { cameraFor, viewRect } from './camera'
 import { chainStateAt, runDuration, IDLE } from './chain'
 import { ionCloud, type IonInstance } from './ions'
 import { membraneProteins, type ProteinInstance } from './proteins'
-import { INPUTS, STAGE_H, STAGE_W } from './layout'
+import { INPUTS, SCENE_INK_Y, STAGE_H, STAGE_W } from './layout'
 import { AXON_W, AXON_VIEW_SCALE, DRAWN_AXON_UM } from './layout'
 import { AXON_DIAMETER_UM } from '../core/membrane'
 import { drawSpoken, type SpokenLabel } from './spokenLabels'
@@ -45,20 +45,65 @@ export const SC_W = Math.round(CONTENT_W - 20)
 export const SC_H = Math.round(CONTENT_H - SC_CONTROLS_H - 22)
 export const SC_BUDGET = CONTENT_H
 
-/** ⚠ The drawn size, fitted to BOTH sides of the room it has (2026-08-28).
+/** ⚠ THE EXHIBIT FILLS THE WIDTH, and proves what it trimmed to do it
+ *  (user, 2026-09-04: "stretch canvas to take all available space
+ *  horizontally").
  *
- *  The exhibit draws at the scene's own size and is scaled by CSS. Scaling to
- *  the available WIDTH alone cropped the bottom off, because once the control
- *  row has taken its share the room left is taller-limited than wide-limited.
- *  Fit is the smaller of the two ratios, and the result is centred. */
-export const SC_FIT = (() => {
-  const k = Math.min(SC_W / STAGE_W, SC_H / STAGE_H)
-  return { k, w: Math.round(STAGE_W * k), h: Math.round(STAGE_H * k) }
-})()
+ *  The exhibit draws the scene at its own size and is scaled by CSS. `STAGE_H`
+ *  follows the browser WINDOW while this drawer's room does not, so on a tall
+ *  screen the scene is the taller shape of the two, fitting by both sides
+ *  becomes height-bound, and a band of the panel goes unused at the right.
+ *
+ *  ⚠ THE 2026-08-28 REPORT THIS MUST NOT REPEAT: fitting by width alone
+ *  "cropped the bottom off". The fault was not the fitting — it was that
+ *  nothing measured where the scene's ink ENDED, so the crop ate the cell. A
+ *  tall window's extra height is MARGIN (see `SCENE_INK_Y`), so the width is
+ *  filled by trimming that margin symmetrically, and only while the trim
+ *  provably stays inside it. When it would not, the old both-sides fit is
+ *  what happens — the picture stays whole and the slack comes back.
+ *
+ *  `cropScene` is how much scene is trimmed from EACH end, in scene units. */
+/** ⚠ THE FIT, as a function of the two shapes — so it can be asked directly
+ *  at rooms and scenes this machine does not happen to have (03 → *Ask the
+ *  DECISION, not the ink*). The module-level `SC_FIT` is this, called once.
+ *
+ *  `ink` is the scene's own top and bottom (see `SCENE_INK_Y`): the trim may
+ *  eat the margin outside it and nothing else. */
+export function fitScene(
+  roomW: number,
+  roomH: number,
+  sceneW: number,
+  sceneH: number,
+  ink: { min: number; max: number },
+): { k: number; w: number; h: number; cropScene: number } {
+  const kw = roomW / sceneW
+  const kh = roomH / sceneH
+  if (kw <= kh) {
+    // Width already binds: the whole scene fits, nothing is trimmed.
+    return { k: kw, w: Math.round(sceneW * kw), h: Math.round(sceneH * kw), cropScene: 0 }
+  }
+  const half = (sceneH - roomH / kw) / 2
+  const marginTop = ink.min
+  const marginBottom = sceneH - ink.max
+  if (half <= marginTop && half <= marginBottom) {
+    return { k: kw, w: Math.round(sceneW * kw), h: Math.round(roomH), cropScene: half }
+  }
+  // The trim would reach the picture. Keep the picture whole and give the
+  // slack back — this is the 2026-08-28 behaviour, and it is the fallback,
+  // not the rule.
+  return { k: kh, w: Math.round(sceneW * kh), h: Math.round(sceneH * kh), cropScene: 0 }
+}
+
+export const SC_FIT = fitScene(SC_W, SC_H, STAGE_W, STAGE_H, SCENE_INK_Y)
 
 /** The three sizes, in the order the course meets them. Names come from the
  *  one place they are written down. */
-export const SCALES = TOUR_STOPS.map((s, i) => ({ i, id: s.id, title: s.title, watch: s.watch }))
+export const SCALES = TOUR_STOPS.map((s, i) => ({
+  i,
+  id: s.id,
+  title: s.title,
+  watch: s.watch,
+}))
 export type ScaleId = (typeof TOUR_STOPS)[number]['id']
 
 /** The exhibit draws at the SCENE'S OWN SIZE and is scaled down by CSS, so
@@ -66,6 +111,10 @@ export type ScaleId = (typeof TOUR_STOPS)[number]['id']
  *  same camera arithmetic, same scene function, same ribbon. */
 export const SC_STAGE_W = STAGE_W
 export const SC_STAGE_H = STAGE_H
+
+/** The canvas's own height in SCENE units — the room's shape at the scene's
+ *  width, so CSS scaling never distorts. */
+export const SC_CANVAS_H = Math.round(STAGE_H - SC_FIT.cropScene * 2)
 
 /** The zoom target each size is a view of. Two of them are real places on the
  *  cell; the whole neuron is the camera pulled all the way out, which is the
@@ -118,7 +167,10 @@ function drawSceneAt(
     hoveredMarker: null,
     // The whole cell's view shows the chain, so it needs the inputs that fired.
     firedInputs: which === 2 && u !== null ? INPUTS.map((i) => i.id) : [],
-    chain: which === 2 && u !== null ? chainStateAt(u * runDuration(INPUTS.length), INPUTS.length) : IDLE,
+    chain:
+      which === 2 && u !== null
+        ? chainStateAt(u * runDuration(INPUTS.length), INPUTS.length)
+        : IDLE,
     cameraScale: camera.scale,
     showMarkers: false,
     view: viewRect(camera),
@@ -147,8 +199,6 @@ const ALL_IN_COLOUR = ION_KINDS.reduce(
   },
   {} as Record<IonKind, boolean>,
 )
-
-
 
 export function scaleLabels(_which: number): SpokenLabel[] {
   // The scene names its own parts, at every one of these cameras. A second set

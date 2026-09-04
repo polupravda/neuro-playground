@@ -752,8 +752,9 @@ drawing board (postsynaptic spine, astrocyte process, receptor positions).
 | --- | --- | --- | --- |
 | 18 | S01–S03 | Presynaptic terminal, Ca²⁺ channels, vesicle fusion — **model kept with its 33 tests**; view deleted for redesign (record below). | model done; view superseded by step 20 |
 | 19 | S04–S05 | Cleft concentration and AMPA-type binding — **model kept**; view deleted for redesign. | model done; view superseded by step 20 |
-| 20 | S12 (S01–S04) | Leg 1, arrival → binding: AP reaches the bouton, active-zone Ca²⁺ doors open, the four-site sensor fills, fusion, the cleft fills as a concentration, two glutamates bind per receptor. Ends at binding. | awaiting manual test (2026-08-31) |
-| 21 | D06 | Drawer, vesicle life cycle & SNARE: dock → prime → zipper → fuse → retrieve → refill. The vesicle is a ring of the scene's own bilayer; the sensor is the scene's own sensor. | awaiting manual test (2026-08-31) |
+| 20 | S12 (S01–S04) | Leg 1, arrival → binding: AP reaches the bouton, active-zone Ca²⁺ doors open, the four-site sensor fills, fusion, the cleft fills as a concentration, two glutamates bind per receptor. Ends at binding. | done (2026-09-04) |
+| 21 | D06 | Drawer, vesicle life cycle & SNARE: dock → prime → zipper → fuse → retrieve → refill. The vesicle is a ring of the scene's own bilayer; the sensor is the scene's own sensor. | done (2026-09-04) |
+| 21b | D17 | Drawer, reuptake & the glutamine round-trip: the tripartite synapse in section; astrocytic EAATs catch the drifting glutamate (the neuron a minor route), glutamine synthetase converts, SNAT doors ship it home, glutaminase converts back, the terminal's stock fills — the pool D06's refill rains from. Plan below. | todo (planned 2026-09-04) |
 | 22 | S13 (S05–S06 excitatory) | Leg 2, receptors → hillock: AMPA opens (EPSP), depolarization pops NMDA's Mg²⁺ plug, Ca²⁺ enters the spine, the EPSP is handed to the whole-cell view where summation fires the hillock. ⚠ never one synapse = one AP. | todo |
 | 23 | D07 | Drawer, AMPA & NMDA structure: clamshell binding, gates, the Mg²⁺ plug; receptors arrive by lateral diffusion and PSD capture, ⚠ not attraction through space. Ghost schematic + locator. | todo |
 | 24 | S14 (S10) | Leg 3, clearance & recycling: astrocytic + presynaptic transporters empty the cleft ⚠ (astrocytes do most of it, or declare), endocytosis, V-ATPase re-acidification, VGLUT refill. | todo |
@@ -775,7 +776,7 @@ capacitor → channel structure → how we measure → gating → the cable.
 | 31 | D13 | Patch clamp — how we know: a pipette seals on, one channel's current is square picoamp steps (seeded flicker); whole-cell is the sum of thousands. Methods exhibit: measure-never-assert, made visible. | done (2026-08-30) |
 | 32 | D04 | Gating families & open-probability bench: ⚠ voltage-/ligand-/mechanically-gated, three lanes with three independent dials; Pₒ MEASURED off each record as a filling bar, and the curve those readings land on. | done (2026-08-30) |
 | 33 | D05 | Leaky pipe: axial vs membrane resistance, length constant, what myelin does to the ratio. Draws `core/cable.ts`. | todo |
-| 34 | D05 | **The leaky pipe** — how far a signal reaches. λ = √(d·Rm/4·Ra) drawn from `core/cable.ts`; the axon IS the hose; the child changes the WALL (leak doors, myelin) and λ answers. | awaiting manual test (2026-08-30) |
+| 34 | D05 | **The leaky pipe** — how far a signal reaches. λ = √(d·Rm/4·Ra) drawn from `core/cable.ts`; the axon IS the hose; the child changes the WALL (leak doors, myelin) and λ answers. | done (2026-09-04) |
 | 32b | D14 | Membrane constructor: drag channels and pumps from a tray into a bare bilayer; the built membrane's voltage is derived, not scripted. Spec row added 2026-08-27; scope to be planned when its turn comes. | todo (documented only) |
 
 ## Milestone 6 — Inhibition & integration (M03, S06–S07, D09–D10)
@@ -9756,7 +9757,7 @@ leg.
 
 1113 tests green, typecheck and build clean.
 
-### Step 20af — the timeline tool, 2026-09-01 · awaiting manual test
+### Step 20af — the timeline tool, 2026-09-01 · done
 
 **A1 — the tool.** `src/ui/Timeline.tsx` + `src/ui/timelineMath.ts`: one wide
 bar per run — track, filled portion, a dot per main event, a named chip under
@@ -9795,7 +9796,7 @@ beside the tool; the bare `<input type=range>` sliders are gone.
 
 1122 tests green (9 new, citing A1/A2/A5), typecheck clean.
 
-### Step 20ag — stillness, the kept aura, reflection pauses, seats that fit, 2026-09-01 · awaiting manual test
+### Step 20ag — stillness, the kept aura, reflection pauses, seats that fit, 2026-09-01 · done
 
 **A1 — bound ions are STILL.** Seated calcium (on a knob), buffered calcium
 (grabbed deeper in) and settled sodium lose the soup wobble entirely; ions
@@ -9828,7 +9829,7 @@ clock-walked ≥0.7 s pauses, knob-exactness + surplus-never-on-a-knob — each
 broken deliberately once and watched fail (the old O1 guard tolerated the
 tier offsets; the new A5 one does not). 1127 tests green, typecheck clean.
 
-### Step 20ah — full-width timeline; the plugged pair serves the whole transaction, 2026-09-01 · awaiting manual test
+### Step 20ah — full-width timeline; the plugged pair serves the whole transaction, 2026-09-01 · done
 
 **A1 — the timeline is the canvas's own width, action button in front.** All
 three sites became one row: ⚡/▶, then the bar (the `Timeline` now fills its
@@ -9860,7 +9861,7 @@ seat-tracking (ball exactly on the moving socket), beats-in-order walked on
 the screen clock — broken once (early release) and watched fail. 1129 tests
 green, typecheck clean.
 
-### Step 20ai — timeline ends, slim row, obvious events, 2026-09-02 · awaiting manual test
+### Step 20ai — timeline ends, slim row, obvious events, 2026-09-02 · done
 
 **A1 — clickable ends.** Two larger points (14 px vs the events' 9 px) sit at
 the very start and end of every timeline; pressing one glides there. An event
@@ -9881,7 +9882,7 @@ itself stays in the animation; the drawing⇄launch-time guard stays too.
 
 1129 tests green, typecheck clean.
 
-### Step 20aj — a clean timeline row, connectors to the names, 2026-09-02 · awaiting manual test
+### Step 20aj — a clean timeline row, connectors to the names, 2026-09-02 · done
 
 **A1 — nothing in the row but action, bar, timer.** The 🔆 emphasis switch
 (AP) and the 🕸/🔍 scale switch (synapse) moved out to their own plates under
@@ -9896,7 +9897,7 @@ dot was a guess; the reached event's line is amber like its dot.
 
 1129 tests green, typecheck clean.
 
-### Step 20ak — no aura on crossed sodium, 2026-09-02 · awaiting manual test
+### Step 20ak — no aura on crossed sodium, 2026-09-02 · done
 
 **A1.** The sodium arrival pulses are gone from `bindPulses`: the white snap
 is the ligand bench's BINDING idiom, and an ion that has crossed into the
@@ -9906,7 +9907,7 @@ while plugged and dying before the pair flies. Guard flipped to "no pulse
 ever sits on a settled sodium ion, at any moment" — broken once (a re-added
 pulse) and watched fail.
 
-### Step 20al — the action button leaves the container, 2026-09-02 · awaiting manual test
+### Step 20al — the action button leaves the container, 2026-09-02 · done
 
 **A1.** The ⚡→▶ swap was resizing the transport row and shifting the bar
 (user: "creates layout shift"). The action button now floats on its own plate
@@ -9918,7 +9919,7 @@ only its own floating plate. The AP beat banner moved below the new plate
 row (120 px). The SNARE drawer's Play is width-stable and never morphs, so
 it stays inline.
 
-### Step 20am — the fusion finishes before the binding, 2026-09-02 · awaiting manual test
+### Step 20am — the fusion finishes before the binding, 2026-09-02 · done
 
 **A1.** "Vesicle fusion pauses in the middle, at 5.2 ms" — measured and
 confirmed: sink+open ended at age 1.1, the cargo drained to age 2.6 (= 5.2 ms
@@ -9934,7 +9935,7 @@ pocket returns null from `fusedShape` at the first seat instant, plus
 no-dead-zone on the schedule — broken once (FLATTEN_MS back to 18) and
 watched fail. 1130 tests green, typecheck clean.
 
-### Step 20an — the propagation flash, in the cell, 10 ms each side, 2026-09-02 · awaiting manual test
+### Step 20an — the propagation flash, in the cell, 10 ms each side, 2026-09-02 · done
 
 **A1.** The postsynaptic flash now IGNITES INSIDE THE SPINE HEAD — where the
 sodium that caused it just settled — and runs down the neck and trunk off the
@@ -9948,7 +9949,7 @@ canvas — broken once (start moved back below the frame) and watched fail.
 the spike's peak) and now afterglows to the 10 ms mark, matching the
 postsynaptic flash's length. 1130 tests green, typecheck clean.
 
-### Step 20ao — the afterglow moves to the screen clock, 2026-09-02 · awaiting manual test
+### Step 20ao — the afterglow moves to the screen clock, 2026-09-02 · done
 
 **A1.** "The yellow ball keeps hanging on the top of the page for multiple
 seconds" — confirmed and explained: 20an sized the afterglow in MODEL ms
@@ -9962,7 +9963,7 @@ guard sampled only at fractions of the constant and PASSED at 13 s when
 broken; the pinned version was then broken and watched fail. 1131 tests
 green, typecheck clean.
 
-### Step 20ap — the spine's charge tint, paced by the drawn ions, 2026-09-02 · awaiting manual test
+### Step 20ap — the spine's charge tint, paced by the drawn ions, 2026-09-02 · done
 
 **A1 — no glow before the ions.** The gold "current arriving" spine glows
 followed the model's vmPost, which rises at ~5.5 ms — long before the drawn
@@ -9984,7 +9985,7 @@ first drawn pore entry (walked), full at last settle, τ-cooling, never
 negative — broken once (tint keyed to the gate instead of the ion) and
 watched fail. 1131 tests green, typecheck clean.
 
-### Step 20aq — the AP bar follows the interest; rows solved from real widths, 2026-09-02 · awaiting manual test
+### Step 20aq — the AP bar follows the interest; rows solved from real widths, 2026-09-02 · done
 
 **A1.** "The timeline labels overlap much" — root cause was not the rows: the
 spike's five middle moments live inside a fifth of the MODEL window, so a bar
@@ -10007,7 +10008,7 @@ inside and out:
 
 1134 tests green, typecheck clean.
 
-### Step 20ar — edge chips slide inward, 2026-09-02 · awaiting manual test
+### Step 20ar — edge chips slide inward, 2026-09-02 · done
 
 **A1.** The first and last labels, centred on dots at u = 0 and u = 1, hung
 half outside the bar — into the pill's border on the left and the ms timer on
@@ -10017,7 +10018,7 @@ from the same clamped positions the component draws, and the dot's own x
 always remains within the shifted chip's span, so the connector line still
 lands on its chip. Guarded at both ends. 1135 tests green, typecheck clean.
 
-### Step 20as — one gap everywhere, and a slimmer bar, 2026-09-02 · awaiting manual test
+### Step 20as — one gap everywhere, and a slimmer bar, 2026-09-02 · done
 
 **A1 — consistent gap.** The bar's label area grew with the rows each view
 happened to use, so the pill's height — and the gap to the fixed-position
@@ -10031,7 +10032,7 @@ row pitch 16 → 14 px, chips py-0 with leading-none — three rows in 42 px
 instead of 49, the whole element ~7 px slimmer, plates and the AP beat banner
 moved up to match. 1135 tests green, typecheck clean.
 
-### Step 20at — one TransportBar, flowing chrome, dynamic height, 2026-09-02 · awaiting manual test
+### Step 20at — one TransportBar, flowing chrome, dynamic height, 2026-09-02 · done
 
 **A1 — the representative component.** `TransportBar` (ui/Timeline.tsx): the
 amber plate, the bar filling its width, the timer at the right end — owned
@@ -10047,7 +10048,7 @@ plates and the AP beat banner FLOW in a pointer-transparent column under the
 bar with a fixed margin, instead of sitting at hardcoded offsets that a
 taller bar could collide with. 1135 tests green, typecheck clean.
 
-### Step 20au — D06 rebuilt around its own complaints, 2026-09-02 · awaiting manual test
+### Step 20au — D06 rebuilt around its own complaints, 2026-09-02 · done
 
 **A1 — button under the bar.** The drawer's row became the canvas views' own
 flowing column: TransportBar on top, ▶ Play beneath it.
@@ -10085,7 +10086,7 @@ put throughout (`poreAt` holds 1). The retrieve leg's share grew 0.07 → 0.09
 K2 continuity walk. Ring/wall-shift/conservation guards rewritten to the
 round-trip story. 1138 tests green, typecheck clean.
 
-### Step 20av — the drawer's controls sit on the canvas, 2026-09-02 · awaiting manual test
+### Step 20av — the drawer's controls sit on the canvas, 2026-09-02 · done
 
 **A1.** The SNARE drawer's TransportBar and ▶ button moved from a stack above
 the canvas onto the canvas itself — the AP/synapse views' own overlay
@@ -10094,7 +10095,7 @@ end), so the picture beneath the empty middle stays clickable for the spoken
 labels. The stage-name reading moved to the canvas bottom beside the calcium
 counter, out from under the new plate. 1138 tests green, typecheck clean.
 
-### Step 20aw — D06 extended upstream: the machinery that catches a vesicle, 2026-09-03 · awaiting manual test
+### Step 20aw — D06 extended upstream: the machinery that catches a vesicle, 2026-09-03 · done
 
 The user's redo of the vesicle & SNARE demo: start BEFORE tethering, with an
 undocked vesicle at the top of a stretched canvas, and draw the catching cast
@@ -10166,7 +10167,7 @@ convergence, minder-on-tip contact, complexin seat/flick window, sensor
 riding-then-gripping). Exclusivity and tether-hold guards broken on purpose
 and watched fail. 1146 tests green, typecheck clean.
 
-### Step 20ax — D06 corrections round: the ring, the beats, the seams, 2026-09-03 · awaiting manual test
+### Step 20ax — D06 corrections round: the ring, the beats, the seams, 2026-09-03 · done
 
 Five corrections from the first manual look at 20aw, plus alignment answers:
 ~20 s clock, and the mirror covers EVERYTHING (full symmetric pairs).
@@ -10216,7 +10217,7 @@ outward, NOT stretched (length < 0.6 r), both ends walked at 800 samples;
 broken (ves end re-pinned to hang) and watched fail. 1150 tests green,
 typecheck clean.
 
-### Step 20ay — D06: the mirrored copies pushed clear of the centre, 2026-09-03 · awaiting manual test
+### Step 20ay — D06: the mirrored copies pushed clear of the centre, 2026-09-03 · done
 
 **A1 — "place SNARE complex and Ca binding areas further away from the
 center, as currently they collide."** The collision was the v-SNARE's ring
@@ -10237,7 +10238,7 @@ on this machine intermittently time out heavyweight walking tests in
 UNTOUCHED files — cable, ions, synapse — under parallel load; each passes
 alone and the suite settles clean on re-run.)
 
-### Step 20az — D06: the bubble returns empty, and the lumen seam is closed, 2026-09-03 · awaiting manual test
+### Step 20az — D06: the bubble returns empty, and the lumen seam is closed, 2026-09-03 · done
 
 **A1 — "now the vesicle returns refilled, is this correct? If not — return
 empty."** It is not correct: a retrieved vesicle leaves the wall as bare
@@ -10264,7 +10265,7 @@ pins both endpoints to wallY to 1e-6 whenever the mouth is open and forbids
 painting after submersion; broken (angle back on the ring's radius) and
 watched fail at the measured 8.16 px. 1152 tests green, typecheck clean.
 
-### Step 20ba — D06: the transmitter gets identity, and flows away, 2026-09-03 · awaiting manual test
+### Step 20ba — D06: the transmitter gets identity, and flows away, 2026-09-03 · done
 
 Reuptake itself was moved OUT of this drawer at the user's direction (after
 scientific pushback: this app's synapse is glutamatergic and glutamate is
@@ -10297,7 +10298,7 @@ picture" (the honesty text's words). Guards: fixed count and continuity at
 and none inside at the end; the flight was cut on purpose and the walk caught
 the 210 px teleport. 1154 tests green, typecheck clean.
 
-### Step 20bb — D06: nothing leaves a sealed bag, 2026-09-03 · awaiting manual test
+### Step 20bb — D06: nothing leaves a sealed bag, 2026-09-03 · done
 
 **A1 — "NTs start leaving the vesicle too early (visually fly through the
 membrane)."** The exit schedule was keyed to the pore stage's whole ramp, but
@@ -10315,7 +10316,7 @@ the wall line does so INSIDE the ring's open chord — through the hole, never
 the wall. Broken (schedule back on the raw ramp) and watched fail. 1156 tests
 green, typecheck clean.
 
-### Step 20bc — D06: the reuse pipeline on stage, 2026-09-03 · awaiting manual test
+### Step 20bc — D06: the reuse pipeline on stage, 2026-09-03 · done
 
 The deferred "cell prepared for the next round", picked up with alignment
 answers: proton pump drawn on the lift; a new 'Taken apart' leg; and the
@@ -10366,7 +10367,7 @@ the risen bubble with every proton inside at the end; tether base rides
 wallShift out and home, mirrored. Walk-home broken (half-way homes) and
 watched fail. 1160 tests green, typecheck clean.
 
-### Step 20bd — D06: the rope and the sensor bolted to their lipid, 2026-09-04 · awaiting manual test
+### Step 20bd — D06: the rope and the sensor bolted to their lipid, 2026-09-04 · done
 
 **A1 — "Ca binder and snare helices do not follow membrane all the time."**
 Two of step 20bc's own devices were the cause: the 1.6 r CAP parked the rope
@@ -10386,7 +10387,7 @@ the swing's end to the walk-home's start — it moves exactly as much as the
 membrane it sits in. Broken (cap reintroduced) and watched fail at 11 px.
 1161 tests green, typecheck clean.
 
-### Step 20be — D06: labelled checkpoints, 2026-09-04 · awaiting manual test
+### Step 20be — D06: labelled checkpoints, 2026-09-04 · done
 
 Prompted by "what are the yellow balls?" (the protons — named in the info
 block, unnamed on the canvas): the transient cast had no chance to be
@@ -10422,7 +10423,7 @@ label's centre hits its OWN box via the real hit-tester); visibility gating
 (empty while running, populated when held, nine at the end). The held gate
 was broken on purpose and watched fail. 1161 tests green, typecheck clean.
 
-### Step 20bf — D06: red protons, the trade, and a closed loop, 2026-09-04 · awaiting manual test
+### Step 20bf — D06: red protons, the trade, and a closed loop, 2026-09-04 · done
 
 **A1 — the atomic playground's proton ink.** Found in its particleStyle.ts:
 protons are GLOSSY RED (light #ffd4d0, mid #f87171, dark #dc2626, glow
@@ -10469,7 +10470,7 @@ transporter on the bubble mid-trade; every proton off the top by the end;
 identity was broken (offset seats) and watched fail. 1161 tests green,
 typecheck clean.
 
-### Step 20bg — D06: timeline marks, the door, the slower tail, the labels switch, 2026-09-04 · awaiting manual test
+### Step 20bg — D06: timeline marks, the door, the slower tail, the labels switch, 2026-09-04 · done
 
 **A1 — the checkpoints are ON the bar.** The shared Timeline gained an
 optional `marks` prop — small amber DIAMONDS, distinct from the event dots —
@@ -10502,7 +10503,7 @@ title=). Off: no checkpoint ever pauses the run, no label is drawn anywhere
 (rest and end stills included), the canvas hit-test goes quiet, and the
 diamonds leave the bar. 1162 tests green, typecheck clean.
 
-### Step 20bh — D06: the proton keeps its name, and the switch becomes a switch, 2026-09-04 · awaiting manual test
+### Step 20bh — D06: the proton keeps its name, and the switch becomes a switch, 2026-09-04 · done
 
 **A1 — "I see no label for proton."** The proton exits were scheduled from
 0.1 of the load leg, so by the exchange stop (0.7) the protons were mostly
@@ -10520,7 +10521,7 @@ sliding white knob — on/off readable without reading — with '🏷 labels'
 as its name, `role="switch"`, and the sentence in title=. 1162 tests green,
 typecheck clean.
 
-### Step 20bi — D06: the trade threads the bore, 2026-09-04 · awaiting manual test
+### Step 20bi — D06: the trade threads the bore, 2026-09-04 · done
 
 **A1 — "give neurotransmitters identity"**: already in place since steps
 20ba/20bf (both generations individual, walked at 800 samples) — nothing new
@@ -10538,3 +10539,1054 @@ the bore — and the guard tightened to 0.2 r (the barrel's own footprint).
 Broken (bore bypassed mid-pass) and watched fail twice over: the door guard
 at 42 px off-door and the identity walk at a 76 px jump. 1162 tests green,
 typecheck clean.
+
+### Step 21b — PLAN: D17, the reuptake drawer, 2026-09-04 · built in step 21b-2 below
+
+The intermediate step between D06 and leg 2, requested 2026-09-04: "the
+drawer where neurotransmitters get reuptaken". D06 now ends its release with
+the cargo drifting off-frame, "collected by machinery outside this picture";
+D17 IS that machinery, and it closes the transmitter's loop the way D06
+closed the membrane's and the proteins'. (S14, the scene-level clearance leg,
+stays in the plan — it will reference this drawer's cast rather than redraw
+it, exactly as S12 references D06's.)
+
+**Why an astrocyte, not presynaptic suction** (the 2026-09-03 pushback,
+recorded in auto-memory `reuptake-view-planned`): this app's synapse is
+glutamatergic, and glutamate is cleared mostly by astrocytic EAAT
+transporters (~80–90% in cortex) feeding the glutamine cycle — the classic
+"terminal sucks its own transmitter back" picture belongs to GABA and the
+monoamines. So the drawer's star is the THIRD cell.
+
+**Anatomy plan** (03 → *Plan the anatomy before the picture*): the tripartite
+synapse in section, at D06's molecule-resolvable register. Presynaptic bouton
+wall across the top (inside above — D06's established orientation), the
+postsynaptic face across the bottom, the cleft between, and an ASTROCYTE
+process wrapping in from one side — its own bilayer, paved by the same
+`paveMembrane`, fading out at the frame's edge (never invent an off-page
+surface). Camera: the same side-on section as D06; every membrane a liquid.
+
+**Cast and choreography** (identity throughout, one continuous path per dot):
+1. The aftermath: glutamate dots (D06's own `transmitterDot` ink) drifting in
+   the cleft — the picture D06's release ends on.
+2. EAAT transporters: several barrels on the astrocyte face (the workhorses),
+   ONE on the neuronal face (the minor route, drawn honestly smaller in
+   number, said in words). Every capture threads a bore — the shared door
+   grammar; extract D06's door-pass path helper and barrel drawing into a
+   shared stage module rather than copying them (never two private copies).
+3. The fare, shown on at least one labelled event: 3 Na⁺ + 1 H⁺ ride in with
+   each glutamate, 1 K⁺ steps out — the app's own glossy ions — with the
+   honesty line that the Na⁺ gradient (the pump's work, the membrane
+   milestone's own story) is the fuel.
+4. Inside the astrocyte: glutamine synthetase (an enzyme blob) converts each
+   dot — a visible CHANGE OF KIND (glutamine wears its own ink, chosen at the
+   05 reconciliation) — identity kept through the conversion.
+5. The round trip: glutamine out through a SNAT door, across the gap, in
+   through the terminal's SNAT door, glutaminase converts it back, and the
+   restored glutamate joins the terminal's STOCK — visually the staged pool
+   D06's generation-2 refill rains from, so the two drawers hand the same
+   material to each other.
+6. Transport bar stages (order settled, stopwatch declared):
+   Released → Caught → Converted → Shipped home → Converted back → Stocked,
+   with the D06 grammar throughout: shares + holds, label stops as bar
+   diamonds, the 🏷 labels switch, spoken labels at every still.
+
+**Model** (`core/reuptake.ts`, a sequence like `vesicleCycle`): staged spans
+with holds; seeded per-dot assignments (which dot → which transporter, on
+which ramp) as named decisions; counts that tests read (caught-by-astrocyte
+vs caught-by-neuron ratio pinned to the declared split; every dot accounted
+for at the end — conservation). Honesty block: the % astrocytic, the EAAT
+stoichiometry (settled), the squeezed timescales (uptake ~ms, the glutamine
+cycle seconds–minutes), dots and doors standing for thousands.
+
+**Home and entry**: a drawer off the SYNAPSE view (home: 'synapse'), beside
+D06 on the same shelf — a second labelled button (e.g. ♻️ "Where the
+transmitter goes"). Two doors at one place need two icons, spaced by a
+marker's own diameter (03). D06's info block may mention the sibling in
+words; navigation stays on the view's chrome.
+
+**Reuse inventory** (no second copies): `transmitterDot`, `GLOSSY_COLORS`
+(na/k/h), `paveMembrane`, the barrel + bore-threading door (extracted from
+snareScene), `spoken`/`drawSpoken`, `TransportBar` + `marks`, the bench hold
+machinery (consider extracting the checkpoint-hold logic from SnareBench
+into a shared hook before building).
+
+**Open questions for the implementation round's alignment** (to ask, not
+guess): (a) one static frame with all three cells vs a camera that follows
+one dot — recommend static, dots travel; (b) the Na⁺/K⁺/H⁺ fare on every
+capture vs once with a label — recommend once; (c) glutamine's ink — needs a
+hue free of the existing cast, reconciled in 05 before drawing; (d) how many
+dots — D06's NT_COUNT or the cleft cloud's own count; (e) whether the closing
+frame visually echoes D06's staged pool or says the hand-over in words.
+
+**Refinement, 2026-09-04 — ONE FEATURE AT THREE REGISTERS** (user: "implement
+it in three places"). Reuptake is one biology shown at three magnifications,
+the way fusion already is (scene band-scale → D06 molecules). Confirmed by
+alignment: place 3 is D17, the sibling drawer — the 2026-09-03 "not in D06"
+ruling stands — and the close-up gets the drain, not a third cell.
+
+- **21b-1 — the whole-synapse framing (`outgoing-synapse`): who and where.**
+  The astrocyte process enters the picture as ANATOMY: a slim glial finger
+  wrapping one flank of the cleft, drawn at the scene's own band register
+  (level of detail cuts both ways — no molecules here), its body fading at
+  the frame's edge. The existing cloud decay (the model's own clearance) gets
+  visible ATTRIBUTION: a modest set of identity dots drifts to the astrocyte
+  flank and enters at small transporter ticks — most there, one or two into
+  the presynaptic face (the minor route, the declared split). An 'astrocyte'
+  spoken label joins the scene's names; the run's clock rules apply to the
+  clearance tail (slow the leg, never the item). The shelf gains D17's
+  labelled button beside D06's — two doors, two icons, a marker's diameter
+  apart — on BOTH framings.
+- **21b-2 — the active-zone framing: the effect, not the cell.** Decided with
+  the user (2026-09-04): the astrocyte's processes live at the rim this
+  framing crops away, so no third cell is drawn — the transmitter visibly
+  DRAINS toward the lateral edges (leaving by travel, toward collectors that
+  are off-frame), and the info block names where it goes.
+- **21b-3 — the D17 drawer: the machinery.** The full molecular plan above,
+  unchanged — the third register, where the transporters become barrels, the
+  fare is paid in drawn ions, and the glutamine round-trip runs to the stock
+  D06 refills from. The astrocyte here IS the cell place 1 introduced.
+
+Build order: 21b-1 → 21b-2 → 21b-3, each with its own hand-over; the drawer
+lands last so the wide view has already introduced the cell it magnifies.
+
+### Step 21b-1 — the astrocyte enters the synapse scene, 2026-09-04 · awaiting manual test
+
+Register one of D17 (plan above), built with alignment answers: TWO glial
+fingers (both flanks), collected balls VISIBLE inside them, and the D17 shelf
+button added now but DISABLED ("soon").
+
+**A1 — the third cell, as anatomy.** `astrocyteFinger(g, side)`: a capsule
+per flank at the scene's band register — tip beside the cleft's mouth, body
+running outward and down, faded toward the frame's edge by gradient (never an
+invented boundary; the fade lives in the fill/stroke gradients so globalAlpha
+stays multiplied-only). Its membrane wears the scene's own LEAFLET/CORE band
+inks; its cytoplasm is the neurons' wash greened a step. Two indigo
+transporter TICKS on each tip (D06's transporter colour at tick size). An
+'astrocyte' spoken label joins the scene's names. The active-zone framing —
+the same scene, 4× closer — crops the fingers away by construction, which IS
+the agreed close-up treatment: the drain shows, the cell stays at the rim.
+
+**A2 — the cloud's decay, attributed.** The escapees' journey now ENDS
+somewhere: `escapePos` routes each ball out of its nearest gap end, to a tick
+on its own side's finger, and to a seeded rest INSIDE the capsule
+(`astroRest` — solved from the capsule, cannot land outside); a seeded few
+(`NEURON_UPTAKE_FRAC` 0.15) take the spine's own transporter instead — the
+declared minor route. Measured with the app's seeds: 10 glial to 1 neuronal
+(91%, the declared "up to nine parts in ten"), 10 released balls lingering in
+the gap per the standing 2026-09-01 ruling (the transporters that reclaim
+THOSE work on a slower clock than this run — kept). The old open-bath rest
+spot is gone; 'bath' is a travelling phase now, never a place to end up. A
+new 🧤 info paragraph names the astrocyte, the split, and the sodium-gradient
+fare. `ntSettledBy` covers the new legs.
+
+**A3 — the reserved door.** The synapse shelf carries D06's button plus a
+disabled "♻️ Where the transmitter goes · soon" (user's choice) — the drawer
+itself is step 21b-3.
+
+Guards: E3+J rewritten to the collection contract — escapees end 'glia' or
+'spine', none resting 'bath', every glial ball held by the capsule's own
+decision (`astrocyteHolds`), ≥70% astrocytic with the minor route really
+shown (≥1), and the books still balance ball-for-ball; broken (rest spot
+pushed outside the finger) and watched fail at the capsule test. The chain
+continuity walk passes over the new legs unchanged. 1162 tests green,
+typecheck clean.
+
+### Step 21b-1a — scene callouts and the fingers re-seated, 2026-09-04 · awaiting manual test
+
+**A1 — "labels on whole synapse framing are misplaced, add connector
+lines."** The scene's names now use D06's callout grammar: `synapseCallouts`
+ties each label to a point ON its object (vesicle → the leftmost docked
+bubble; dendritic spine → its face; synaptic cleft → the gap's mouth;
+astrocyte → the right finger's tip), a 1 px connector drawn with the chrome.
+Positions were MEASURED into open water, not nudged: the old 'synaptic
+cleft' sat on the spine's shoulder and 'vesicle' had a corner on the bulb;
+both were caught by the new guard, which requires every label box inside the
+frame, off the bouton's floor, and outside both glial capsules, with
+connectors that leave their boxes and no two boxes overlapping.
+
+**A2 — "the fingers read as a second postsynaptic specialization; place
+them slightly further away or more towards the synaptic cleft."** Both, per
+the instruction's either/or: each finger's tip now hovers AT THE GAP'S OWN
+HEIGHT (wallAt(edge) + half the cleft — the mouth it drains), and further
+out (activeHalf + 105 from the centre). The bulb is asymmetric, so the two
+tips ride at their own wall's height (measured: 370 right, 411 left).
+Guarded: no membrane point of the spine's face or the bouton's floor lies
+inside either capsule, and the tips sit clear beyond the zone's mouth. The
+collection routes follow the ticks automatically. 1164 tests green,
+typecheck clean.
+
+### Step 21b-1b — the labels switch on the synapse, and the astrocytes on both neurons, 2026-09-04 · awaiting manual test
+
+**A1 — the 🏷 labels switch, D06's own.** The track-and-knob affordance was
+EXTRACTED into `ui/LabelsSwitch.tsx` the moment a second view needed it (one
+drawing of the affordance, never two); SnareBench now uses the shared
+component, and the synapse view carries one beside its ⚡/▶ plate. Off: no
+callout is drawn (`SynapseView.labelsOn`) and none is clickable (the hit
+rectangles unmount) — on either framing.
+
+**A2 — the astrocytes on the big and the small neuron.** Built rather than
+SVG'd (offered; the app's own ink keeps one visual language and testable
+geometry). `ASTROCYTES` in layout: two cells at the outgoing synapse — one
+above, one below, because the landing quarter-turn maps the scene's
+above/below to the landed view's left/right flanks, so these ARE the two
+fingers' owners. Each is a lobed star (seeded lobes, five short wavy
+processes) with ONE long process reaching to its own mouth of the synapse,
+in the glial greened wash at the scene's register; bodies sit toward the
+frame edge and may crop, as the user allowed. On the DIVE they dissolve out
+with the bouton stand-in while the seated anatomy's own mouth-fingers
+(drawn into `outgoingAnatomy`, proportioned in the view's own
+active-half units) dissolve in — level of detail dissolves, never both on
+screen. The MINIATURE (NeuronMapPanel's SVG) shows the two cells only on
+the synapse framings (`mapShowsAstrocytes`), bodies cropped by the map's own
+frame.
+
+Guards: two cells, opposite flanks, each a neighbour (60–160 px off the
+synapse) reaching within 16 px of it on its own side; the map predicate true
+only for the two synapse views; broken (both cells one side) and watched
+fail. 1166 tests green, typecheck clean.
+
+### Step 21b-1c — the shelf's corner freed, and the paired mini-ropes, 2026-09-04 · awaiting manual test
+
+**A1 — "bottom left label is covered by buttons container."** The 'dendritic
+spine' callout (parked bottom-left one round earlier to dodge the left
+finger) sat under the D06/D17 shelf plate. Moved to measured open water
+bottom-RIGHT (clear of the right finger, above the cleft label's box),
+pointing at the face's right flank — and the label guard now RESERVES the
+shelf's corner (x < 560, y > H − 130, generous for stacked or side-by-side
+buttons), so no future label can land there; broken (label back bottom-left)
+and watched fail.
+
+**A2 — "add another snare complex to each vesicle, to stay consistent
+between presentations."** `snareMini` now returns a mirrored PAIR of ropes
+per docked vesicle (`ropes`, replacing the single ropeFrom/ropeTo), the same
+section-through-a-ring D06 presents; the drawing loops both, in the shared
+strand colours, on both framings. Knobs unchanged (already the pair). 1166
+tests green, typecheck clean.
+
+### Step 21b-1d — the astrocytes reshaped to the user's design, 2026-09-04 · awaiting manual test
+
+An illustration handover (~/Downloads/astrocyte.svg), reconciled in 05 before
+drawing (see 05 → Reconciliation — astrocyte.svg): a five-point star soma
+with concave valleys, each arm a wavy main process with one short
+side-branch, outline-first. Adopted whole; changed with written reasons: the
+ink stays the glial green (the SVG's #be5757 is a red, and red is the
+reserved + charge colour), one process per cell is elongated into the reach
+that ends exactly at its synapse mouth (direction changes allowed by the
+user), and a faint fill keeps the body legible over the dark bath.
+
+**The one-glyph rule, for kids who don't read.** `astroShape` (layout.ts) is
+ONE seeded geometry in scene coordinates returning the soma polygon and
+twelve process polylines; the canvas scene strokes it and the miniature's
+SVG paths THE SAME shape — recognition by silhouette, not caption. On the
+map the true scene spots sit half off the sheet, so `MAP_ASTROCYTES` pulls
+each cell inboard (above and below the synapse) — a star the kid cannot see
+teaches nothing — declared in the reconciliation.
+
+Guards: five contiguous point-groups (broken to four and watched fail), star
+proportions (max > 0.95 r, valleys < 0.55 r), the reach's last point equal
+to the fingertip to 1e-6, twelve polylines (the paired-branch grammar), and
+the map cells' bodies wholly inside NEURON_MAP_BOX, still reaching their own
+mouths. 1168 tests green, typecheck clean.
+
+### Step 21b-1e — the astrocytes re-created as the SVG's own trace, 2026-09-04 · awaiting manual test
+
+**A1 — "re-create astrocytes based on astrocyte.svg."** 21b-1d had
+approximated the handover procedurally (a cos⁵ five-point star with
+generated wavy arms) — and misread it: the drawing is a SIX-point star with
+six main+side-branch processes. `astroShape` is now the trace itself: the
+SVG's thirteen paths machine-extracted into absolute cubics (`ASTRO_TRACE`,
+layout.ts), flattened at draw time; centre, tip radius and the reach arm's
+as-drawn direction are MEASURED off the data at load (`ASTRO_FRAME`), never
+asserted. The top arm as drawn becomes the reach: the glyph turns to face
+its synapse mouth and a similarity about the arm's soma-side end lands its
+tip exactly on the fingertip, the side-branch riding the same map. The seed
+parameter is gone — a trace has nothing to randomise. Standing
+reconciliation decisions kept: glial green ink (the SVG's #be5757 is a red,
+reserved for + charge), faint fill, one glyph for both registers.
+
+**A2/A3 — the two places.** Both consumers draw the traced glyph through the
+one shared `astroShape`: the big canvas scene (`drawAstrocyteCell`,
+drawScene.ts) and the whole-cell miniature (NeuronMapPanel's SVG), unchanged
+ink and placement (`ASTROCYTES` / `MAP_ASTROCYTES`).
+
+Guards (updated to the trace, citing A1): SIX contiguous point-groups
+(broken to five by dropping a point's cubics and watched fail — "expected 5
+to be 6"), measured proportions (tips scale to r, valleys between 0.5 r and
+0.65 r), twelve polylines, the reach's last point on the fingertip to 1e-6,
+its root on the soma, and the side-branch inside the stretched arm's span.
+1168 tests green, typecheck clean.
+
+**Corrections round (2026-09-04).** A1 — outline thickened at the scene's
+register (1.5 → 2.5 px). A2 — the body FILLED on both views (scene wash
+0.10 → 0.40, map 0.22 → 0.45): the faint wash read as hollow. A3 was a
+science question, answered with the scene's own numbers, no redraw: an
+astrocyte much smaller than the whole neuron is CORRECT (a rodent
+protoplasmic astrocyte's territory is ~40–60 µm across against a dendrite-
+to-terminal span of hundreds of µm), but measured at PX_PER_UM the drawn
+glyph spans ~27 µm — a touch small against the real 40–60 µm territory,
+declared rather than fixed; the miniature's cells are symbols, not to
+scale, like the map itself.
+
+### Step 21b-1g — the neurons re-drawn from the user's neuron (1).svg, 2026-09-04 · awaiting manual test
+
+An illustration handover (~/Downloads/neuron (1).svg), reconciled in 05
+before drawing (see 05 → Reconciliation — neuron (1).svg). Alignment answers
+(2026-09-04): the trace becomes the LAYOUT, not just the ink; rotated a
+quarter-turn to the scene's left→right flow; neighbours are the same species
+reduced.
+
+**A1 — reconciliation first.** Written in 05 with the measured facts of the
+trace: a seven-point star soma (hillock cone drawn into it), seventeen
+dendrite strokes (eleven rooted, six twigs, sketch gaps kept), one arcing
+axon, an arbor of eight branch strokes and seven teardrop boutons whose
+chains were derived by measured endpoint affinity (every join < 3.1 units).
+
+**A2 — the big neuron IS the trace.** `NEURON_TRACE` (layout.ts) holds the
+machine-extracted cubics; scale and place are SOLVED from the stage budget
+(the cell spans px 190→950, between the input column and the target's
+reach). Measured, not chosen: NEURON_K = 3.20, SOMA at (356.8, 0.46 H),
+SOMA_R = 59 px, so PX_PER_UM = 5.9 and everything derived re-derives —
+MEMBRANE_ZOOM ×2300, AXON_VIEW_SCALE ×10, SYNAPSE_VIEW_SCALE ×75,
+DRAWN_AXON_UM 86.4 µm (still under a tenth of a millimetre, as the ribbon
+view requires). The soma is drawn from `SOMA_OUTLINE` (no more circle), the
+axon polyline is the traced arc (the membrane patch moved to its gentle
+tail, AXON_MEMBRANE_T 0.55 → 0.86, and the passive door to 0.62 — the
+marker-separation guard re-measures every pair), the eleven trunks keep the
+`segs`/`path` contract (paths soma → tip), and the seven terminals carry
+`path` (the traced route from the axon tip) and `outline` (the teardrop);
+`TERMINAL_BRANCHES` is the drawn arbor ink. Terminal lighting, hit regions
+and both miniatures follow the routes — never a chord across the arbor.
+
+**A3 — the neighbours, same species reduced.** `partnerSoma` now draws the
+traced star (`neuronSomaOutline`) turned so its cone faces where that cell's
+axon leaves; the three input cells' straight stubs became reduced traced
+trunk strokes fading at the far end (`partnerStubs`, `fadingPath`); the
+target keeps its solved synapse stubs and off-stage axon.
+
+**A4 — the small neuron.** The miniature and the spike-train inset draw
+`SOMA_OUTLINE` and the traced arbor from the same layout exports; boutons
+stay discs at those sizes (a teardrop three pixels wide is a disc — level of
+detail cuts both ways).
+
+**A5 — the attached elements re-anchored.** Zoom markers and the dashed ring
+re-derive (measured spots: hillock 400,385; conduction 499,479; passive
+636,393; membrane 747,347; outgoing synapse 953,311). SYNAPSE_TRUNKS is
+SOLVED per input row (nearest input-facing tip, each used once → trunks
+3/6/8); the target's stubs are SOLVED onto the three boutons nearest its
+soma with the NEAREST at index 1 — the app-wide literal for the outgoing
+synapse — so OUTGOING, the astrocytes and the whole synapse view re-anchor
+themselves. Labels re-seated to the new anatomy (axon label under the arc's
+dip; terminals label under the arbor) — positions await the eye, not a test.
+
+Corrections the trace forced, measured first: the camera's axon turn now
+reads the STRETCH (±1% of cable) because the traced arc curves where the
+old quadratic did not; the membrane-exit probe in the handover test moved
+0.3 → 0.2 (the solved scale shortened the patch→axon flight to fewer
+decades); the ion-size test's hardcoded `0.001 × 4.4` became
+`0.001 × PX_PER_UM` (a stale literal of the old scale).
+
+Guards (citing their points): star soma with the axon rooted on its drawn
+cone, valleys < 0.75 r and cone > 1.3 r (A2); seven terminals, each path
+starting at the axon tip, ending on its bouton, continuous (no step > 2.2
+boutons — this guard caught the extraction decimating across junctions,
+which was then fixed in the data) (A2); eleven trunks rooted on the outline,
+paths soma → tip (A2); three distinct synapse trunks, tips input-facing,
+top-to-bottom (A5); the outgoing synapse on the bouton nearest the target,
+three distinct stubs (A5 — broken by inverting the solve to the farthest
+three and watched fail, taking the map-astrocyte guard down with it, which
+is the coupling working). 1173 tests green, typecheck clean.
+
+### Step 21b-1h — the arbor invaded, not switched on, 2026-09-04 · awaiting manual test
+
+User: "improve signal transport animation at axon ends in all instances:
+currently the whole thing lights up at once… Push back if there's a
+scientific reason." No pushback — the opposite: the spike actively propagates
+into the terminal arborization, forking at each branch point and reaching
+the near boutons first, so the simultaneous flash was the axon's
+lights-as-a-unit misconception replayed at the last fork. Declared
+exaggeration where the durations live: a real arbor is invaded in tens of
+microseconds; every leg of this chain is choreography.
+
+**A1 — the big scene (and the scales exhibit through it).** The chain gains a
+measured leg: `ARBOR_MS` (chain.ts) is the axon leg's own px-per-ms carried
+through the forks (ARBOR_MAX_LEN / axon length × AXON_AP_MS ≈ 570 ms), and
+`terminalHead` walks 0→1 across it, taking over at the tip the frame the
+axon head lands there. The per-route coverage is ONE named decision —
+`terminalReach(head, ti)` in layout.ts, with `terminalArrival` for the
+bouton's own last-fifth glow and `partialPath` for the covered prefix — so
+the renderer strokes exactly the travelled portion of each terminal's traced
+route and each bouton lights only when the wave reaches IT. Release still
+begins only after every bouton is reached (the arrive-then-release lesson,
+now walked by the clock).
+
+**A2 — the miniature.** The map's own sweep clock no longer freezes at the
+axon's end: the overshoot is the wave's time in the branches
+(`MAP_ARBOR_MS` = the same fraction of the sweep the model gives the arbor),
+each route covered through the shared `terminalReach`, and the cable HOLDS
+its settled glow while the arbor is invaded so everything lets go together.
+`region.terminals` (the phase-driven all-at-once glow) is deleted — the
+terminals are not a region any more, they are the end of the journey.
+
+**A3 — other instances.** The scales exhibit renders through `drawScene` and
+inherits A1. The spike-train bench's inset has NO arrival animation to fix —
+it lights a static you-are-here region pulsing with the bench's own patch
+spike — so nothing there pretends the arbor fires as a unit.
+
+**A4 — declarations and rules.** The exaggeration is declared beside
+`ARBOR_MS`; 03 → "Whether a signal is running, and where" now carries the
+rule: THE TERMINAL ARBORIZATION IS PART OF THE AXON — it is invaded, never
+switched on, and both pictures ask the same `terminalReach`.
+
+Guards (citing points): the wave is walked by the clock — many sampled
+moments mid-transit, monotonic, a real leg > 200 ms (A1; broken by pinning
+terminalHead to 1 in the arbor window and watched fail); every bouton
+reached before any release (A1); `terminalReach` covers the shortest route
+while the longest is still short of its arrival window, nothing lights with
+no wave (A1/A2); `partialPath` returns exactly the covered prefix, endpoints
+pinned (A1/A2). 1177 tests green, typecheck clean.
+
+### Step 21b-1i — the neighbours become whole neurons, and synapses get spines, 2026-09-04 · awaiting manual test
+
+Alignment answers (2026-09-04): neighbours = "full traced neuron, reduced";
+thickenings = "at the synapse-bearing tips only".
+
+**A1 — "neighbour neurons... look like astrocytes."** They did, and the
+diagnosis is not detail but POLARITY: a star soma with three stubs radiating
+evenly IS the astrocyte glyph, whereas an astrocyte is radially symmetric
+with no axon and a neuron has its whole fan on one side and one axon on the
+other. So `partnerParts` builds every neighbour as the WHOLE traced cell,
+reduced and turned about the axis soma → axon tip — which is also a fix:
+`NEURON_FACING` had been the hillock cone's direction, turning every
+partner's fan by the 53° between the cone and the axon's exit.
+
+Each input cell now carries its complete 17-stroke fan (far ends fading at
+the frame), a soma with a nucleus, and an arbor. Its axon is built by
+SOLVING, not aiming: the terminal that contacts us is the one FARTHEST along
+its arbor, so the cell's other six endings trail back along its axon instead
+of sprawling across our dendrite; the arbor's hub falls where that puts it,
+and the traced axon is stretched (`reachTransform`, fixed at the soma cone)
+to reach it. The result is one continuous path — soma cone → hub → the
+traced arbor route → the bouton — so the presynaptic spike travels the route
+it really takes and lands exactly on the cleft (measured: 0.0000 px error).
+Its other six boutons are drawn small and faint: that axon contacts other
+cells too.
+
+The target is the same cell turned to project onward off the right edge,
+which puts its own fan back toward our boutons. Which of its dendrites
+receives which bouton is SOLVED (nearest unused traced stroke per
+postsynaptic point), then that stroke is STRETCHED to land exactly on the
+point — the drawing is never nudged, the transform is (measured: 0.0000 px).
+Its remaining 14 strokes are drawn where the frame lets them be seen.
+
+`reachTransform` was EXTRACTED for this: the astrocyte's reach, an input's
+axon and a target's dendrite are all the same move, and the astrocyte had a
+private copy of it.
+
+**A2 — "let dendrites start with thickenings."** `spineHead` + `drawSpine`:
+a mushroom head on a narrow neck at every postsynaptic site — the three tips
+of our fan that receive an input, and the target's three dendrites that
+receive our boutons. Only there: a thickening is a claim, and drawing one on
+all eleven tips would say every tip is a synapse. The head is seated BEHIND
+the apposed face so it never grows across the cleft it faces, and it clears
+the presynaptic bouton by 5.5 px. Not on the miniature or the bench inset —
+two pixels at those registers, and level of detail cuts both ways.
+
+Correction found while guarding A2: the neck's direction was taken from the
+neighbouring path sample, and since the traced strokes are sampled every few
+pixels the head could sit PAST that sample — the tangent then pointed back
+into the cleft. It now walks a real arc distance (4 × head radius) back down
+the dendrite.
+
+Measured, for the record: input somata (58, 112/330/548) with fans cropping
+4–11 px past the left edge as intended; axon lengths 124–266 px; the nearest
+of an input's other boutons passes 10 px from one of our dendrites (drawn
+faint and small — an axon passing a dendrite without synapsing on it is a
+real thing); the target's fan reaches x = 961 against boutons at ~941, its
+axon exits at x = 1255.
+
+Guards (citing their points): each input has all 17 fan strokes plus an
+arbor, and is POLARIZED — the fan's centre of mass and the cell it talks to
+are on opposite sides of the soma (cosine < −0.4; a radially even glyph
+scores ~0) (A1, broken by turning the fan toward the synapse and watched
+fail, taking the target's off-frame-axon guard with it); an input's axon
+leaves its own soma, is continuous, and ends exactly on its bouton (A1); the
+target's dendrites are rooted on its soma, reach back toward us and land
+exactly on the postsynaptic points (A1); a spine head sits behind the face,
+clears the bouton by a real gap, and its neck runs inward not into the gap
+(A2, broken by seating the head across the cleft and watched fail).
+1181 tests green, typecheck clean.
+
+### Step 21b-1j — the arbor's signal in the cable's own language, glia among the dendrites, spines re-seated, 2026-09-04 · awaiting manual test
+
+**A1 — "improve signal in axon arborization: a yellow glowing dot with white
+tail moves along the lines (same as on axon body)."** The previous round lit
+a growing PREFIX of each terminal route — progressive, and still a different
+animal from the signal on the cable it continues. It is now the same
+`travellingSignal` the axon uses, at the axon's own tail length
+(`ARBOR_TAIL_PX` = 0.11 of the cable = 56 px; route lengths 109–167 px, so
+0.34–0.51 of each). Rule folded into 03: when one structure continues
+another, the signal on it is drawn by the same function.
+
+⚠ **Fronts are DEDUPED, not drawn per route** (`arborFronts`). Seven routes
+share their first stretches and every route is covered at one speed, so the
+heads on a shared stretch are the SAME POINT: one signal per route would
+stack seven glows into a flare on the shared limb — brightest exactly where
+the picture is least interesting. Measured over a run, the count goes
+1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, then falls back as routes
+arrive and their boutons take over: one dot leaves the axon and BECOMES many
+at the forks, which is the thing the picture is for.
+
+**A2 — "draw more astrocytes next to main neuron dendritic arborization."**
+Scientifically the right correction, and recorded as such in 05: glia are
+not a decoration of one synapse. Four `DENDRITE_ASTROCYTES`, spots SOLVED
+(grid over the fan's bounding box; clear of every dendrite, the soma, the
+axon, every zoom marker and the input cells' axons; roomiest first, spaced a
+cell's width apart), each reaching the nearest point on a branch. Measured:
+(260,120), (484,141), (484,351), (176,260), each ~44 px clear of the nearest
+dendrite at r = 21.
+
+**A3 — the spines re-seated.** The head was offset along the line to the
+partner's bouton, a direction the dendrite knows nothing about, so it sat
+beside the end of its own branch. Centred on the tip now; clearance made by
+standing the BOUTON off at `CLEFT + SPINE_HEAD_R`, which leaves the drawn
+gap exactly as it was (5.5 px in, 7.8 px on the target's side).
+
+Guards: fronts start at one and become many, never coincident, none after
+arrival (A1 — broken by removing the dedupe and watched fail, 7 where 1 was
+expected); the tail is the axon's own and is a real fraction of every route
+(A1); astrocytes clear of the branches yet among them, on the sheet, clear
+of soma and every door, reach landing ON a dendrite, and not piled on each
+other (A2 — broken by dropping the clearance filter and taking the tightest
+spots, watched fail at 0.43 px from a branch); the head is centred on the
+tip, the neck runs inward and stays on the branch, and both sides keep a
+real gap (A3 — broken by seating the head across the cleft, watched fail).
+1185 tests green, typecheck clean.
+
+### Step 21b-1k — the dendrite patch found its own membrane, 2026-09-04 · awaiting manual test
+
+**A1 — "dendrite membrane zoomed in view is missing lipids."** Not a missing
+drawing: a missing MEASUREMENT. The dendrite tapers since the trace landed,
+and the patch frame was still cut with `segs[0].w` — the width at the soma
+end — while the drawing puts a thinner seg at the patch's own t. The frame's
+wall and the drawn wall were 0.48 scene pixels apart: nothing at ×1, and
+**1104 screen pixels at the membrane view's ×2300**, so the camera arrived
+on empty water with the bilayer off-screen. `trunkHalfWidthAt` now cuts the
+frame with the width the drawing uses there (1.94 against the soma end's
+2.42), and the patch centre lands on the drawn wall to 0.002 scene px.
+
+⚠ **The guard that let it through** only ever checked the axon, whose width
+is uniform — so it could not fail. It now covers EVERY framed target and
+asserts the list of framed targets is exactly the list it checks, so a new
+patch cannot be added without being measured. Broken back to the soma-end
+width and watched fail.
+
+**A2 — "it also requires 'back to the whole picture'."** Verified rather
+than built: the control exists (`NeuronStage`, gated on `zoom !== null`,
+`z-10` over an unlayered Stage) and does render at this view. It was A1 that
+made the view look like a dead end — an empty canvas with nothing on it to
+come back from. No second copy of the affordance was added; one drawing of a
+control, never two.
+
+**A3 — thickenings filled.** `SPINE_FILL` (0.62) and `SPINE_FILL_PARTNER`
+(0.70) in place of the 0.12 cytoplasm wash, which reads as nothing at a
+six-pixel bulb — the shape was a ring, not a swelling.
+
+**A4 — "make astrocytes on the left side slightly transparent."**
+`DENDRITE_GLIA_ALPHA` = 0.5. The two at the synapse stay at full strength:
+that synapse is a place the app teaches, the dendritic field's glia are the
+neighbourhood the branches run through.
+
+**A5 — "unify labels across the app. Source of truth: vesicle view."**
+
+Alignment answers (2026-09-04): scope = "also connectors + 🏷 switch
+everywhere"; voice stays **per term** (the standing shorthand governs, not the
+vesicle view's speakers); the resting bench's speaking state word is kept as a
+recorded exception.
+
+⚠ **The conflict was raised before any code was written.** Unifying on a view
+whose every label speaks would have given ~40 terms an F04 button nobody
+asked for, against the standing rule "add voice to term A = give term A a
+speaker wherever it is taught". The user ruled: unified covers the LOOK, not
+which terms speak. Recorded in 03 → *Where words go*.
+
+*One style.* `spokenLabels.ts` now owns `LABEL_PLATE`, `LABEL_INK`,
+`LABEL_PX`/`labelFont()` and `drawConnector()`, plus `drawName`/`named` — a
+name without the glyph, hit-boxed for a word that has no glyph in front of it.
+The whole-neuron scene stopped running its own system (13px `ui-sans-serif`,
+slate plate, ink `#64748b`) and imports the same four things.
+
+*One leader.* `channelScene` and `lipidLabScene` had their own ink and started
+at the label's ink EDGE; both now call `drawConnector` (box centre, one ink).
+On the whole-neuron scene the leader is drawn AFTER the keep-out nudge — drawn
+from the queued anchor it would miss its own plate whenever a panel pushed the
+name aside. Leaders were added where a name points at a discrete thing (the
+input and target cells' names → their somata; the soma's own name; a
+protein's name → the protein) and deliberately withheld where the survey
+showed one would lie: extended structures, half-planes, and views that already
+tie small-to-big with amber magnifier frames.
+
+*One switch.* `state/labelsStore.ts` — a single app-wide flag replacing
+`snareStore.labelsOn` and `synapseStore.labelsOn` before a third copy could be
+written. Wired into ChannelBench, FilterBench, CapacitorBench, PermeaBench,
+RestingBench, PatchBench, LipidLab and the whole-neuron stage (top-right of
+the picture it acts on; inside a zoom it drops under the back button, clear of
+the axon views' scale plate). Every bench scene gained a trailing
+`labelsOn = true` parameter, so existing callers and tests keep working. It
+hides NAMES only — readings on a scale are untouched.
+
+*Four leaks closed*, all found by the survey: `'active zone'` (synapse view)
+was a bare 12px `fillText` outside the switch guard, beside three names inside
+it; `'aquaporin'` (permeability bench) the same; the filter bench printed
+`ion.name` as a lane title directly above the spoken name for the same ion —
+the canvas saying one thing twice in two styles, now deleted.
+
+Guards (`labelStyle.test.ts`, citing A5): a spoken name and a silent one share
+plate, font and ink and differ ONLY by the glyph (broken with a second plate
+and watched fail); the plate is never stroked; the font is the app's one font;
+a silent name is not padded for a glyph it lacks; a leader runs box-centre →
+target (broken to start at the ink edge and watched fail); and the switch
+leaves readings alone — the capacitor's `×N` and the patch clamp's mV/ms ticks
+are identical with labels on and off (broken by gating a reading and watched
+fail). 1193 tests green, typecheck clean.
+
+### Step 21b-1m — the synapse stands the way the release view draws it, 2026-09-04 · awaiting manual test
+
+**A1 — "turn 'focus' into a switch toggle, same as 'labels'."** 🔆 focus was a
+press-to-light chip while 🏷 labels beside it was a track-and-knob switch: two
+controls that both turn one thing on and off, looking like two different kinds
+of control. The affordance was EXTRACTED (`ui/ToggleSwitch.tsx`, icon + word +
+knob); `LabelsSwitch` is now a thin wrapper on it and focus uses it directly —
+one drawing of the affordance, never three.
+
+**A2 — the circle inside a soma.** Answered, not built: it is the NUCLEUS, and
+it is what makes a cell BODY read as a body rather than a blob where processes
+meet. Neurons already carry one (focus cell and every partner). Astrocytes do
+not — recommended and offered, awaiting the user.
+
+**A3 — "the vesicle release view is horizontally aligned, whereas the acting
+connection on the whole neuron view is vertical."** The scene's synapse lay
+along x and the camera turned a quarter on the way in to meet the release
+view's across-the-frame cleft. The scene now STANDS that way and the turn is
+gone (see 03 → *A view and the scene it is reached from must AGREE*).
+
+Solved, not placed: the target listens to the arbor's three LOWEST endings
+(terminals 6/5/3), ordered left→right so its dendrites never cross; its
+postsynaptic points are straight DOWN from each bouton across one cleft; and
+it stands under them at exactly its own traced fan's reach, so its dendrites
+arrive stretched 52–110 px rather than hauled out of scale. Measured: bouton
+(855, 491) → tip (855, 515), soma (874, 597), bottom edge 625 against a
+660 stage. The two astrocytes moved to flank LEFT and right of the cleft
+(773, 555) and (941, 549) — the same two cells, read without the rotation.
+Both synapse framings now have `turn: 0`, and the active-zone marker offsets
+along the synapse's own axis.
+
+The miniature gained the postsynaptic neuron (dimmer, drawn first so the
+subject sits on top), and `NEURON_MAP_BOX` had to stop cropping: it took its
+width from the x extent alone and derived height from MAP_ASPECT, which cut
+the target off the sheet the moment it moved down. The box is now solved to
+CONTAIN its content at that aspect.
+
+**A4 — "vesicle release view is missing 'back to the whole image' button."**
+It was a bare ✕ — and that is the app's own stated failure: icons rank, they
+do not name. Fixed in `SideDrawer`, so EVERY drawer gained the same named way
+out, in the stage's own words. In the flow rather than floating: every drawer
+already puts something in its top-right corner (this one's transport bar runs
+across the canvas there), and a pill laid over that is chrome sitting on the
+exhibit.
+
+Guards (citing A3): the cleft is vertical to within a pixel and exactly one
+cleft deep, the target stands under the whole arbor and on the stage (broken
+back to a horizontal cleft and watched fail); neither framing turns the camera
+(broken back to π/2 and watched fail); the target listens to the lowest three
+with index 1 nearest and no dendrite wildly out of scale; the postsynaptic
+cell and its tips are inside the miniature's box (broken by letting the box
+crop again and watched fail). 1197 tests green, typecheck clean.
+
+### Step 21b-1n — the escape hatch dug out from under the chrome, 2026-09-04 · awaiting manual test
+
+**A1/A2 — "'outgoing synapse' is missing 'back to the whole picture' button,
+add, and verify other zoom-in areas."** It was never missing — it was
+underneath. Two views lay a full-width control column across the same top
+band at the same `z-10`, later in the DOM: the synapse framings (`atSynapse`)
+and a membrane patch during the spike demo (`atMembrane && showSpike`). The
+axon views (`atAxon`, `atPassive`) use a CENTRED plate, which is the only
+reason they never showed the fault — the rule held by accident in three views
+and failed in two.
+
+Verified across every zoom-in area: incoming synapse, dendrite membrane,
+hillock, axon membrane, along the axon, passive spread, outgoing synapse,
+active zone. The hatch is now positioned from shared numbers
+(`ui/stageChrome.ts`) and sits above every column by z rather than by DOM
+order; both full-width columns start below its band. The standalone 🏷 switch,
+which had been parked at `left-3 top-14` inside a zoom, moved to the
+bottom-right — the top band belongs to the hatch, and the bottom-LEFT already
+belongs to the patch doors' shelf. No second button was added: a duplicate
+would have "fixed" it while leaving two escape hatches to keep in step.
+
+**A3 — "drawers do not need such."** Last round's `SideDrawer` change is
+reverted; drawers keep their ✕. Recorded in 03 as a distinction rather than a
+preference: a zoom is somewhere you went and the camera brings you back; a
+drawer is something you opened over where you already are, and closing it is
+the whole of the return.
+
+**A4 — "draw nucleus in astrocytes too."** `astroNucleus` — one decision, at
+0.3 of the soma radius, asked by the canvas and by the miniature so the two
+cannot drift, in the glial green taken darker (a nucleus is denser than the
+cytoplasm, and reading as a different SUBSTANCE from the neurons' slate is
+what the green is for). Measured: nucleus 7.8 px against a valley of 15.7 on
+the r = 26 cell, 6.9 against 13.89 on the r = 23 one.
+
+⚠ **Formatting drift repaired.** An earlier `npx prettier --write` in this
+session ran with no repo config and reformatted `drawScene.ts` to prettier's
+DEFAULTS — 907 semicolon-terminated lines against 1 in every sibling. The
+repo's actual style was recovered by testing an untouched file
+(`--no-semi --single-quote --print-width 90` matches `core/ions.ts` exactly)
+and every file touched this session was brought back to it.
+
+Guards: a view's column starts below the hatch with real air, and the hatch
+outranks every column by z (both broken and watched fail); the button is a
+real target, not a hairline; an astrocyte's nucleus is centred, a real
+proportion of the body, and fits inside the star's VALLEYS rather than merely
+inside its points (broken to 0.65 r and watched fail — 16.9 against a 11.7
+valley). 1201 tests green, typecheck clean, formatting clean.
+
+### Step 21b-1p — the way out moved onto the map, 2026-09-04 · awaiting manual test
+
+**A1/A2/A3 — "modify 'back to the whole picture' into a minimalistic button,
+and place it inside the 'map neuron' container, in the left bottom corner, for
+all occurrences."** Done, and it SUPERSEDES the previous step's fix rather
+than adding to it. `ui/stageChrome.ts` and its test are deleted: the band
+arithmetic existed only to stop a stage-level overlay burying a stage-level
+button, and there is no longer a stage-level button. The two full-width chrome
+columns went back to `top-3 z-10`, giving the picture back the 36 px the
+workaround had cost.
+
+The control is now one small pill in the miniature's bottom-left corner
+(`⤢ back`, the sentence moved to `title`), shown only when there is somewhere
+to come back from. Structurally this makes the burial class of bug impossible:
+the button is no longer a sibling of the things that were covering it, the
+panel is permanent and unconditionally mounted (App.tsx, first in the column),
+and the picture it sits on IS the destination. Verified: exactly ONE such
+control now exists in the app.
+
+**A4 — "place 'labels' on 'AP' demo, on the left from 'focus' toggle."** The
+two switches now sit together in one row on the spike demo's plate, 🏷 before
+🔆 — names are what the picture SAYS, focus is how hard it says it. They are
+the same kind of control and now read as one. The standalone 🏷 switch stands
+down wherever a view carries its own, so no view shows two: the gate is now
+`!atSynapse && !(atMembrane && showSpike)`.
+
+No new guards: this round is chrome PLACEMENT, which only an eye can judge,
+and the three `stageChrome` tests were deleted with the constants they pinned.
+1198 tests green, typecheck clean, formatting clean.
+
+### Step 21b-1q — the zoom markers made findable again, 2026-09-04 · awaiting manual test
+
+**A1/A2 — "magnifying glass areas are not visible on the big neuron, as
+things got more cluttered."** The markers were calibrated against a nearly
+empty scene: a slate ring at 0.75 alpha over grey anatomy. Since then the
+scene gained the traced fan with its twigs, seven boutons, four whole partner
+cells and six astrocytes, and the doors stopped standing out. Nothing failed,
+because nothing measured whether a marker separates from what is behind it.
+
+`markerStyle(hot)` now returns the appearance as numbers rather than drawing
+it inline, so the decision can be asked directly. RESTING takes the
+prominence hover used to carry — ring and icon at full strength — on a dark
+BACKING DISC, which is what actually makes it survive clutter (the same answer
+the app already uses for a name that would vanish into what it lies on; more
+brightness would just compete with a bright scene). Its ink moved off the
+cell's own slate to near-white, so it reads as chrome rather than anatomy. No
+label at rest.
+
+HOVER now means exactly one thing: the yellow glow, and the name. Reserving
+the yellow for hover makes "which door is under my pointer" answerable by
+colour rather than by a difference in strength nobody can see.
+
+Guards (citing their points): resting ring and icon are at full strength and
+equal to the hovered ones — hover is not how you find a door (A1); resting
+carries no label and hover does (A1/A2); the glow is hover's alone and is the
+app's one signal yellow, which the resting ink is not (A2); both states darken
+what is behind them (A1). Broken twice and watched fail — back to a faint
+ringless marker, and again with the label and the yellow moved to rest.
+1202 tests green, typecheck clean, formatting clean.
+
+### Step 21b-1r — the fan drawn once, the parts given voices, navigation in yellow, 2026-09-04 · awaiting manual test
+
+**A1 — "dendrites… have visible dots on the places where its pieces collide."**
+Not a geometry fault: a COMPOSITING one. The fan is modelled as segments and
+the scene stroked them one at a time with round caps, under the fan's own
+`globalAlpha` — so each join's two overlapping caps painted 1 − (1 − α)²
+instead of α (0.98 against 0.85), a bright dot at each of ~30 joins per
+branch, on ~170 segments. Invisible at full opacity, which is why nothing
+caught it.
+
+`DENDRITE_STROKES` now exports the branches as whole polylines with their
+taper, and `DENDRITE_SEGS` is DERIVED from them so the two cannot drift. The
+scene draws each branch as one tapered ribbon (walked up one side, round at
+the tip, back down the other) and fills it once. Rule folded into 03 in its
+general form: any translucent drawing made of overlapping pieces shows its
+seams, and it hides at α = 1.
+
+**A2 — "add voice on the labels, which name neuron parts (not navigation)."**
+`sceneTermSpeaks` — ONE predicate, consulted by the part names AND by the zoom
+markers, so a door cannot acquire a voice by being handed a `speak` field.
+The four part names (dendrites, soma, axon, axon terminals) now carry the F04
+glyph and say themselves; marker labels do not. The hit box is recorded by the
+drawing at the label's FINAL position — after the camera and after the
+keep-out nudge — and the stage hit-tests that, so the target is exactly where
+the word ended up. A tap on a name claims the click, so saying a part's name
+does not also clear the selection under it.
+
+**A3 — "make nav dashed circles yellow."** This revises last step's choice
+(near-white at rest, yellow held for hover) and improves it: the miniature's
+"you are here" ring was already amber, so a yellow dashed circle now means one
+thing on both pictures — a place you can go, or the place you are. Hover is
+still unmistakable: it adds the glow and the name. The 03 rule written last
+step was corrected rather than left to contradict this.
+
+Guards: 17 whole branches against 170 segments, with the segments derived from
+the strokes (broken by truncating the derivation and watched fail); the taper
+agrees end to end with the segments' widths; every part name passes the voice
+predicate and every marker label fails it (broken by letting the predicate say
+yes to everything and watched fail); navigation is the signal yellow in both
+states and the glow is hover's alone. 1209 tests green, typecheck clean,
+formatting clean.
+
+### Step 21b-1s — chrome placement, and a rule for it, 2026-09-04 · awaiting manual test
+
+**A1 — "'Trace the whole signal' canvas has padding on the right."** Not
+padding: the scales exhibit draws at the scene's own size and is fitted by the
+SMALLER of the two ratios, and height is the binding one — so the canvas is
+narrower than its box, and the box's own border left a band of empty panel
+beside it. `w-fit` makes the border the picture's edge.
+
+**A2 — "place 'labels' in 'myelin' section, to the top, as it overlaps with
+the graph."** It sat bottom-right inside a zoom, which on the axon views is
+where the voltage-against-distance plot is — an instrument, and the thing that
+view exists to be read. Moved to the top-LEFT, the one corner free everywhere
+it appears: those views' plates are CENTRED at the top, the ×N reading is
+top-right, and the escape hatch has left the canvas for the map panel. (The
+stale comment in `drawMagnification` about the button that used to overlay the
+top left was corrected at the same time.)
+
+**A3 — "place 'back' button also in drawers, so everywhere where 'map neuron'
+is present."** The spike-train bench carries an inset of the whole cell and now
+carries the control with it, in the same corner and the same words. Its drawer
+✕ is NOT the same act: the bench opens at the axon-membrane zoom, so closing
+it leaves you inside a patch — the control does both steps, close then pull
+out. Recorded in 03 as the earlier ruling HOLDING rather than bending: a
+drawer with no map still only closes. What earns the way out is the map.
+
+**A4 — the filter and the bilayer lab** put their switch outside the picture,
+above it and right-aligned: those canvases are dense edge to edge and any
+corner covers something.
+
+**A5 — permeability and capacitance lose the switch** and always show their
+names. They are the two exhibits the rule below says do not earn one.
+
+**A6 — the SNARE row** puts ▶ left and 🏷 right, under the timeline: two
+different kinds of control at opposite ends, the middle of the bar free.
+
+**A7 — the rule, from the facts.** Counted across the exhibits (names on
+canvas, canvases, whether anything runs) and written into 03 → *Where a 🏷
+switch goes, and whether it is earned at all*. A switch is earned by DENSITY
+(≈6+ names) or by MOTION ACROSS the names, and by nothing else; placement
+takes the first that applies of: an existing control row → a genuinely free
+canvas corner → outside the picture. Never over an instrument.
+
+### Step 21b-2 — D17, where the transmitter goes, 2026-09-04 · awaiting manual test
+
+The next step, built to the 21b plan after its four open questions were put to
+the user (framing, the ion fare, glutamine's ink, the dot count).
+
+**The science, and why this drawer exists.** This synapse is glutamatergic,
+and glutamate is cleared mostly by ASTROCYTIC EAATs feeding the glutamine
+cycle — the tidy "terminal sucks its own transmitter back" picture belongs to
+GABA and the monoamines. So the star is the third cell.
+
+⚠ **An honesty finding the tests forced.** The plan declared an 80% astrocytic
+split; with seven whole molecules the only available splits are 6:1 (86%) and
+5:2 (71%), so asserting 0.8 while drawing 6:1 would have claimed a precision
+the picture does not have. The literature gives a RANGE, so the model now
+declares the range (`ASTROCYTE_SHARE_RANGE`, 80–90%) and the test requires the
+DRAWN ratio to land inside it. A redraw that wanders out is caught.
+
+**Model** (`core/reuptake.ts`): six staged legs with holds, the catch given the
+most screen time because it is the payload; seeded per-dot assignments; one
+continuous path per molecule; `cleftLoad` and `stockedCount` for conservation.
+A dot is glutamine ONLY between the two enzymes — the same dot throughout,
+never swapped for a fresh one, which is the point: transmitter is recovered,
+not consumed.
+
+**Scene** (`stage/reuptakeScene.ts`): the tripartite synapse in section —
+terminal wall across the top with its inside above, postsynaptic face across
+the bottom, the astrocyte wrapping in from the right and fading at the frame
+rather than inventing a surface off the page. Every wall paved by the shared
+`paveMembrane` at D06's own register; transmitter drawn by D06's own
+`transmitterDot`; the fare in the app's own glossy ions. Camera fixed, so the
+round trip reads as a loop.
+
+**Glutamine is ORANGE** `#fb923c`, reconciled in 05 with its two rejected
+rivals recorded: pale teal reads as FADED glutamate at dot size ("this one is
+running out" is the one thing it must not say), and rose was refused because
+red is the reserved + charge colour.
+
+**Entry**: the ♻️ door on the synapse view's shelf, reserved and disabled since
+2026-09-04, is now open beside 🫧 — two doors at one place, two icons. A
+contents row was added with it.
+
+Guards: conservation (every molecule stocked at the end, broken by dropping
+one and watched fail); the gap empties monotonically and only by catching; the
+drawn split inside the declared band (broken to 50/50 and watched fail); one
+spell as glutamine and only between the enzymes; glutamine never in the cleft;
+the neuronal route never converts; monotone progress; the fare drawn once
+inside the catching leg; the labels switch hides names and nothing else; and
+the whole scene draws through `strictCanvas` at six moments with no
+unparseable colour or non-finite number. 1233 tests green, typecheck clean,
+formatting clean.
+
+⚠ **Not verifiable without eyes**: this exhibit has never been looked at. The
+tests pin its decisions and its arithmetic; whether the picture READS — whether
+the loop is legible, whether orange against teal says "changed" — is exactly
+what the tests cannot tell you.
+
+### Step 21b-3 — D17 rebuilt on the synapse view's own picture, 2026-09-04 · awaiting manual test
+
+**A1 — the labels switch in 'Spike trains': SKIPPED, by the user's ruling.**
+Measured first: that bench draws no names at all, only readings (mV ticks,
+`spike`/`nothing`), and readings are never hidden by the 🏷 switch — so a
+switch there would have controlled nothing. Offered three ways (name its parts
+first, add it anyway, skip); the user chose skip. Recorded in 03 → *A switch
+with nothing to switch is not a control*, so the gap reads as deliberate.
+
+**A2 — "not kids-friendly, torn out of context… re-build from scratch."** The
+first D17 invented its own composition and was a diagram of a PROCESS rather
+than a picture of a PLACE. Deleted and rebuilt on the synapse view's own
+geometry: same `synapseGeometry`, same bouton, same cleft, same spine, and the
+same two green glial fingers drawn by `drawAstroFinger` — which was EXPORTED
+for the purpose, along with `spinePath`, `membraneBand` and `CYTOPLASM`,
+rather than copied. Two drawings of one astrocyte at one synapse would be two
+astrocytes.
+
+What the drawer adds is now only its own subject: the transporters ON those
+fingers (the child can see what they belong to), the terminal's single door on
+its own wall, the enzyme inside the finger, and the journey. The transmitter
+starts in the gap it was released into, is taken through a door at either
+mouth, converts inside the astrocyte, comes home and is stocked.
+
+⚠ **The orientation question is answered in the picture, at every moment**:
+`astrocyte`, `axon terminal` and `dendritic spine` are drawn throughout the
+run, not only on the opening still — which is what "where is the astrocyte?"
+actually asked for.
+
+Guards: it is the synapse view's own geometry, not a second one (broken by
+scaling the width and watched fail); every transporter passes
+`astrocyteHolds` on the finger it sits on (broken by floating them off and
+watched fail); both enzymes are inside a cell; all three cells are named at
+every moment (broken by renaming the terminal and watched fail); the journey
+starts in the cleft and ends in the store; glutamine never appears in the gap;
+nothing teleports; the fare is drawn once inside the catching leg; the labels
+switch hides names and leaves the picture. 1237 tests green, typecheck clean,
+formatting clean.
+
+⚠ **Still not verifiable without eyes.** The tests pin that this is the same
+synapse and that everything sits on the thing it belongs to. Whether the loop
+now READS as a loop, and whether orange against teal says "changed", remains
+the part only a person can judge.
+
+### Step 21b-4 — the switch to the top right, the exhibit to the full width, 2026-09-04 · awaiting manual test
+
+**A1 — "make sure 'labels' are in the top right corner, unless space is
+already taken. Align horizontally with other buttons, if any."** Audited all
+nine places. Already right: the channel (top-right, level with its Send row at
+`top-3`), the resting bench (top-right, no neighbours), SNARE and D17 (in the
+control row, right-aligned opposite ▶), the whole-neuron stage (top-right),
+and inside a zoom top-LEFT — because the ×N reading takes the top-right there,
+which is the "unless taken" case.
+
+Changed: the selectivity filter, the phospholipid bilayer and the patch clamp
+all had a row of controls ALREADY and the switch either floated over the
+picture or sat in a strip of its own above it. It now joins the existing row
+at its right end (`ml-auto`), horizontally aligned with the buttons beside it.
+This supersedes the previous round's "outside the picture, in a row of its
+own" for the first two — the rule in 03 was rewritten rather than left to
+contradict itself.
+
+**A2 — "Trace one signal: stretch canvas to take all available space
+horizontally."** ⚠ This ran straight into a recorded correction: fitting by
+width alone "cropped the bottom off" (2026-08-28), which is why the exhibit
+fits by both sides. Measured before choosing: on a tall window the scene grows
+with the viewport while the drawer's room does not, so the fit is height-bound
+and leaves ~70 px unused at the right; filling the width needs ~57 px of
+vertical trim.
+
+Both instructions can hold at once, because the 2026-08-28 fault was not the
+fitting — it was that nothing measured where the scene's ink ENDED, so the
+crop ate the cell rather than the water. `SCENE_INK_Y` (layout) measures it
+from the cell, its partners, the glia and the labels; `fitScene` fills the
+width by trimming margin symmetrically and only while the trim provably stays
+inside that margin, falling back to the both-sides fit when it would not. The
+old behaviour is now the fallback, not the rule.
+
+⚠ **A guard that could not reach its branch.** The first version of this was a
+module-level constant, and breaking it changed nothing: in a test environment
+the window is short, the scene is short, width already binds, and the crop
+branch never ran. It was made a parameterised decision (`fitScene(roomW,
+roomH, sceneW, sceneH, ink)`) and asked at shapes this machine does not have.
+Then both branches broke and were watched fail — cropping without measuring
+the ink (73 px taken where 0 was allowed), and reverting to both-sides-only
+(869 where 728 was the room). 1244 tests green, typecheck clean, formatting
+clean.
+
+### Step 21b-5 — the transmitter named, and the claim that depends on it qualified, 2026-09-04 · awaiting manual test
+
+User: *"what makes us think that neurotransmitter, displayed in 'the synapse'
+demo is glutamate?"* — asked as a question, answered as an assessment, then
+implemented at the user's word.
+
+**The finding.** Nothing in the picture PROVED it; the app had chosen glutamate
+and committed to it in every number — AMPA-type receptor rates, a 0 mV
+reversal, glutamate's own diffusion coefficient (3.3e-6 cm²/s), 4,000
+molecules a vesicle, a 20 nm cleft, and a synapse landing on a spine (which
+`boutonShape` records as the reason the illustration handover was altered).
+The choice is well founded. It was simply never stated: `core/synapse.ts` said
+"transmitter" seventeen times and "glutamate" none, and all the reasoning lived
+in code comments.
+
+⚠ **Why it mattered beyond tidiness.** D17 teaches that the astrocyte does most
+of the clearing — true of glutamate, FALSE of GABA and the monoamines, which
+the neuron largely recovers itself. Unqualified beside an unnamed synapse, that
+reads as a fact about transmitters in general: the app was one unstated
+assumption away from teaching the very misconception the 2026-09-03 pushback
+existed to prevent.
+
+**A1 — the synapse view names it, and shows its working.** A new paragraph in
+`synapseFacts`: the chemical is glutamate, and you can tell from the picture —
+it excites rather than quietens, it lands on a spine (where excitatory synapses
+go and almost nowhere else), and the doors it opens are AMPA receptors, which
+only glutamate fits. It closes by saying other synapses use other chemicals and
+some work quite differently, so naming this one does not teach that every
+synapse is like it.
+
+**A2 — D17's claim carries its qualifier.** The astrocyte paragraph is followed
+by one saying the claim is about THIS chemical, that other transmitters do it
+differently — several the tidy way everyone expects — and that this is the rule
+for the commonest synapse, not for every synapse. The MEASURED honesty line now
+reads "MEASURED, AND ABOUT GLUTAMATE SPECIFICALLY", and ends: "the same number
+for a different transmitter would be a different number."
+
+Guards (on the words, as the generic channel's are): the synapse view names
+glutamate, gives all three tells, and admits other synapses differ; D17 names
+the transmitter its story is about, says other transmitters differ, and states
+its measured split as being about glutamate. Broken and watched fail — the
+naming claim replaced with an anonymous sentence (3 guards down), and D17's
+two qualifiers removed together (3 guards down; removing only one correctly
+left the guard passing, since the property survived in the other place).
+1250 tests green, typecheck clean, formatting clean.
+
+⚠ **A process note.** The first attempt at breaking these guards used a greedy
+regex that deleted ~280 lines of `reuptake.ts` and two paragraphs of
+`synapse.ts`. Both were recovered from the saved chunks and verified against
+HEAD (the only diff in `synapse.ts` is the new paragraph plus two prettier
+reformats). The lesson is the obvious one: a break must be surgical, and a
+break that deletes a region is not a break, it is damage.

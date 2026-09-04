@@ -73,7 +73,7 @@ export function PermeaBench() {
       stepMotes(motesRef.current, dt, ms, aquaporinRef.current)
       tankCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       tankCtx.clearRect(0, 0, PT_W * PERMEA_SCALE, PT_H * PERMEA_SCALE)
-      drawPermea(tankCtx, motesRef.current, aquaporinRef.current)
+      drawPermea(tankCtx, motesRef.current, aquaporinRef.current, true)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
@@ -123,7 +123,7 @@ export function PermeaBench() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-3">
-          <div className="self-start rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+          <div className="relative self-start rounded-xl border border-slate-700 bg-slate-950/40 p-2">
             <canvas
               ref={tankRef}
               onPointerDown={onTankDown}

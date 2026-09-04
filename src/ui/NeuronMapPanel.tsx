@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AXON_END,
   AXON_POLYLINE,
   AXON_SIGNAL_T,
   BOUTON_R,
@@ -8,16 +7,39 @@ import {
   DENDRITE_TRUNKS,
   HILLOCK,
   SOMA,
+  OUTPUT,
+  SOMA_OUTLINE,
   SOMA_R,
   litTrunks,
+  TERMINAL_BRANCHES,
   TERMINALS,
   clamp01,
+  partialPath,
   polylinePoint,
+  terminalArrival,
+  terminalReach,
+  type Pt,
 } from '../stage/layout'
 import { fibreRun } from '../core/fibre'
 import { screenDurationMs, viewFibre } from '../stage/axonRibbon'
-import { AXON_MEMBRANE_T, NEURON_MAP_BOX, ZOOM_TARGETS, regionOfZoom } from '../stage/layout'
+import { ARBOR_MS, AXON_AP_MS } from '../stage/chain'
+import {
+  AXON_MEMBRANE_T,
+  MAP_ASTROCYTES,
+  NEURON_MAP_BOX,
+  ZOOM_TARGETS,
+  astroShape,
+  astroNucleus,
+  mapShowsAstrocytes,
+  regionOfZoom,
+} from '../stage/layout'
 import { STIMULI } from '../core/scenarios'
+
+/** Points → an SVG path `d`, optionally closed — the miniature's one spelling
+ *  of a traced polyline (the soma, the arbor, the astrocytes). */
+const dOf = (pts: Pt[], close = false) =>
+  pts.map((p, k) => `${k ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') +
+  (close ? ' Z' : '')
 import { sampleAt, trajectory } from '../core/spikeModel'
 import { useApStore } from '../state/apStore'
 import { SIGNAL_CORE, SIGNAL_RGB } from '../stage/signal'
@@ -123,6 +145,15 @@ const LEAD_WAKE = 0.16
  *  choreography, as the whole-neuron chain is; the canvas is the measurement. */
 const MAP_SWEEP_MS = 1100
 
+/** The arbor's share of the sweep — the SAME fraction of the axon leg the
+ *  chain model gives it (ARBOR_MS / AXON_AP_MS, itself measured from the
+ *  traced route lengths), so the little wave keeps one pace through the
+ *  forks, exactly as the big one does. */
+const MAP_ARBOR_MS = Math.round(MAP_SWEEP_MS * (ARBOR_MS / AXON_AP_MS))
+/** How long the fully-invaded arbor (and the cable behind it) takes to
+ *  settle back out. */
+const MAP_SETTLE_MS = 900
+
 /** How many pieces the little axon is drawn in. */
 const SEGMENTS = 26
 
@@ -224,7 +255,9 @@ export function NeuronMapPanel() {
   // re-rendered sixty times a second to move a glow by a hair is work for nothing
   // — 150 steps is smoother than the eye needs, and Zustand drops the rest.
   const step = useAxonStore((s) => (s.u === null ? null : Math.round(s.u * 150)))
-  const leadStep = useAxonStore((s) => (s.lead === null ? null : Math.round(s.lead * 150)))
+  const leadStep = useAxonStore((s) =>
+    s.lead === null ? null : Math.round(s.lead * 150),
+  )
   // The patch's own spike, bucketed for the same reason.
   const apStep = useApStore((s) => (s.u === null ? null : Math.round(s.u * 120)))
 
@@ -270,10 +303,17 @@ export function NeuronMapPanel() {
     if (phase !== 'axon' || sweptRunRef.current === runId) return
     sweptRunRef.current = runId
     const started = performance.now()
+    // The clock runs PAST the axon's end: the overshoot is the wave's time in
+    // the terminal arbor, then its settle — the arbor is invaded, not
+    // switched on (corrections 2026-09-04), so the sweep cannot stop at the
+    // last branch point.
+    const lastStep = Math.ceil(
+      ((MAP_SWEEP_MS + MAP_ARBOR_MS + MAP_SETTLE_MS) / MAP_SWEEP_MS) * MAP_STEPS,
+    )
     const tick = (ms: number) => {
       const step = Math.round(((ms - started) / MAP_SWEEP_MS) * MAP_STEPS)
-      setChainStep(Math.min(MAP_STEPS, step))
-      if (step < MAP_STEPS) chainFrameRef.current = requestAnimationFrame(tick)
+      setChainStep(Math.min(lastStep, step))
+      if (step < lastStep) chainFrameRef.current = requestAnimationFrame(tick)
     }
     chainFrameRef.current = requestAnimationFrame(tick)
   }, [zoom, phase, runId])
@@ -384,7 +424,16 @@ export function NeuronMapPanel() {
     // the finish only the last stretch was still lit: a picture of an axon whose
     // near half had somehow un-fired.
     if (mapFront !== null && at <= mapFront) {
-      const done = mapFront >= 1 ? Math.max(0, 1 - (sweptMs! - MAP_SWEEP_MS) / 900) : 1
+      // The cable holds its settled glow while the wave is still out in the
+      // arbor, and only then fades — the whole journey fired, it all lets go
+      // together.
+      const done =
+        mapFront >= 1
+          ? Math.max(
+              0,
+              1 - Math.max(0, sweptMs! - MAP_SWEEP_MS - MAP_ARBOR_MS) / MAP_SETTLE_MS,
+            )
+          : 1
       const wake = Math.max(0, 1 - (mapFront - at) / (LEAD_WAKE * 1.6))
       lit = Math.max(wake, 0.45) * done
     }
@@ -395,8 +444,18 @@ export function NeuronMapPanel() {
     return lit
   }
 
-  // What the endings do: light when the map's own sweep arrives, settle with it.
-  const axonFiring = mapFront === null || mapFront < 1 ? 0 : Math.max(0, 1 - (sweptMs! - MAP_SWEEP_MS) / 900)
+  // What the endings do: the wave INVADES the arbor at the sweep's own pace
+  // (corrections 2026-09-04 — it used to light as a unit): the overshoot past
+  // the axon's end is its time in the branches, each terminal's route covered
+  // in turn (layout's terminalReach), then everything settles together.
+  const arborMs =
+    mapFront === null || mapFront < 1 || sweptMs === null ? null : sweptMs - MAP_SWEEP_MS
+  const arborHead =
+    arborMs === null || arborMs <= 0 ? null : clamp01(arborMs / MAP_ARBOR_MS)
+  const arborSettle =
+    arborMs === null
+      ? 0
+      : Math.max(0, 1 - Math.max(0, arborMs - MAP_ARBOR_MS) / MAP_SETTLE_MS)
 
   // The lead-in's glows hand the signal on rather than staying lit: they fade over
   // the first moment of the run while the axon's own light comes up. Left alone, a
@@ -437,24 +496,34 @@ export function NeuronMapPanel() {
    *  child chose. */
   const lit = litTrunks(firedInputs)
 
-  const region = { dendrites: 0, soma: 0, hillock: 0, terminals: 0 }
+  // The terminals are NOT a region here any more: they light from the sweep's
+  // own arbor clock above, route by route, like the axon they belong to.
+  const region = { dendrites: 0, soma: 0, hillock: 0 }
   if (zoom === null) {
     if (phase === 'input-fires' || phase === 'crossing') region.dendrites = 0.5
     else if (phase === 'dendrite') region.dendrites = 0.9
-    else if (phase === 'summing') { region.dendrites = 0.4; region.soma = 0.9 }
-    else if (phase === 'fizzled') { region.soma = 0.35 }
-    else if (phase === 'axon') { region.soma = 0.5; region.hillock = 0.9 }
-    else if (phase === 'terminal' || phase === 'target' || phase === 'done') {
-      region.terminals = 0.9
+    else if (phase === 'summing') {
+      region.dendrites = 0.4
+      region.soma = 0.9
+    } else if (phase === 'fizzled') {
+      region.soma = 0.35
+    } else if (phase === 'axon') {
+      region.soma = 0.5
+      region.hillock = 0.9
     }
   } else if (zoom === 'dendrite-membrane') region.dendrites = apLit
   else if (zoom === 'hillock') region.hillock = apLit
 
-  const firing = Math.max(axonFiring, region.terminals)
-
   const glow = (key: string, x: number, y: number, r: number, a: number) =>
     a <= 0.01 ? null : (
-      <circle key={key} cx={x} cy={y} r={r} fill="url(#map-glow)" opacity={Math.min(1, a)} />
+      <circle
+        key={key}
+        cx={x}
+        cy={y}
+        r={r}
+        fill="url(#map-glow)"
+        opacity={Math.min(1, a)}
+      />
     )
 
   // No heading and no caption. A drawing of a neuron with one part lit announces
@@ -462,7 +531,30 @@ export function NeuronMapPanel() {
   // below it — which is where the app keeps the words, so there is one place to
   // read and one place to look.
   return (
-    <div className="shrink-0 rounded-xl border border-slate-700 bg-slate-800/60 p-2">
+    <div className="relative shrink-0 rounded-xl border border-slate-700 bg-slate-800/60 p-2">
+      {/* ⚠ THE WAY OUT LIVES ON THE MAP (user, 2026-09-04: "modify 'back to
+          the whole picture' into a minimalistic button, and place it inside
+          the 'map neuron' container, in the left bottom corner, for all
+          occurrences").
+          
+          It used to float over the stage, where two views lay a full-width
+          control column across the same band and buried it. Here it cannot
+          be buried by anything: this panel is permanent, it is the same
+          corner in every view, and the picture it sits on IS the whole
+          picture it goes back to — so the control and its destination are
+          the same object. Minimal, because a corner of a thumbnail is not
+          where a big amber pill belongs; the word still NAMES it, since an
+          icon alone only ranks. */}
+      {zoom !== null && (
+        <button
+          type="button"
+          onClick={() => useNeuronStore.getState().zoomOut()}
+          title="Back to the whole picture"
+          className="absolute bottom-3 left-3 z-10 rounded-md border border-slate-600/80 bg-slate-950/80 px-1.5 py-0.5 text-[11px] leading-none text-amber-200/90 backdrop-blur transition hover:border-amber-500/60 hover:text-amber-100"
+        >
+          ⤢ back
+        </button>
+      )}
       <svg
         viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}
         className="h-[136px] w-full"
@@ -494,21 +586,79 @@ export function NeuronMapPanel() {
             strokeLinecap="round"
           />
         ))}
-        <circle cx={SOMA.x} cy={SOMA.y} r={SOMA_R} fill="rgba(148, 163, 184, 0.3)" />
-        {TERMINALS.map((t, i) => (
-          <g key={i}>
-            <line
-              x1={AXON_END.x}
-              y1={AXON_END.y}
-              x2={t.end.x}
-              y2={t.end.y}
+        {/* ⚠ THE POSTSYNAPTIC NEURON (user, 2026-09-04: "in 'small neuron'
+            view, add postsynaptic neuron as well, since it's an actor in this
+            demo"). It is the last link of the chain this map lights up, and a
+            map that crops it off is a map of half the story. Dimmer than the
+            focus cell — it is the other end of the story, not the subject —
+            and drawn FIRST, so the cell the map is about sits on top. */}
+        <g opacity={0.55}>
+          {OUTPUT.dendrites.map((d, i) => (
+            <path
+              key={`od-${i}`}
+              d={dOf(d.path)}
+              fill="none"
               stroke={QUIET}
-              strokeWidth={5}
+              strokeWidth={3}
               strokeLinecap="round"
             />
-            <circle cx={t.end.x} cy={t.end.y} r={BOUTON_R} fill={QUIET} />
-          </g>
+          ))}
+          <path d={dOf(OUTPUT.axon)} fill="none" stroke={QUIET} strokeWidth={4} />
+          <path d={dOf(OUTPUT.outline, true)} fill="rgba(148, 163, 184, 0.3)" />
+        </g>
+        {/* The traced star soma (neuron (1).svg) — the same silhouette the big
+            canvas draws, so the kid meets one cell shape at both registers. */}
+        <path d={dOf(SOMA_OUTLINE, true)} fill="rgba(148, 163, 184, 0.3)" />
+        {/* The terminal arbor's own branch strokes; the boutons stay discs at
+            this size — a teardrop three pixels wide is a disc (level of detail
+            cuts both ways). */}
+        {TERMINAL_BRANCHES.map((br, i) => (
+          <path
+            key={`br-${i}`}
+            d={dOf(br)}
+            fill="none"
+            stroke={QUIET}
+            strokeWidth={4}
+            strokeLinecap="round"
+          />
         ))}
+        {TERMINALS.map((t, i) => (
+          <circle key={i} cx={t.end.x} cy={t.end.y} r={BOUTON_R} fill={QUIET} />
+        ))}
+        {/* ⚠ THE ASTROCYTES, only where the story needs them (21b-1b): on the
+            synapse framings the map shows the two star cells — the SAME
+            `astroShape` glyph the big scene draws (re-created 2026-09-04 as a
+            faithful trace of the user's astrocyte.svg), because a kid who
+            cannot read connects the finger to its cell by SHAPE, not by a
+            caption. Map spots sit slightly inboard of the scene's so their
+            bodies stay on the sheet (see MAP_ASTROCYTES). */}
+        {mapShowsAstrocytes(zoom) &&
+          MAP_ASTROCYTES.map((a, i) => {
+            const shape = astroShape(a)
+            return (
+              <g
+                key={`astro-${i}`}
+                stroke="rgba(134, 184, 158, 0.85)"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              >
+                <path d={dOf(shape.soma, true)} fill="rgba(134, 184, 158, 0.45)" />
+                {/* Its nucleus, from the same decision the canvas asks. */}
+                <circle
+                  cx={astroNucleus(a).at.x}
+                  cy={astroNucleus(a).at.y}
+                  r={astroNucleus(a).r}
+                  fill="rgba(56, 102, 80, 0.9)"
+                  stroke="none"
+                />
+                {shape.processes.map((pl, k) => (
+                  <path key={k} d={dOf(pl)} />
+                ))}
+              </g>
+            )
+          })}
         {/* The axon itself, all the way along — so that with the sheath on, the
             gaps between sleeves read as bare axon rather than as breaks in it. */}
         <polyline
@@ -541,14 +691,37 @@ export function NeuronMapPanel() {
             const at = polylinePoint(path, 1 - rippleAt)
             return (
               <g key={`r-${trunk}`}>
-                {glow(`rg-${trunk}`, at.x, at.y, 26 * rippleStrength + 6, 0.85 * rippleStrength)}
-                <circle cx={at.x} cy={at.y} r={4 * rippleStrength + 1} fill={SIGNAL_CORE} />
+                {glow(
+                  `rg-${trunk}`,
+                  at.x,
+                  at.y,
+                  26 * rippleStrength + 6,
+                  0.85 * rippleStrength,
+                )}
+                <circle
+                  cx={at.x}
+                  cy={at.y}
+                  r={4 * rippleStrength + 1}
+                  fill={SIGNAL_CORE}
+                />
               </g>
             )
           })}
 
-        {glow('soma', SOMA.x, SOMA.y, SOMA_R * 2.1, Math.max(somaLit * 0.75, region.soma))}
-        {glow('hillock', HILLOCK.x, HILLOCK.y, 34, Math.max(handover * 0.9, region.hillock))}
+        {glow(
+          'soma',
+          SOMA.x,
+          SOMA.y,
+          SOMA_R * 2.1,
+          Math.max(somaLit * 0.75, region.soma),
+        )}
+        {glow(
+          'hillock',
+          HILLOCK.x,
+          HILLOCK.y,
+          34,
+          Math.max(handover * 0.9, region.hillock),
+        )}
         {/* The dendrite fan, lit as a region rather than as a travelling dot —
             see the note above on why a thumbnail beside the full-size animation
             should not try to re-run it. */}
@@ -566,43 +739,57 @@ export function NeuronMapPanel() {
             does: twelve sparks with nothing between them, against a bare axon's
             continuous run. That contrast is the reason to show the sheath here at
             all. */}
-        {(myelin ? mapNodes : Array.from({ length: SEGMENTS }, (_, i) => (i + 0.5) / SEGMENTS)).map(
-          (at, i) => {
-            const lit = litAt(at)
-            if (lit <= 0.02) return null
-            const p = polylinePoint(AXON_POLYLINE, at)
-            return myelin ? (
-              <g key={`ax-${i}`}>
-                {glow(`axg-${i}`, p.x, p.y, 20 + 16 * lit, lit)}
-                <circle cx={p.x} cy={p.y} r={2 + 3 * lit} fill={SIGNAL_CORE} opacity={lit} />
-              </g>
-            ) : (
-              glow(`ax-${i}`, p.x, p.y, 22 + 12 * lit, lit * 0.85)
-            )
-          },
-        )}
-        {firing > 0.02 &&
-          TERMINALS.map((t, i) => (
-            <g key={`t-${i}`}>
-              <line
-                x1={AXON_END.x}
-                y1={AXON_END.y}
-                x2={t.end.x}
-                y2={t.end.y}
-                stroke={`rgba(${SIGNAL_RGB}, ${firing})`}
-                strokeWidth={6}
-                strokeLinecap="round"
-              />
-              {glow(`tg-${i}`, t.end.x, t.end.y, 30, firing * 0.9)}
+        {(myelin
+          ? mapNodes
+          : Array.from({ length: SEGMENTS }, (_, i) => (i + 0.5) / SEGMENTS)
+        ).map((at, i) => {
+          const lit = litAt(at)
+          if (lit <= 0.02) return null
+          const p = polylinePoint(AXON_POLYLINE, at)
+          return myelin ? (
+            <g key={`ax-${i}`}>
+              {glow(`axg-${i}`, p.x, p.y, 20 + 16 * lit, lit)}
               <circle
-                cx={t.end.x}
-                cy={t.end.y}
-                r={BOUTON_R}
+                cx={p.x}
+                cy={p.y}
+                r={2 + 3 * lit}
                 fill={SIGNAL_CORE}
-                opacity={firing}
+                opacity={lit}
               />
             </g>
-          ))}
+          ) : (
+            glow(`ax-${i}`, p.x, p.y, 22 + 12 * lit, lit * 0.85)
+          )
+        })}
+        {arborHead !== null &&
+          arborSettle > 0.02 &&
+          TERMINALS.map((t, i) => {
+            // The wave takes each terminal's own traced route, covering it
+            // progressively — never a chord, never all at once; the bouton
+            // lights only when the wave reaches it.
+            const reach = terminalReach(arborHead, i)
+            if (reach <= 0.001) return null
+            const arr = terminalArrival(arborHead, i)
+            return (
+              <g key={`t-${i}`}>
+                <path
+                  d={dOf(partialPath(t.path, reach))}
+                  fill="none"
+                  stroke={`rgba(${SIGNAL_RGB}, ${arborSettle})`}
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                />
+                {glow(`tg-${i}`, t.end.x, t.end.y, 30, arr * arborSettle * 0.9)}
+                <circle
+                  cx={t.end.x}
+                  cy={t.end.y}
+                  r={BOUTON_R}
+                  fill={SIGNAL_CORE}
+                  opacity={arr * arborSettle}
+                />
+              </g>
+            )
+          })}
 
         {/* You are here — marking the PART, not the point.
             

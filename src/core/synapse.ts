@@ -377,7 +377,7 @@ export function integrateSynapse(counts: IonCounts, leaksOn: boolean): SynapseRu
     // only one part in BUFFER_RATIO of what arrives is left free.
     const influx =
       ica < 0
-        ? ((-ica * DT * 1e-9) / (2 * FARADAY * VOLUME_PER_AREA)) * 1e9 / BUFFER_RATIO
+        ? (((-ica * DT * 1e-9) / (2 * FARADAY * VOLUME_PER_AREA)) * 1e9) / BUFFER_RATIO
         : 0
     ca += influx - ((ca - restUm) / CA_CLEAR_MS) * DT
     m += ((caInf(v) - m) / tauCa(v)) * DT
@@ -424,13 +424,32 @@ export function synapseFacts(run: SynapseRun, counts: IonCounts): TeachingPara[]
   const ratio = counts.ca.outside / Math.max(1e-9, counts.ca.inside)
   const went = run.vesicles.filter((v) => v.fusedAtMs !== null).length
   const first = run.vesicles.reduce<number | null>(
-    (best, v) => (v.fusedAtMs === null ? best : best === null ? v.fusedAtMs : Math.min(best, v.fusedAtMs)),
+    (best, v) =>
+      v.fusedAtMs === null
+        ? best
+        : best === null
+          ? v.fusedAtMs
+          : Math.min(best, v.fusedAtMs),
     null,
   )
   return [
     {
       icon: '🔚',
       text: 'This is the end of the wire. Everything so far has been one cell doing electricity to itself — but the next cell is a separate cell, with its own membrane, and electricity cannot jump the gap. So the signal gets translated into a chemical, thrown across, and translated back.',
+    },
+    {
+      // ⚠ NAMING THE CAST (user, 2026-09-04: "what makes us think that
+      // neurotransmitter… is glutamate?"). The app had committed to glutamate
+      // everywhere in its numbers — AMPA-type receptor rates, a 0 mV
+      // reversal, glutamate's own diffusion coefficient, 4,000 molecules a
+      // vesicle, a synapse landing on a spine — and then never said so to the
+      // reader, who met seventeen mentions of "transmitter" and none of
+      // glutamate. An identity the app relies on and does not state is an
+      // assumption the reader has to make for it, and the next drawer (D17)
+      // teaches something that is true of THIS transmitter and false of
+      // several others.
+      icon: '🏷️',
+      text: 'The chemical here is GLUTAMATE — the brain’s commonest excitatory messenger. You can tell from the picture rather than being told: it EXCITES the next cell rather than quietening it, it lands on a little mushroom-shaped bump called a spine (which is where excitatory synapses go, and almost nowhere else), and the doors it opens on the far side are AMPA receptors, which only glutamate fits. Other synapses use other chemicals, and some of them work quite differently.',
     },
     {
       icon: '📍',

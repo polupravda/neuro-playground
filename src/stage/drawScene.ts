@@ -3,16 +3,25 @@ import { TRANSMITTER_INK } from './synapseScene'
 import { BOUTON_BOX, BOUTON_FOOT, boutonPath, type BoutonFit } from './boutonShape'
 import type { NeuronPartId } from '../core/neuron'
 import { SIGNAL_CORE, SIGNAL_RGB, softGlow } from './signal'
+import {
+  LABEL_INK,
+  LABEL_PLATE,
+  LABEL_PX,
+  drawConnector,
+  labelFont,
+  speakerGlyph,
+} from './spokenLabels'
 import { THRESHOLD } from '../core/integration'
 import {
-  AXON_END,
   AXON_POLYLINE,
   AXON_W,
   BILAYER_SCALE,
   bilayerBlend,
   BOUTON_R,
   CLEFT,
-  DENDRITE_SEGS,
+  DENDRITE_STROKES,
+  strokeWidthAt,
+  type DendriteStroke,
   DENDRITE_TRUNKS,
   HILLOCK,
   INPUTS,
@@ -23,10 +32,22 @@ import {
   MARKER_R,
   MEMBRANE_PX,
   OUTPUT,
+  ASTROCYTES,
+  DENDRITE_ASTROCYTES,
+  astroShape,
+  astroNucleus,
   OUTGOING,
   SOMA,
+  SOMA_OUTLINE,
+  sceneTermSpeaks,
   SOMA_R,
+  SPINE_HEAD_R,
+  spineHead,
+  TERMINAL_BRANCHES,
   TERMINALS,
+  ARBOR_TAIL_PX,
+  arborFronts,
+  terminalArrival,
   TUBE_SCALE,
   VESICLE_OFFSETS,
   VESICLE_R,
@@ -55,14 +76,16 @@ import {
 } from './proteins'
 import { gateOf, type ChannelType, type GateEnv } from '../core/channels'
 import { VM_MAX, VM_MIN, nernstMv } from '../core/voltage'
-import {
-  AP_REAL_MS,
-  polarizationT,
-  spotlightState,
-} from '../core/actionPotential'
+import { AP_REAL_MS, polarizationT, spotlightState } from '../core/actionPotential'
 import type { IonCounts } from '../state/ionStore'
 import { IONS, ION_KINDS, type IonKind } from '../core/ions'
-import { GLOSSY_COLORS, chargeWash, ionGradient, drawIonCharge, badgeMinR } from './particleStyle'
+import {
+  GLOSSY_COLORS,
+  chargeWash,
+  ionGradient,
+  drawIonCharge,
+  badgeMinR,
+} from './particleStyle'
 import { mix, paveMembrane, type LipidGeom } from './bilayer'
 
 // Everything on the canvas is painted here, on the raw 2D context, so growth,
@@ -80,18 +103,44 @@ const PARTNER = '#5b6879'
 const PARTNER_HOT = '#8fa0b4'
 const CYTOPLASM = 'rgba(148, 163, 184, 0.12)'
 const CYTOPLASM_SOLID = 'rgba(100, 116, 139, 0.24)'
+/** ⚠ A SPINE HEAD IS A SWELLING OF THE DENDRITE, SO IT IS FILLED LIKE ONE
+ *  (user, 2026-09-04: "make dendritic thickenings filled — currently outline
+ *  only"). The cytoplasm wash the branches are drawn with is 0.12 and reads
+ *  as nothing at a six-pixel bulb: a shape that small needs a body, or it is
+ *  a ring. */
+const SPINE_FILL = 'rgba(148, 163, 184, 0.62)'
+const SPINE_FILL_PARTNER = 'rgba(100, 116, 139, 0.7)'
+/** ⚠ HOW PROMINENT THE DENDRITIC FIELD'S GLIA ARE (user, 2026-09-04: "make
+ *  astrocytes on the left side slightly transparent, so they are not as
+ *  prominent"). They are the neighbourhood the branches run through, not the
+ *  subject — the two at the synapse stay at full strength because that
+ *  synapse is a place the app teaches. */
+const DENDRITE_GLIA_ALPHA = 0.5
 const NUCLEUS = 'rgba(71, 85, 105, 0.85)'
+/** The glial nucleus: the cell's own green, taken darker — a nucleus is
+ *  denser than the cytoplasm round it, and reading as a different SUBSTANCE
+ *  from the neurons' slate is the point of the green in the first place. */
+const ASTRO_NUCLEUS = 'rgba(56, 102, 80, 0.9)'
 const VESICLE = '#cbd5e1'
-const LABEL = '#64748b'
-const LABEL_HOT = '#cbd5e1'
-// Every label sits on its own plate. A halo alone was not enough once the
-// membrane views filled with bright ions right behind the words. Slate rather
-// than near-black: against the canvas background a plate darker than the page
-// is invisible, and the point is for the words to have a container.
-const LABEL_PLATE = 'rgba(15, 23, 42, 0.92)'
+// ⚠ ONE LABEL STYLE, THE APP'S (user, 2026-09-04: "unify labels across the
+// app. Source of truth: vesicle view"). This scene ran a second system —
+// 13px `ui-sans-serif`, a slate plate, and an ink two steps dimmer than every
+// other canvas — so the same word looked like two different kinds of thing
+// depending on which view you were standing in. The plate, the ink and the
+// font now come from `spokenLabels`, which is what the vesicle view draws
+// with. NAMES here still do not carry a speaker: voice is per term.
+const LABEL = LABEL_INK
+const LABEL_HOT = '#f8fafc'
 const PLATE_PAD = 5
-const MARKER = '148, 163, 184'
+/** ⚠ NAVIGATION IS YELLOW (user, 2026-09-04: "make nav dashed circles
+ *  yellow"). A door was first made findable in near-white — chrome rather
+ *  than anatomy — with the yellow held back for hover. The user's call goes
+ *  further and is better: the map's "you are here" ring was ALREADY amber,
+ *  so a yellow dashed circle now means one thing everywhere, on the stage
+ *  and on the miniature alike — this is a place you can go, or the place you
+ *  are. Hover is still unmistakable: it adds the glow and the name. */
 const MARKER_HOT = '250, 204, 21'
+const MARKER_REST = MARKER_HOT
 // A whisper of tint marks the hydrophobic middle — a genuinely different
 // chemical environment, and the reason ions need channels at all. Deliberately
 // faint: the tails themselves show where the core is, and an opaque band there
@@ -110,7 +159,11 @@ const CHANNEL_EDGE = 'rgba(226, 214, 184, 0.4)'
 // to be enough: a bronze shape at a third opacity still reads as bronze, and the
 // eye keeps finding it. The drained pair takes the copper out as well, so the
 // difference is hue and not just weight.
-const PROTEIN_TINT = { mid: PROTEIN_MID, dark: PROTEIN_DARK, edge: PROTEIN_EDGE }
+const PROTEIN_TINT = {
+  mid: PROTEIN_MID,
+  dark: PROTEIN_DARK,
+  edge: PROTEIN_EDGE,
+}
 // Drained takes the COLOUR out; it must not take the substance out. A protein
 // faded down toward the background left its slot in the lipids reading as a gap
 // in the membrane — and a hole in the barrier is a worse lie than a distracting
@@ -181,6 +234,11 @@ export interface ViewRect {
 }
 
 export interface SceneState {
+  /** ⚠ Whether the scene draws its NAMES (the app's one 🏷 switch,
+   *  2026-09-04). Readings on a scale — the voltage panel, the magnification,
+   *  the hillock meter's `threshold`/`total`, a channel's `open`/`shut` — are
+   *  never hidden by it: a graph without its axis is not a simpler graph. */
+  labelsOn?: boolean
   selected: NeuronPartId | null
   hovered: NeuronPartId | null
   hoveredInput: number | null
@@ -236,7 +294,10 @@ export function nativeCtx(ctx: unknown): CanvasRenderingContext2D {
 
 function inView(v: ViewRect, p: Pt, pad = 0): boolean {
   return (
-    p.x >= v.left - pad && p.x <= v.right + pad && p.y >= v.top - pad && p.y <= v.bottom + pad
+    p.x >= v.left - pad &&
+    p.x <= v.right + pad &&
+    p.y >= v.top - pad &&
+    p.y <= v.bottom + pad
   )
 }
 
@@ -284,6 +345,24 @@ export interface ScreenLabel {
   plate?: boolean
   /** Ring the plate, for the one thing currently being pointed at. */
   accent?: boolean
+  /** ⚠ THE TERM THIS LABEL SAYS ALOUD (F04), if it has been given a voice.
+   *
+   *  Voice is per term, on request — so this is set only where the user has
+   *  asked for it (2026-09-04: "add voice on the labels, which name neuron
+   *  parts (not navigation)"). A marker's label names a DOOR, not a part of
+   *  the cell, and gets none. */
+  speak?: string
+  /** ⚠ THE THING THIS NAME NAMES, in scene coordinates — a leader is drawn to
+   *  it (user, 2026-09-04, unifying on the vesicle view, which ties every
+   *  name to its part).
+   *
+   *  Given ONLY for a name that points at a discrete thing. A name for an
+   *  extended structure (the dendritic fan, the axon, the arbor) gets none:
+   *  a line to one point on a two-hundred-pixel fan reads as "this one
+   *  branch". Nor does a half-plane (`outside the cell`), which has no point
+   *  to aim at. And never for a reading on a scale — a leader from "−70 mV"
+   *  to a membrane would claim the number is a name for it. */
+  to?: Pt
   /** Treat dx/dy as absolute CANVAS pixels and ignore `at` entirely.
    *
    *  For chrome pinned to a corner of the canvas. It used to be given a scene
@@ -306,6 +385,9 @@ interface PlacedLabel {
   alpha: number
   plate: boolean
   accent: boolean
+  /** Where the leader points, already in screen pixels. */
+  to?: { x: number; y: number }
+  speak?: string
   /** Device pixel ratio in force when it was queued. */
   ratio: number
 }
@@ -316,6 +398,24 @@ interface PlacedLabel {
 // position as it is queued, under the transform in force at that moment, so
 // deferring the paint cannot move it.
 let queuedLabels: PlacedLabel[] = []
+
+/** ⚠ THE SPOKEN LABELS OF THE FRAME JUST DRAWN, in CANVAS pixels.
+ *
+ *  The scene's names are painted on a canvas, not laid out as elements, and
+ *  their final places are only known once the frame has been composed — the
+ *  camera has moved them and the keep-out nudger may have pushed them
+ *  sideways. So the drawing records where each spoken name actually landed
+ *  and the stage hit-tests against THAT, which is the same rule the other
+ *  views follow: a hit box is built from the geometry the drawing used. */
+let spokenBoxes: { term: string; x: number; y: number; w: number; h: number }[] = []
+
+/** Which spoken name is under this canvas point, if any. */
+export function sceneSpokenTermAt(x: number, y: number): string | null {
+  for (const b of spokenBoxes) {
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b.term
+  }
+  return null
+}
 
 /** Screen rects a label may not sit on. Painting the labels last keeps the words
  *  on top of the ions, but it also puts them on top of the instruments, and the
@@ -348,14 +448,26 @@ function screenLabels(
   for (const l of labels) {
     queuedLabels.push({
       text: l.text,
-      x: l.screen ? (l.dx ?? 0) : (m.a * l.at.x + m.c * l.at.y + m.e) / ratio + (l.dx ?? 0),
-      y: l.screen ? (l.dy ?? 0) : (m.b * l.at.x + m.d * l.at.y + m.f) / ratio + (l.dy ?? 0),
+      x: l.screen
+        ? (l.dx ?? 0)
+        : (m.a * l.at.x + m.c * l.at.y + m.e) / ratio + (l.dx ?? 0),
+      y: l.screen
+        ? (l.dy ?? 0)
+        : (m.b * l.at.x + m.d * l.at.y + m.f) / ratio + (l.dy ?? 0),
       color: l.color,
-      size: l.size ?? 13,
+      size: l.size ?? LABEL_PX,
       align: l.align ?? 'left',
       alpha: l.alpha ?? 1,
       plate: l.plate ?? true,
       accent: l.accent ?? false,
+      speak: l.speak,
+      to:
+        l.to === undefined
+          ? undefined
+          : {
+              x: (m.a * l.to.x + m.c * l.to.y + m.e) / ratio,
+              y: (m.b * l.to.x + m.d * l.to.y + m.f) / ratio,
+            },
       ratio,
     })
   }
@@ -369,7 +481,7 @@ function flushLabels(ctx: CanvasRenderingContext2D): void {
   for (const l of queuedLabels) {
     ctx.setTransform(l.ratio, 0, 0, l.ratio, 0, 0)
     ctx.globalAlpha = l.alpha
-    ctx.font = `${l.size}px ui-sans-serif, system-ui, -apple-system, sans-serif`
+    ctx.font = labelFont(l.size)
     ctx.textAlign = l.align
     // Plate height comes from the font size, not from these particular glyphs,
     // so a row of labels lines up whatever letters it happens to contain.
@@ -400,10 +512,17 @@ function flushLabels(ctx: CanvasRenderingContext2D): void {
         }
       }
     }
+    // ⚠ THE LEADER IS DRAWN FROM THE LABEL'S FINAL PLATE, after the keep-out
+    // nudge above has moved it. Drawn from the anchor the label was queued
+    // with, it would miss its own plate by up to a plate's width whenever a
+    // panel pushed the name aside.
+    if (l.to) {
+      drawConnector(ctx, { x: left - PLATE_PAD, y: top, w: w + PLATE_PAD * 2, h }, l.to)
+    }
     if (l.plate) {
       ctx.fillStyle = LABEL_PLATE
       ctx.beginPath()
-      ctx.roundRect(left - PLATE_PAD, top, w + PLATE_PAD * 2, h, 4)
+      ctx.roundRect(left - PLATE_PAD, top, w + PLATE_PAD * 2, h, 5)
       ctx.fill()
       if (l.accent) {
         ctx.strokeStyle = SPOT_EDGE
@@ -413,6 +532,20 @@ function flushLabels(ctx: CanvasRenderingContext2D): void {
     }
     ctx.fillStyle = l.color
     ctx.fillText(l.text, x, l.y)
+    // ⚠ F04's speaker, and the box a finger has to land in — recorded from
+    // the label's FINAL position, after the keep-out nudge, so the target is
+    // exactly where the word ended up. Never a second set of numbers.
+    if (l.speak !== undefined) {
+      const gx = left - PLATE_PAD - 9
+      speakerGlyph(ctx, gx, l.y - l.size * 0.3)
+      spokenBoxes.push({
+        term: l.speak,
+        x: gx - 10,
+        y: top - 4,
+        w: w + PLATE_PAD * 2 + 20,
+        h: h + 8,
+      })
+    }
   }
   ctx.restore()
   queuedLabels = []
@@ -438,7 +571,13 @@ function withScreen(
   ctx.restore()
 }
 
-function line(ctx: CanvasRenderingContext2D, a: Pt, b: Pt, width: number, color: string): void {
+function line(
+  ctx: CanvasRenderingContext2D,
+  a: Pt,
+  b: Pt,
+  width: number,
+  color: string,
+): void {
   ctx.strokeStyle = color
   ctx.lineWidth = width
   ctx.beginPath()
@@ -482,7 +621,6 @@ const HEAD_R = LIPID_PX / 2
  *  (Until 2026-08-28 this file had its own version, with curved tails, a wider
  *  splay and a bigger gap at the midplane. Two drawings of one molecule.) */
 const SCENE_LIPID: LipidGeom = { headR: HEAD_R, halfMem: HALF_MEM }
-
 
 /** The charge on an ion. One line, because there is one way to draw this in
  *  the whole app now (`drawIonCharge`, 2026-08-28): a ± badge just off the
@@ -821,24 +959,28 @@ function drawProteins(ctx: CanvasRenderingContext2D, s: SceneState): void {
       const state = spotlightState(emph)
       const starring = state === 'starring'
       const drained = state === 'drained'
-      labels.push({
-        text: protein.channel ? protein.channel.short : 'Na⁺/K⁺ pump',
-        at: protein.at,
-        dy: 96,
-        color: starring
-          ? '#fffbeb'
-          : drained
-            ? '#6b7280'
-            : protein.channel
-              ? open
-                ? '#e7d9b8'
-                : '#7d7360'
-              : '#e0a56a',
-        size: 11,
-        align: 'center',
-        alpha: drained ? 0.75 : 1,
-        accent: starring,
-      })
+      if (s.labelsOn !== false)
+        labels.push({
+          text: protein.channel ? protein.channel.short : 'Na⁺/K⁺ pump',
+          at: protein.at,
+          // The name points AT the protein it names: a discrete thing, so it
+          // gets a leader like every other name in the app.
+          to: protein.at,
+          dy: 96,
+          color: starring
+            ? '#fffbeb'
+            : drained
+              ? '#6b7280'
+              : protein.channel
+                ? open
+                  ? '#e7d9b8'
+                  : '#7d7360'
+                : '#e0a56a',
+          size: 11,
+          align: 'center',
+          alpha: drained ? 0.75 : 1,
+          accent: starring,
+        })
       if (protein.channel) {
         labels.push({
           text: open ? 'open' : 'shut',
@@ -886,9 +1028,7 @@ function drawIons(ctx: CanvasRenderingContext2D, s: SceneState): void {
       return grad
     }
 
-    const marksLegible = ION_KINDS.some(
-      (kind) => ionRadius(kind) * s.cameraScale > 3.4,
-    )
+    const marksLegible = ION_KINDS.some((kind) => ionRadius(kind) * s.cameraScale > 3.4)
     for (const side of ['outside', 'inside'] as const) {
       const sign = side === 'inside' ? 1 : -1
       for (const ion of s.ions[side]) {
@@ -1050,7 +1190,10 @@ function drawCompartments(
   )
   ctx.restore()
 
-  // Name both sides, a third of the canvas away from the membrane.
+  // Name both sides, a third of the canvas away from the membrane. Names, so
+  // the 🏷 switch hides them — and no leader: a half-plane has no point to
+  // aim a line at.
+  if (s.labelsOn === false) return
   const reachPx = STAGE_H * 0.32
   screenLabels(ctx, s, [
     {
@@ -1130,7 +1273,12 @@ function drawProcessTube(
 
 /** Chemical transmission: discrete pale particles crossing a gap. Deliberately
  *  NOT a glow — the hand-off from electrical to chemical must look different. */
-function messengers(ctx: CanvasRenderingContext2D, from: Pt, to: Pt, progress: number): void {
+function messengers(
+  ctx: CanvasRenderingContext2D,
+  from: Pt,
+  to: Pt,
+  progress: number,
+): void {
   const spread = [-0.18, 0, 0.16, 0.3]
   ctx.save()
   for (let i = 0; i < spread.length; i++) {
@@ -1188,19 +1336,84 @@ function travellingSignal(
   ctx.restore()
 }
 
-/** A simplified partner cell body: flat, dimmer, no nucleus — so the focus
- *  neuron stays the subject. */
-function partnerSoma(ctx: CanvasRenderingContext2D, c: Pt, r: number, hot: boolean): void {
+/** A simplified partner cell body: the traced star soma (the same species as
+ *  the focus cell — re-drawn 2026-09-04, see 05 → Reconciliation —
+ *  neuron (1).svg), flat, dimmer, no nucleus, cone turned toward `facing`
+ *  (where its axon leaves) — so the focus neuron stays the subject. */
+function partnerSoma(
+  ctx: CanvasRenderingContext2D,
+  outline: Pt[],
+  c: Pt,
+  r: number,
+  hot: boolean,
+): void {
   const g = ctx.createRadialGradient(c.x - r * 0.3, c.y - r * 0.3, 0, c.x, c.y, r)
   g.addColorStop(0, hot ? 'rgba(203, 213, 225, 0.5)' : 'rgba(148, 163, 184, 0.3)')
   g.addColorStop(1, 'rgba(100, 116, 139, 0.1)')
   ctx.fillStyle = g
   ctx.strokeStyle = hot ? PARTNER_HOT : PARTNER
   ctx.lineWidth = 2.5
+  ctx.lineJoin = 'round'
   ctx.beginPath()
-  ctx.arc(c.x, c.y, r, 0, Math.PI * 2)
+  for (const [i, p] of outline.entries()) {
+    if (i === 0) ctx.moveTo(p.x, p.y)
+    else ctx.lineTo(p.x, p.y)
+  }
+  ctx.closePath()
   ctx.fill()
   ctx.stroke()
+  // A nucleus, dim: a cell body with something in it reads as a cell body.
+  disc(ctx, { x: c.x + r * 0.1, y: c.y + r * 0.08 }, r * 0.26, 'rgba(100, 116, 139, 0.5)')
+}
+
+/** ⚠ THE POSTSYNAPTIC SPECIALIZATION, at the scene's register (user,
+ *  2026-09-04): the receiving dendrite swells into a spine head on a narrow
+ *  neck — the object the synapse view magnifies — so a thickening means
+ *  exactly one thing, "a synapse lands here", and the stand-in now looks
+ *  like what it dissolves into. */
+function drawSpine(
+  ctx: CanvasRenderingContext2D,
+  dendrite: Pt[],
+  ink: string,
+  fill: string,
+): void {
+  const { head, neck } = spineHead(dendrite)
+  ctx.save()
+  ctx.lineCap = 'round'
+  // The neck first, under the head: a neck is a neck, not a pedestal.
+  line(ctx, head, neck, SPINE_HEAD_R * 0.62, ink)
+  ctx.beginPath()
+  ctx.arc(head.x, head.y, SPINE_HEAD_R, 0, Math.PI * 2)
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.strokeStyle = ink
+  ctx.lineWidth = 1.4
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** A stub process fading out toward its far end — the cell keeps going where
+ *  the drawing stops, and the same ink says so. `pts` runs far-tip → soma. */
+function fadingPath(
+  ctx: CanvasRenderingContext2D,
+  pts: Pt[],
+  w: number,
+  rgb: string,
+  alpha: number,
+): void {
+  const a = pts[0]
+  const b = pts[pts.length - 1]
+  const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
+  g.addColorStop(0, `rgba(${rgb}, 0)`)
+  g.addColorStop(1, `rgba(${rgb}, ${alpha})`)
+  ctx.save()
+  ctx.strokeStyle = g
+  ctx.lineWidth = w
+  ctx.beginPath()
+  ctx.moveTo(a.x, a.y)
+  for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y)
+  ctx.stroke()
+  ctx.restore()
 }
 
 /** ⚠ HOW FAR THE OUTGOING SYNAPSE HAS TURNED INTO ITS OWN ANATOMY at this
@@ -1211,11 +1424,58 @@ function partnerSoma(ctx: CanvasRenderingContext2D, c: Pt, r: number, hot: boole
  *  and the demo's shapes — the user's traced bouton, the spine-tipped
  *  dendrite — dissolve IN (×16→×40). The ramps do not overlap: level of
  *  detail dissolves, and the two representations are never both on screen. */
-export function outgoingDetailAt(zoom: number): { standIn: number; anatomy: number } {
+export function outgoingDetailAt(zoom: number): {
+  standIn: number
+  anatomy: number
+} {
   const d = Math.log10(Math.max(1e-9, zoom))
   const gone = Math.min(1, Math.max(0, (d - Math.log10(8)) / 0.3))
   const here = Math.min(1, Math.max(0, (d - Math.log10(16)) / 0.4))
   return { standIn: 1 - gone, anatomy: here }
+}
+
+/** One astrocyte at the scene's register (21b-1b; re-created 2026-09-04 as a
+ *  faithful TRACE of the user's astrocyte.svg — see 05 → Reconciliation): the
+ *  shared `astroShape` glyph, drawn in the glial greened wash. The same
+ *  geometry feeds the miniature's SVG, so the kid meets one recognisable
+ *  star everywhere. */
+function drawAstrocyteCell(
+  ctx: CanvasRenderingContext2D,
+  a: { soma: Pt; r: number; reach: Pt },
+  alpha: number,
+): void {
+  if (alpha <= 0.01) return
+  const shape = astroShape(a)
+  ctx.save()
+  ctx.globalAlpha *= alpha
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  for (const [i, p] of shape.soma.entries()) {
+    if (i === 0) ctx.moveTo(p.x, p.y)
+    else ctx.lineTo(p.x, p.y)
+  }
+  ctx.closePath()
+  // Corrections 2026-09-04: a FILLED body (the 0.10 wash read as hollow) and
+  // a heavier outline at the scene's register.
+  ctx.fillStyle = 'rgba(134, 184, 158, 0.4)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(134, 184, 158, 0.75)'
+  ctx.lineWidth = 2.5
+  ctx.stroke()
+  for (const pl of shape.processes) {
+    ctx.beginPath()
+    for (const [i, p] of pl.entries()) {
+      if (i === 0) ctx.moveTo(p.x, p.y)
+      else ctx.lineTo(p.x, p.y)
+    }
+    ctx.stroke()
+  }
+  // Its nucleus (user, 2026-09-04) — the same mark every neuron here carries,
+  // so a cell body reads as a cell body whichever kind of cell it belongs to.
+  const nuc = astroNucleus(a)
+  disc(ctx, nuc.at, nuc.r, ASTRO_NUCLEUS)
+  ctx.restore()
 }
 
 /** The demo synapse's own anatomy, seated in the scene at the outgoing
@@ -1277,6 +1537,28 @@ function outgoingAnatomy(ctx: CanvasRenderingContext2D, alpha: number): void {
   ctx.strokeStyle = PARTNER
   ctx.lineWidth = 1.2
   ctx.stroke()
+  // ⚠ THE GLIAL FINGERS AT THE MOUTHS (21b-1b), at the anatomy's own
+  // register: in this seated frame the landing quarter-turn maps them to the
+  // synapse view's left/right flanks, so the picture the camera lands on is
+  // the picture that faded out. Proportions are the view's own, in units of
+  // its active-zone half-width.
+  const aH = (BOUTON_BOX.w / 2) * k * 0.72
+  for (const sd of [1, -1] as const) {
+    const tip = { x: sd * aH * 1.51, y: 0 }
+    const base = { x: sd * aH * 2.6, y: aH * 0.46 }
+    const rT = aH * 0.17
+    const rB = aH * 0.38
+    const th = Math.atan2(base.y - tip.y, base.x - tip.x)
+    ctx.beginPath()
+    ctx.arc(tip.x, tip.y, rT, th + Math.PI / 2, th - Math.PI / 2)
+    ctx.arc(base.x, base.y, rB, th - Math.PI / 2, th + Math.PI / 2)
+    ctx.closePath()
+    ctx.fillStyle = 'rgba(134, 184, 158, 0.18)'
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(134, 184, 158, 0.7)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }
   ctx.restore()
 }
 
@@ -1289,14 +1571,32 @@ function bouton(
   hot: boolean,
   drift: number,
   release: number,
+  outline?: Pt[],
 ): void {
-  softGlow(ctx, c.x + dir.x * r * 0.9, c.y + dir.y * r * 0.9, r * 2.1, SIGNAL_RGB, release * 0.55)
+  softGlow(
+    ctx,
+    c.x + dir.x * r * 0.9,
+    c.y + dir.y * r * 0.9,
+    r * 2.1,
+    SIGNAL_RGB,
+    release * 0.55,
+  )
   const g = ctx.createRadialGradient(c.x - 3, c.y - 3, 0, c.x, c.y, r)
   g.addColorStop(0, hot ? '#e2e8f0' : '#b8c4d4')
   g.addColorStop(1, '#64748b')
   ctx.fillStyle = g
   ctx.beginPath()
-  ctx.arc(c.x, c.y, r, 0, Math.PI * 2)
+  if (outline) {
+    // The focus cell's boutons are the trace's own teardrops (neuron (1).svg);
+    // a partner's bouton, which has no traced outline, stays a disc.
+    for (const [i, p] of outline.entries()) {
+      if (i === 0) ctx.moveTo(p.x, p.y)
+      else ctx.lineTo(p.x, p.y)
+    }
+    ctx.closePath()
+  } else {
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2)
+  }
   ctx.fill()
   ctx.save()
   ctx.fillStyle = VESICLE
@@ -1327,9 +1627,14 @@ function drawInputs(ctx: CanvasRenderingContext2D, s: SceneState): void {
     ctx.globalAlpha = s.selected === null ? 0.75 : 0.32
     ctx.lineCap = 'round'
 
-    for (const stub of input.stubs) {
-      line(ctx, stub.from, stub.to, 2.2, hot ? PARTNER_HOT : PARTNER)
-    }
+    const ink = hot ? '203, 213, 225' : '148, 163, 184'
+    // Its WHOLE dendrite fan, far ends fading — the rest of that cell's tree
+    // is off the story, not off a cliff.
+    for (const stroke of input.fan) fadingPath(ctx, stroke, 2.2, ink, 0.9)
+    // The rest of its terminal arbor: this axon contacts other cells too, and
+    // saying so is what stops the one bouton reading as the whole ending.
+    for (const br of input.branches) fadingPath(ctx, [...br].reverse(), 1.6, ink, 0.55)
+    for (const b of input.otherBoutons) disc(ctx, b, BOUTON_R * 0.4, `rgba(${ink}, 0.5)`)
     strokePath(ctx, input.axon, 2.6, hot ? PARTNER_HOT : PARTNER)
 
     const toSite = {
@@ -1345,7 +1650,7 @@ function drawInputs(ctx: CanvasRenderingContext2D, s: SceneState): void {
       firing && chain.crossing !== null ? 1 : 0,
       firing && chain.crossing !== null ? 0.8 : 0,
     )
-    partnerSoma(ctx, input.soma, input.somaR, hot || firing)
+    partnerSoma(ctx, input.outline, input.soma, input.somaR, hot || firing)
 
     if (firing) {
       // Its own action potential, running to its bouton.
@@ -1369,13 +1674,14 @@ function drawInputs(ctx: CanvasRenderingContext2D, s: SceneState): void {
     // Name plus the invitation to fire it.
     const anchor = { x: input.soma.x, y: input.soma.y + input.somaR }
     const alpha = s.selected === null ? 0.9 : 0.35
+    if (s.labelsOn === false) continue
     screenLabels(ctx, s, [
       {
         text: input.label,
         at: anchor,
+        to: input.soma,
         dy: 16,
-        color: hot ? '#cbd5e1' : LABEL,
-        size: 12,
+        color: hot ? LABEL_HOT : LABEL,
         align: 'center',
         alpha,
       },
@@ -1386,7 +1692,6 @@ function drawInputs(ctx: CanvasRenderingContext2D, s: SceneState): void {
               at: anchor,
               dy: 31,
               color: '#fbbf24',
-              size: 12,
               align: 'center' as CanvasTextAlign,
               alpha,
             },
@@ -1398,6 +1703,70 @@ function drawInputs(ctx: CanvasRenderingContext2D, s: SceneState): void {
 
 // --------------------------------------------------------------- focus cell
 
+/** A process drawn as ONE shape: the stroke walked up one side and back down
+ *  the other, at the width the taper gives each point, then filled once.
+ *
+ *  A polyline stroke cannot taper, and a per-segment stroke double-composites
+ *  its joins (see DENDRITE_STROKES). A ribbon does neither — and its ends are
+ *  rounded by hand, so a branch still finishes like a branch rather than a
+ *  cut cable. */
+function taperedRibbon(
+  ctx: CanvasRenderingContext2D,
+  st: DendriteStroke,
+  ink: string,
+): void {
+  const n = st.pts.length
+  if (n < 2) return
+  const half = (i: number) => strokeWidthAt(st, i / (n - 1)) / 2
+  /** The unit normal at point i, from the direction the stroke runs there. */
+  const normalAt = (i: number): Pt => {
+    const a = st.pts[Math.max(0, i - 1)]
+    const b = st.pts[Math.min(n - 1, i + 1)]
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const l = Math.hypot(dx, dy) || 1
+    return { x: -dy / l, y: dx / l }
+  }
+  ctx.beginPath()
+  for (let i = 0; i < n; i++) {
+    const nrm = normalAt(i)
+    const h = half(i)
+    const x = st.pts[i].x + nrm.x * h
+    const y = st.pts[i].y + nrm.y * h
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  // Round the tip, then come back down the other side.
+  const tipN = normalAt(n - 1)
+  const tipH = half(n - 1)
+  ctx.arc(
+    st.pts[n - 1].x,
+    st.pts[n - 1].y,
+    tipH,
+    Math.atan2(tipN.y, tipN.x),
+    Math.atan2(-tipN.y, -tipN.x),
+    true,
+  )
+  for (let i = n - 1; i >= 0; i--) {
+    const nrm = normalAt(i)
+    const h = half(i)
+    ctx.lineTo(st.pts[i].x - nrm.x * h, st.pts[i].y - nrm.y * h)
+  }
+  const rootN = normalAt(0)
+  const rootH = half(0)
+  ctx.arc(
+    st.pts[0].x,
+    st.pts[0].y,
+    rootH,
+    Math.atan2(-rootN.y, -rootN.x),
+    Math.atan2(rootN.y, rootN.x),
+    true,
+  )
+  ctx.closePath()
+  ctx.fillStyle = ink
+  ctx.fill()
+}
+
 function drawDendrites(
   ctx: CanvasRenderingContext2D,
   alpha: number,
@@ -1408,16 +1777,40 @@ function drawDendrites(
   ctx.save()
   ctx.globalAlpha = alpha
   ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
   ctx.strokeStyle = hot ? MEMBRANE_HOT : MEMBRANE
-  for (const seg of DENDRITE_SEGS) {
-    const from = { x: seg.x1, y: seg.y1 }
-    const to = { x: seg.x2, y: seg.y2 }
-    if (!spanInView(s.view, from, to, seg.w * 2)) continue
+  // ⚠ ONE BRANCH, ONE MARK (user, 2026-09-04: "visible dots on the places
+  // where its pieces collide"). Stroking the segments one at a time put a
+  // round cap at both sides of every join, and under this function's own
+  // globalAlpha the two overlapping caps composite TWICE — a bright dot at
+  // each of some thirty joins per branch. A branch is now laid down as a
+  // single tapered ribbon and filled once, so a join is not an event.
+  for (const st of DENDRITE_STROKES) {
+    if (!pathInView(s.view, st.pts, Math.max(st.w0, st.w1) * 2)) continue
     if (tube) {
-      drawProcessTube(ctx, [from, to], seg.w / 2, s, hot ? MEMBRANE_HOT : MEMBRANE)
+      drawProcessTube(
+        ctx,
+        st.pts,
+        Math.max(st.w0, st.w1) / 2,
+        s,
+        hot ? MEMBRANE_HOT : MEMBRANE,
+      )
     } else {
-      line(ctx, from, to, seg.w, hot ? MEMBRANE_HOT : MEMBRANE)
+      taperedRibbon(ctx, st, hot ? MEMBRANE_HOT : MEMBRANE)
     }
+  }
+  // ⚠ WHERE A SYNAPSE LANDS, THE DENDRITE SWELLS (user, 2026-09-04). Only the
+  // three tips that actually receive an input get a spine head — a thickening
+  // is a claim, and drawing one on all eleven would say every tip is a
+  // synapse. This is the object the synapse view magnifies.
+  for (const input of INPUTS) {
+    if (!inView(s.view, input.site, SPINE_HEAD_R * 6)) continue
+    drawSpine(
+      ctx,
+      DENDRITE_TRUNKS[input.trunk].path,
+      hot ? MEMBRANE_HOT : MEMBRANE,
+      SPINE_FILL,
+    )
   }
   ctx.restore()
 }
@@ -1453,18 +1846,21 @@ function drawTerminals(
   const m0 = ctx.getTransform()
   const detail = outgoingDetailAt(Math.hypot(m0.a, m0.b))
   const outgoingIndex = OUTPUT.dendrites[1].fromTerminal
+  // The arbor's own branch strokes, as traced (neuron (1).svg) — the ink the
+  // seven boutons hang from, drawn once, not a chord per bouton.
+  for (const br of TERMINAL_BRANCHES) {
+    if (!pathInView(s.view, br, BOUTON_R * 3)) continue
+    strokePath(ctx, br, 3, hot ? MEMBRANE_HOT : MEMBRANE)
+  }
+  const head = s.chain.terminalHead
   for (const [ti, t] of TERMINALS.entries()) {
-    if (!spanInView(s.view, AXON_END, t.end, BOUTON_R * 3)) continue
-    line(ctx, AXON_END, t.end, 3.5, hot ? MEMBRANE_HOT : MEMBRANE)
-    // The spike arriving in the arbor: the branches carry it and the boutons take
-    // it. Drawn under the bouton so the vesicles and the release stay on top of
+    if (!pathInView(s.view, t.path, BOUTON_R * 3)) continue
+    // The bouton glows when the wave actually reaches IT, near boutons first.
+    // Drawn under the bouton so the vesicles and the release stay on top of
     // it — this is the membrane going, not the release happening.
-    if (arrival > 0.01) {
-      ctx.save()
-      ctx.globalAlpha = alpha * arrival
-      line(ctx, AXON_END, t.end, 4.5, `rgba(${SIGNAL_RGB}, 0.9)`)
-      ctx.restore()
-      softGlow(ctx, t.end.x, t.end.y, BOUTON_R * 3.4, SIGNAL_RGB, arrival * 0.7)
+    const arr = terminalArrival(head, ti)
+    if (arrival > 0.01 && arr > 0.01) {
+      softGlow(ctx, t.end.x, t.end.y, BOUTON_R * 3.4, SIGNAL_RGB, arr * arrival * 0.7)
     }
     // The outgoing bouton's blob stand-in has dissolved by the time the
     // demo's own anatomy arrives — see `outgoingDetailAt`.
@@ -1480,9 +1876,28 @@ function drawTerminals(
         hot,
         s.chain.terminalDrift,
         s.chain.terminalRelease,
+        t.outline,
       )
       ctx.restore()
     }
+  }
+  // ⚠ THE SPIKE TRAVELS THE ARBOR AS A DOT WITH A TAIL, the axon's own
+  // (user, 2026-09-04: "a yellow glowing dot with white tail moves along the
+  // lines, same as on axon body"). It was a lit prefix growing along each
+  // route — progressive, but a different animal from the cable's signal, and
+  // the arbor IS the cable. Drawn LAST so the fronts pass over the boutons
+  // rather than under them, and deduped by `arborFronts`, so one dot leaves
+  // the axon and becomes many at the forks instead of seven stacking into a
+  // flare on the shared limb.
+  if (arrival > 0.01) {
+    ctx.save()
+    ctx.globalAlpha = alpha * arrival
+    for (const front of arborFronts(head)) {
+      const route = TERMINALS[front.ti].path
+      if (!pathInView(s.view, route, BOUTON_R * 3)) continue
+      travellingSignal(ctx, route, front.t, 5, ARBOR_TAIL_PX / pathLength(route))
+    }
+    ctx.restore()
   }
   ctx.restore()
 }
@@ -1515,12 +1930,19 @@ function drawSoma(
   ctx.fillStyle = body
   ctx.strokeStyle = hot ? MEMBRANE_HOT : MEMBRANE
   ctx.lineWidth = 3
+  ctx.lineJoin = 'round'
+  // The traced star outline (neuron (1).svg) — the seven-point body with its
+  // hillock cone, in place of the old circle.
   ctx.beginPath()
-  ctx.arc(SOMA.x, SOMA.y, r, 0, Math.PI * 2)
+  for (const [i, p] of SOMA_OUTLINE.entries()) {
+    if (i === 0) ctx.moveTo(p.x, p.y)
+    else ctx.lineTo(p.x, p.y)
+  }
+  ctx.closePath()
   ctx.fill()
   ctx.stroke()
 
-  disc(ctx, { x: SOMA.x + 6, y: SOMA.y + 4 }, r * 0.34, NUCLEUS)
+  disc(ctx, { x: SOMA.x + 6, y: SOMA.y + 4 }, r * 0.28, NUCLEUS)
   ctx.restore()
 }
 
@@ -1528,7 +1950,9 @@ function drawSoma(
 
 function drawOutput(ctx: CanvasRenderingContext2D, s: SceneState): void {
   const { chain } = s
-  if (!inView(s.view, OUTPUT.soma, (s.view.right - s.view.left) * 0.6 + OUTPUT.somaR * 4)) {
+  if (
+    !inView(s.view, OUTPUT.soma, (s.view.right - s.view.left) * 0.6 + OUTPUT.somaR * 4)
+  ) {
     return
   }
   ctx.save()
@@ -1536,19 +1960,29 @@ function drawOutput(ctx: CanvasRenderingContext2D, s: SceneState): void {
   ctx.lineCap = 'round'
   const mOut = ctx.getTransform()
   const detail = outgoingDetailAt(Math.hypot(mOut.a, mOut.b))
+  // The rest of its own fan — a whole cell, not three stubs.
+  for (const stroke of OUTPUT.fan) fadingPath(ctx, stroke, 2.2, '148, 163, 184', 0.9)
   for (const [di, d] of OUTPUT.dendrites.entries()) {
-    // The synapsing stub's bare-line stand-in gives way to the demo's own
+    // The synapsing dendrite's stand-in gives way to the demo's own
     // spine-tipped dendrite as the camera plunges.
     const standIn = di === 1 ? detail.standIn : 1
     if (standIn <= 0.01) continue
     ctx.save()
     ctx.globalAlpha *= standIn
-    line(ctx, d.from, d.to, 2.8, PARTNER)
+    strokePath(ctx, d.path, 2.8, PARTNER)
+    // Its postsynaptic specialization: the spine head our bouton speaks to.
+    drawSpine(ctx, d.path, PARTNER, SPINE_FILL_PARTNER)
     ctx.restore()
   }
   if (detail.anatomy > 0.01) outgoingAnatomy(ctx, detail.anatomy)
+  // ⚠ THE TWO ASTROCYTES (21b-1b): the third cell on the map, one per glial
+  // finger of the synapse view. Stand-ins at the scene's register, they
+  // dissolve OUT on the dive exactly as the bouton stand-in does — the
+  // anatomy's own mouth-fingers dissolve IN — so the two representations are
+  // never both on screen.
+  for (const a of ASTROCYTES) drawAstrocyteCell(ctx, a, detail.standIn)
   strokePath(ctx, OUTPUT.axon, 2.6, PARTNER)
-  partnerSoma(ctx, OUTPUT.soma, OUTPUT.somaR, chain.targetFlash > 0)
+  partnerSoma(ctx, OUTPUT.outline, OUTPUT.soma, OUTPUT.somaR, chain.targetFlash > 0)
 
   if (chain.outgoingCrossing !== null) {
     messengers(ctx, OUTGOING.bouton, OUTGOING.tip, chain.outgoingCrossing)
@@ -1557,7 +1991,8 @@ function drawOutput(ctx: CanvasRenderingContext2D, s: SceneState): void {
     // One small ripple spreading toward its soma — visibly weaker than the
     // action potential that caused it.
     const target = OUTPUT.dendrites[1]
-    const p = polylinePoint([target.to, target.from], chain.targetRipple)
+    // Along its own traced dendrite, tip → soma.
+    const p = polylinePoint([...target.path].reverse(), chain.targetRipple)
     softGlow(ctx, p.x, p.y, 13, SIGNAL_RGB, 0.7)
     disc(ctx, p, 2.8, SIGNAL_CORE)
   }
@@ -1572,14 +2007,15 @@ function drawOutput(ctx: CanvasRenderingContext2D, s: SceneState): void {
 
   ctx.restore()
 
+  if (s.labelsOn === false) return
   screenLabels(ctx, s, [
     {
       text: OUTPUT.label,
       at: { x: OUTPUT.soma.x, y: OUTPUT.soma.y + OUTPUT.somaR },
+      to: OUTPUT.soma,
       dx: -26,
       dy: 16,
       color: LABEL,
-      size: 12,
       align: 'center',
       alpha: s.selected === null ? 0.9 : 0.35,
     },
@@ -1690,6 +2126,7 @@ function drawHillockMeter(ctx: CanvasRenderingContext2D, s: SceneState): void {
 // ------------------------------------------------------------ labels & marks
 
 function drawLabels(ctx: CanvasRenderingContext2D, s: SceneState): void {
+  if (s.labelsOn === false) return
   const pad = 80 / s.cameraScale
   screenLabels(
     ctx,
@@ -1701,6 +2138,13 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: SceneState): void {
         {
           text: l.text,
           at: { x: l.x, y: l.y },
+          // ⚠ Asked, never assumed: one predicate decides what the scene
+          // says aloud, and the markers below ask the same one.
+          speak: sceneTermSpeaks(l.text) ? l.text : undefined,
+          // Only the soma is a THING to point at. `dendrites`, `axon` and
+          // `axon terminals` name extended structures, and a leader to one
+          // point on a two-hundred-pixel fan reads as "this one branch".
+          to: l.part === 'soma' ? SOMA : undefined,
           color: hot ? LABEL_HOT : LABEL,
           alpha: partAlpha(l.part, s.selected, s.hovered),
         },
@@ -1711,18 +2155,78 @@ function drawLabels(ctx: CanvasRenderingContext2D, s: SceneState): void {
 
 /** Dashed rings marking the places we can zoom into — the visible map of
  *  what is coming next. */
+/** ⚠ HOW A ZOOM MARKER LOOKS, resting and hovered (user, 2026-09-04:
+ *  "magnifying glass areas are not visible on the big neuron, as things got
+ *  more cluttered. Make the hover state into active state, but without
+ *  labels. On hover add yellow glow and labels").
+ *
+ *  The scene has gained a great deal since these were drawn — a traced fan
+ *  with twigs, seven boutons, four partner cells, six astrocytes — and a
+ *  marker at 0.75 alpha in the same slate as everything else stopped being
+ *  findable. A door nobody can see is a door that is not there.
+ *
+ *  So the RESTING marker now carries the prominence the hover state used to:
+ *  a full-strength ring and icon, on a dark backing disc — the same answer
+ *  the app already uses for a name that would otherwise disappear into what
+ *  it lies on. The backing is what makes it survive clutter, rather than yet
+ *  more brightness competing with a bright scene.
+ *
+ *  HOVER is then free to mean one thing only: the yellow glow, and the name.
+ *  Yellow stays reserved for hover here, so "which door is under my pointer"
+ *  is answered by colour and not by a difference in strength nobody can see.
+ *
+ *  Returned as numbers rather than drawn inline so the choice can be asked
+ *  directly (03 → *Ask the DECISION, not the ink*). */
+export interface MarkerStyle {
+  /** Opacity of the dark disc behind the ring — 0 for none. */
+  backing: number
+  ringAlpha: number
+  iconAlpha: number
+  /** The yellow glow. Hover only. */
+  glow: number
+  /** The ink, as an `r, g, b` triple. */
+  ink: string
+  /** Whether the target's name is drawn beside it. */
+  label: boolean
+}
+
+export function markerStyle(hot: boolean): MarkerStyle {
+  return hot
+    ? {
+        backing: 0.62,
+        ringAlpha: 1,
+        iconAlpha: 1,
+        glow: 0.55,
+        ink: MARKER_HOT,
+        label: true,
+      }
+    : {
+        backing: 0.55,
+        ringAlpha: 1,
+        iconAlpha: 1,
+        glow: 0,
+        ink: MARKER_REST,
+        label: false,
+      }
+}
+
 function drawMarkers(ctx: CanvasRenderingContext2D, s: SceneState): void {
   if (!s.showMarkers) return
   const k = 1 / s.cameraScale
   const labels: ScreenLabel[] = []
   ctx.save()
   for (const target of ZOOM_TARGETS) {
-    const hot = s.hoveredMarker === target.id
+    const st = markerStyle(s.hoveredMarker === target.id)
     const r = MARKER_R * k
-    const rgb = hot ? MARKER_HOT : MARKER
-    softGlow(ctx, target.center.x, target.center.y, r * 1.9, rgb, hot ? 0.5 : 0.2)
-    ctx.strokeStyle = `rgba(${rgb}, ${hot ? 1 : 0.75})`
-    ctx.lineWidth = 1.6 * k
+    if (st.glow > 0) {
+      softGlow(ctx, target.center.x, target.center.y, r * 2.1, st.ink, st.glow)
+    }
+    // The backing disc: a marker has to be findable over a traced dendrite, a
+    // bouton or an astrocyte's body, and darkening what is behind it does
+    // that without shouting.
+    disc(ctx, target.center, r * 1.06, `rgba(2, 6, 23, ${st.backing})`)
+    ctx.strokeStyle = `rgba(${st.ink}, ${st.ringAlpha})`
+    ctx.lineWidth = 1.8 * k
     ctx.setLineDash([4 * k, 3 * k])
     ctx.beginPath()
     ctx.arc(target.center.x, target.center.y, r, 0, Math.PI * 2)
@@ -1732,19 +2236,22 @@ function drawMarkers(ctx: CanvasRenderingContext2D, s: SceneState): void {
       text: '🔎',
       at: target.center,
       dy: 4,
-      color: `rgba(${rgb}, ${hot ? 1 : 0.8})`,
+      color: `rgba(${st.ink}, ${st.iconAlpha})`,
       size: 11,
       align: 'center',
       // No plate: it sits inside its own dashed ring, and a dark box behind it
       // reads as a second, squarer marker fighting the round one.
       plate: false,
     })
-    if (hot) {
+    if (st.label) {
       labels.push({
+        // A door's name goes through the SAME predicate the parts do — which
+        // says no, and would have to be changed on purpose to say otherwise.
+        speak: sceneTermSpeaks(target.label) ? target.label : undefined,
         text: target.label,
         at: target.center,
         dy: -MARKER_R - 8,
-        color: `rgba(${rgb}, 1)`,
+        color: `rgba(${st.ink}, 1)`,
         size: 12,
         align: 'center',
       })
@@ -1937,7 +2444,17 @@ function drawVoltagePanel(ctx: CanvasRenderingContext2D, s: SceneState): void {
     color: string,
     size = 10,
     align?: CanvasTextAlign,
-  ) => ({ text, at: ORIGIN, dx, dy, color, size, align, plate: false, screen: true })
+  ) => ({
+    text,
+    at: ORIGIN,
+    dx,
+    dy,
+    color,
+    size,
+    align,
+    plate: false,
+    screen: true,
+  })
 
   screenLabels(ctx, s, [
     label(
@@ -2033,12 +2550,17 @@ function drawAura(ctx: CanvasRenderingContext2D, s: SceneState): void {
     // evenly through the cell.
     // Fades in from nothing at the wall's edge — see `chargeWash`; the peak
     // stays a sliver inside the water, where the charge really sits.
-    ctx.fillStyle = chargeWash(ctx, HALF_MEM, depth, t, (0.6 * strength) / Math.max(0.02, Math.abs(t)))
+    ctx.fillStyle = chargeWash(
+      ctx,
+      HALF_MEM,
+      depth,
+      t,
+      (0.6 * strength) / Math.max(0.02, Math.abs(t)),
+    )
     ctx.fillRect(-span, HALF_MEM, span * 2, depth)
     ctx.restore()
   }
 }
-
 
 /** The charge itself: a thin skin of excess ions hugging each face. This is
  *  what the voltage IS, and only a vanishing number of ions are involved —
@@ -2087,12 +2609,19 @@ export function drawScene(ctx: CanvasRenderingContext2D, s: SceneState): void {
   const hot = (part: NeuronPartId) => s.selected === part || s.hovered === part
   const alpha = (part: NeuronPartId) => partAlpha(part, s.selected, s.hovered)
   queuedLabels = []
+  spokenBoxes = []
   labelKeepOut = []
 
   // Backdrop first: how far the membrane is from resting.
   drawAura(ctx, s)
   drawInputs(ctx, s)
   drawOutput(ctx, s)
+  // ⚠ THE ASTROCYTES AMONG THE DENDRITES (user, 2026-09-04). Under the
+  // neuron, like the other partner cells: the third cell is a neighbour the
+  // branches pass through, not something laid over them. They do NOT dissolve
+  // with the synapse dive — they belong to the dendritic field, not to that
+  // one synapse's level of detail.
+  for (const a of DENDRITE_ASTROCYTES) drawAstrocyteCell(ctx, a, DENDRITE_GLIA_ALPHA)
 
   // Processes first, cell body last, so the branches tuck under the soma.
   drawDendrites(ctx, alpha('dendrites'), hot('dendrites'), s)

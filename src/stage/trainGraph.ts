@@ -3,14 +3,13 @@ import { polarizationT } from '../core/actionPotential'
 import { TRAIN_WINDOW_MS, type TrainPush, type TrainSample } from '../core/spikeTrain'
 import type { IonCounts } from '../state/ionStore'
 import {
-  AXON_END,
+  SOMA_OUTLINE,
   AXON_POLYLINE,
   BOUTON_R,
   DENDRITE_SEGS,
   MAP_ASPECT,
   NEURON_MAP_BOX,
-  SOMA,
-  SOMA_R,
+  TERMINAL_BRANCHES,
   TERMINALS,
   regionPoints,
   type NeuronRegion,
@@ -201,9 +200,12 @@ export function drawTrain(ctx: CanvasRenderingContext2D, view: TrainView): void 
     ctx.fillStyle =
       push.fired === true ? 'rgba(252, 211, 77, 0.95)' : 'rgba(148, 163, 184, 0.75)'
     ctx.font = `600 ${push.fired === true ? 11 : 10}px ui-sans-serif, system-ui, sans-serif`
-    ctx.fillText(push.fired === null ? '·' : push.fired ? 'spike' : 'nothing', x, geo.marksY)
+    ctx.fillText(
+      push.fired === null ? '·' : push.fired ? 'spike' : 'nothing',
+      x,
+      geo.marksY,
+    )
   }
-
 }
 
 /** One shaded stretch of time, clipped to the face. */
@@ -257,7 +259,10 @@ export interface InsetBox {
  *  panel of its own occludes nothing and costs a few pixels of a control bar that
  *  had spare room. */
 export function insetBox(width: number, height: number): InsetBox {
-  const w = Math.max(0, Math.min(width - INSET_PAD * 2, (height - INSET_PAD * 2) * MAP_ASPECT))
+  const w = Math.max(
+    0,
+    Math.min(width - INSET_PAD * 2, (height - INSET_PAD * 2) * MAP_ASPECT),
+  )
   const h = w / MAP_ASPECT
   return { x: (width - w) / 2, y: (height - h) / 2, w, h }
 }
@@ -368,7 +373,12 @@ export function drawNeuronInset(
   // does not repeat them. Clipped all the same: a dendrite reaching past the edge
   // should be cut off cleanly rather than drawn over the rounded corner.
   ctx.beginPath()
-  ctx.rect(box.x - INSET_PAD, box.y - INSET_PAD, box.w + INSET_PAD * 2, box.h + INSET_PAD * 2)
+  ctx.rect(
+    box.x - INSET_PAD,
+    box.y - INSET_PAD,
+    box.w + INSET_PAD * 2,
+    box.h + INSET_PAD * 2,
+  )
   ctx.clip()
 
   // The cell at rest, in the grey it wears everywhere else.
@@ -392,22 +402,35 @@ export function drawNeuronInset(
     ctx.lineTo(q.x, q.y)
   }
   ctx.stroke()
-  const end = place(box, AXON_END)
+  // The terminal arbor's own traced branches, then a dot per bouton — a
+  // teardrop under two pixels wide is a dot (level of detail cuts both ways).
+  for (const br of TERMINAL_BRANCHES) {
+    ctx.beginPath()
+    ctx.lineWidth = Math.max(0.8, 4 * k)
+    const b0 = place(box, br[0])
+    ctx.moveTo(b0.x, b0.y)
+    for (const p of br.slice(1)) {
+      const q = place(box, p)
+      ctx.lineTo(q.x, q.y)
+    }
+    ctx.stroke()
+  }
   for (const t of TERMINALS) {
     const tip = place(box, t.end)
-    ctx.beginPath()
-    ctx.lineWidth = Math.max(0.8, 5 * k)
-    ctx.moveTo(end.x, end.y)
-    ctx.lineTo(tip.x, tip.y)
-    ctx.stroke()
     ctx.beginPath()
     ctx.arc(tip.x, tip.y, Math.max(1, BOUTON_R * k), 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(148, 163, 184, 0.38)'
     ctx.fill()
   }
-  const soma = place(box, SOMA)
+  // The traced star soma, at the inset's own scale — the same silhouette as
+  // everywhere else, so even the smallest picture is of this cell.
   ctx.beginPath()
-  ctx.arc(soma.x, soma.y, SOMA_R * k, 0, Math.PI * 2)
+  for (const [i, p] of SOMA_OUTLINE.entries()) {
+    const q = place(box, p)
+    if (i === 0) ctx.moveTo(q.x, q.y)
+    else ctx.lineTo(q.x, q.y)
+  }
+  ctx.closePath()
   ctx.fillStyle = 'rgba(148, 163, 184, 0.28)'
   ctx.fill()
 
@@ -435,7 +458,14 @@ export function drawNeuronInset(
     ctx.lineTo(tip.x + 2, tip.y - 3)
     ctx.stroke()
     if (stim && stim.strength > 0.02) {
-      softGlow(ctx, tip.x + 2, tip.y - 3, 5 + 12 * stim.strength, SIGNAL_RGB, stim.strength * 0.9)
+      softGlow(
+        ctx,
+        tip.x + 2,
+        tip.y - 3,
+        5 + 12 * stim.strength,
+        SIGNAL_RGB,
+        stim.strength * 0.9,
+      )
     }
     // The magnifier that opens the patch clamp — THE SAME ONE the channel
     // view wears (2026-08-28). It was a bare lens here and a rounded box

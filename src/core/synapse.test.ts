@@ -17,7 +17,9 @@ import {
 import { tauM } from './spikeModel'
 import { FRONTIER_SHORT } from './neuron'
 
-const counts = (over: Partial<Record<string, { outside: number; inside: number }>> = {}) =>
+const counts = (
+  over: Partial<Record<string, { outside: number; inside: number }>> = {},
+) =>
   ION_KINDS.reduce((acc, kind) => {
     acc[kind] = {
       outside: particlesFor(IONS[kind].outsideMM),
@@ -102,7 +104,9 @@ describe('how much calcium, and where', () => {
 
 describe('release', () => {
   it('happens within a couple of milliseconds and then stops', () => {
-    const times = run.vesicles.map((v) => v.fusedAtMs).filter((t): t is number => t !== null)
+    const times = run.vesicles
+      .map((v) => v.fusedAtMs)
+      .filter((t): t is number => t !== null)
     expect(times.length).toBeGreaterThan(0)
     for (const t of times) {
       expect(t).toBeGreaterThan(run.vmPeakMs)
@@ -134,7 +138,9 @@ describe('release', () => {
     // The classic experiment, and it works here because the OUTSIDE pile is a real
     // drawn count. Dropping it to a quarter should cut release far more than
     // fourfold, which is the whole point of the exponent.
-    const quarter = counts({ ca: { outside: particlesFor(0.5), inside: particlesFor(0.0001) } })
+    const quarter = counts({
+      ca: { outside: particlesFor(0.5), inside: particlesFor(0.0001) },
+    })
     const weak = synapseRun(quarter, true)
     const strong = run.vesicles.filter((v) => v.fusedAtMs !== null).length
     const few = weak.vesicles.filter((v) => v.fusedAtMs !== null).length
@@ -164,7 +170,9 @@ describe('what it says about itself', () => {
   })
 
   it('has something true to say even when nothing was released', () => {
-    const flat = counts({ ca: { outside: particlesFor(0.02), inside: particlesFor(0.0001) } })
+    const flat = counts({
+      ca: { outside: particlesFor(0.02), inside: particlesFor(0.0001) },
+    })
     const quiet = synapseRun(flat, true)
     const paras = synapseFacts(quiet, flat)
     expect(paras.length).toBeGreaterThan(0)
@@ -176,8 +184,40 @@ describe('the Nernst voltage', () => {
   it('halves RT/F because calcium carries two charges', () => {
     // Getting this wrong would overstate calcium's gradient by a factor of two,
     // and nothing else on the page would look different.
-    const doubled = counts({ ca: { outside: particlesFor(4), inside: particlesFor(0.0001) } })
+    const doubled = counts({
+      ca: { outside: particlesFor(4), inside: particlesFor(0.0001) },
+    })
     const base = eCaMv(real)
     expect(eCaMv(doubled) - base).toBeCloseTo((26.7 / 2) * Math.log(2), 1)
+  })
+})
+
+describe('the app says WHICH transmitter this is (2026-09-04)', () => {
+  // User: "what makes us think that neurotransmitter, displayed in 'the
+  // synapse' demo is glutamate?" The answer was: every number in the model —
+  // AMPA-type receptor rates, a 0 mV reversal, glutamate's own diffusion
+  // coefficient, 4,000 molecules a vesicle, a synapse landing on a spine. And
+  // then the app never said so: seventeen mentions of "transmitter", none of
+  // glutamate. An identity the app RELIES on and does not state is an
+  // assumption the reader is left to make on its behalf.
+  const said = synapseFacts(run, real)
+    .map((p) => p.text)
+    .join(' ')
+
+  it('A1: the synapse view names the transmitter', () => {
+    expect(said.toLowerCase()).toContain('glutamate')
+  })
+
+  it('A1: and gives the evidence, so it is shown rather than asserted', () => {
+    // The three tells that are visible IN the picture — this is what makes it
+    // a reading of the drawing rather than a label stuck on it.
+    expect(said.toLowerCase()).toMatch(/excit/)
+    expect(said.toLowerCase()).toContain('spine')
+    expect(said).toContain('AMPA')
+  })
+
+  it('A1: and admits that other synapses are not like this one', () => {
+    // Without this, naming it teaches that every synapse is glutamatergic.
+    expect(said.toLowerCase()).toMatch(/other (synapses|chemicals)/)
   })
 })

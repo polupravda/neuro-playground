@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { usePatchStore } from '../state/patchStore'
 import { SideDrawer } from './SideDrawer'
+import { LabelsSwitch } from './LabelsSwitch'
+import { useLabelsStore } from '../state/labelsStore'
 import { Section } from './InfoPanel'
 import { speakAloud } from './SpeakButton'
 import { spokenTermAt } from '../stage/spokenLabels'
@@ -27,6 +29,12 @@ const FRAMING = [
 ]
 
 export function PatchBench() {
+  // ⚠ The app's one 🏷 switch (2026-09-04). Held in a ref too: the drawing
+  // runs in an animation loop, not on React's clock.
+  const labelsOn = useLabelsStore((st) => st.labelsOn)
+  const labelsRef = useRef(labelsOn)
+  labelsRef.current = labelsOn
+
   const open = usePatchStore((s) => s.open)
   const closeBench = usePatchStore((s) => s.closeBench)
   const vm = usePatchStore((s) => s.vm)
@@ -52,7 +60,7 @@ export function PatchBench() {
       // The record itself does not scroll — it is a WINDOW, the way a real
       // one is printed. Only the gate in the rig moves, so a child can match
       // a door opening to a step on the paper.
-      drawPatch(ctx, vmRef.current, (ms / 4) % PATCH_WINDOW_MS)
+      drawPatch(ctx, vmRef.current, (ms / 4) % PATCH_WINDOW_MS, labelsRef.current)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
@@ -82,14 +90,23 @@ export function PatchBench() {
                     : 'border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700'
                 }`}
               >
-                {step === REST_MV ? '😴' : step > 20 ? '🔥' : '👀'}{' '}
-                {step > 0 ? '+' : ''}
+                {step === REST_MV ? '😴' : step > 20 ? '🔥' : '👀'} {step > 0 ? '+' : ''}
                 {step} mV
               </button>
             ))}
+            {/* ⚠ IN THE ROW, PUSHED RIGHT (user, 2026-09-04): a row of
+                controls already exists here, so the switch joins it at the
+                right end rather than floating over the picture. */}
+            <LabelsSwitch
+              on={labelsOn}
+              onToggle={() => useLabelsStore.getState().toggleLabels()}
+              titleOn="Hide the names on the picture"
+              titleOff="Show the names on the picture"
+              className="ml-auto"
+            />
           </div>
 
-          <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+          <div className="relative min-w-0 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
             <canvas
               ref={canvasRef}
               onPointerDown={(e) => {
@@ -101,7 +118,12 @@ export function PatchBench() {
                 )
                 if (term) speakAloud(term)
               }}
-              style={{ width: PC_W, height: PC_H, touchAction: 'none', cursor: 'pointer' }}
+              style={{
+                width: PC_W,
+                height: PC_H,
+                touchAction: 'none',
+                cursor: 'pointer',
+              }}
               aria-label="A patch pipette sealed onto a membrane, and the current through one channel"
             />
           </div>

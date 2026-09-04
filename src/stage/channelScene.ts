@@ -23,7 +23,7 @@ import {
 } from './particleStyle'
 import { ELEMENT_COLOR } from './lipidLabScene'
 import { drawTraveller, TRAVELLER_MAG } from './permeaScene'
-import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
+import { spoken, drawSpoken, drawConnector, type SpokenLabel } from './spokenLabels'
 import { IONS } from '../core/ions'
 import {
   FILTER_NM,
@@ -136,13 +136,25 @@ export function tryPoseAt(s: TryState, ms: number): TryPose {
   const through = filterVerdict(s.kind) === 'through'
   // Leg 1: the approach, always the same for both — which is the point.
   if (t < 0.34) {
-    return { y: from + (meet - from) * (t / 0.34), emerge: 0, coat: 1, leaving: false, done: false }
+    return {
+      y: from + (meet - from) * (t / 0.34),
+      emerge: 0,
+      coat: 1,
+      leaving: false,
+      done: false,
+    }
   }
   // Leg 2: at the filter, where the two stories part.
   if (t < 0.62) {
     const u = (t - 0.34) / 0.28
     return through
-      ? { y: meet - (meet - FILTER_Y) * u, emerge: 0, coat: 1 - u, leaving: false, done: false }
+      ? {
+          y: meet - (meet - FILTER_Y) * u,
+          emerge: 0,
+          coat: 1 - u,
+          leaving: false,
+          done: false,
+        }
       : // Sodium presses in, holds its coat, and is pushed back out.
         {
           y: meet - FILTER_HALF * 0.8 * Math.sin(Math.PI * u),
@@ -155,10 +167,15 @@ export function tryPoseAt(s: TryState, ms: number): TryPose {
   // Leg 3: away — through and out, or back the way it came.
   const u = (t - 0.62) / 0.38
   return through
-    ? { y: FILTER_Y + (out - FILTER_Y) * u, emerge: u, coat: 0, leaving: false, done: t >= 1 }
+    ? {
+        y: FILTER_Y + (out - FILTER_Y) * u,
+        emerge: u,
+        coat: 0,
+        leaving: false,
+        done: t >= 1,
+      }
     : { y: meet + (from - meet) * u, emerge: 0, coat: 1, leaving: true, done: t >= 1 }
 }
-
 
 /** A name out on the canvas's own background, with a line reaching in to the
  *  thing it names. Labels used to sit against the structure and collided with
@@ -215,7 +232,12 @@ export function sideLabelPlan(): SideLabel[] {
     },
     {
       // …and this one low, so the two right-hand names cannot collide.
-      label: spoken('pore', SIDE_W - MARGIN - RIGHT_ANCHOR_PAD, (WALL_Y + HALF_MEM) * CH_SCALE + 34, 'right'),
+      label: spoken(
+        'pore',
+        SIDE_W - MARGIN - RIGHT_ANCHOR_PAD,
+        (WALL_Y + HALF_MEM) * CH_SCALE + 34,
+        'right',
+      ),
       target: { x: CH_X + MOUTH_HALF * 0.5, y: (FILTER_Y + GATE_Y) / 2 },
     },
     {
@@ -338,9 +360,17 @@ export function sideLabels(): SpokenLabel[] {
 const LABEL = '#cbd5e1'
 const RING = '#f59e0b'
 /** The protein, in the app's own protein bronze, cooled toward potassium. */
-export const HELIX_LIGHT = mix(mix(CHANNEL_MID, GLOSSY_COLORS.k.mid, 0.18), '#ffffff', 0.32)
+export const HELIX_LIGHT = mix(
+  mix(CHANNEL_MID, GLOSSY_COLORS.k.mid, 0.18),
+  '#ffffff',
+  0.32,
+)
 export const HELIX_MID = mix(CHANNEL_MID, GLOSSY_COLORS.k.mid, 0.18)
-export const HELIX_DARK = mix(mix(CHANNEL_DARK, GLOSSY_COLORS.k.dark, 0.15), '#ffffff', 0.2)
+export const HELIX_DARK = mix(
+  mix(CHANNEL_DARK, GLOSSY_COLORS.k.dark, 0.15),
+  '#ffffff',
+  0.2,
+)
 const OXY = ELEMENT_COLOR.O
 /** The protein's own body — the mass the helices are packed into. Drawn
  *  behind them in both views so there are no see-through gaps, and faded at
@@ -487,7 +517,12 @@ function filterAtoms(ctx: CanvasRenderingContext2D, grip = 0): void {
   }
 }
 
-export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, ms: number): void {
+export function drawSide(
+  ctx: CanvasRenderingContext2D,
+  tried: TryState | null,
+  ms: number,
+  labelsOn = true,
+): void {
   ctx.save()
   ctx.scale(CH_SCALE, CH_SCALE)
   ctx.fillStyle = 'rgba(100, 116, 139, 0.05)'
@@ -536,7 +571,10 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
     // So, from the outside in: S4 the sensor (standing for the whole
     // four-helix sensing domain, declared in the honesty note), S5 the outer
     // helix, the P helix tucked in behind, and S6 lining the way through.
-    const sensorTop = { x: CH_X + sign * (HALF_W + 0.15 * PX_PER_NM), y: WALL_Y - HALF_MEM - 0.4 * PX_PER_NM }
+    const sensorTop = {
+      x: CH_X + sign * (HALF_W + 0.15 * PX_PER_NM),
+      y: WALL_Y - HALF_MEM - 0.4 * PX_PER_NM,
+    }
     const sensorBot = { x: CH_X + sign * (HALF_W + 0.5 * PX_PER_NM), y: botY }
     const outerTop = { x: CH_X + sign * (HALF_W - 1.0 * PX_PER_NM), y: topY }
     const outerBot = { x: CH_X + sign * (HALF_W - 0.55 * PX_PER_NM), y: botY }
@@ -544,7 +582,10 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
     const innerBot = { x: CH_X + sign * (MOUTH_HALF * 1.9), y: botY }
     // The pore helix: short, slanted, starting near the outer surface and
     // ending under the filter with its tip aimed at the axis.
-    const pTop = { x: CH_X + sign * (FILTER_HALF + 3.9 * PX_PER_NM * 0.5), y: topY + 0.25 * PX_PER_NM }
+    const pTop = {
+      x: CH_X + sign * (FILTER_HALF + 3.9 * PX_PER_NM * 0.5),
+      y: topY + 0.25 * PX_PER_NM,
+    }
     const pBot = { x: CH_X + sign * (FILTER_HALF + 1.1), y: FILTER_Y + HALF_MEM * 0.62 }
 
     // The chain first, so every helix sits in front of the string it is part
@@ -688,7 +729,8 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
         const fall = shed * shed * HALF_MEM * 2.6
         const x = CH_X + Math.cos(a) * spread
         const y = FILTER_Y + FILTER_HALF * 2.4 + Math.abs(Math.sin(a)) * 1.5 + fall
-        ctx.globalAlpha = Math.max(0, 0.9 - shed * 0.55) * Math.max(0, 1 - fall / (HALF_MEM * 3))
+        ctx.globalAlpha =
+          Math.max(0, 0.9 - shed * 0.55) * Math.max(0, 1 - fall / (HALF_MEM * 3))
         drawTraveller(ctx, 'water', x, y, TRUE_SIZE)
       }
       ctx.restore()
@@ -703,7 +745,9 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
   for (const sign of [-1, 1] as const) {
     const x = (CH_X + sign * (HALF_W + 0.7 * PX_PER_NM)) * CH_SCALE
     for (let i = 0; i < SENSOR_CHARGES; i++) {
-      const y = (WALL_Y - HALF_MEM * 0.62 + (i * HALF_MEM * 1.24) / (SENSOR_CHARGES - 1)) * CH_SCALE
+      const y =
+        (WALL_Y - HALF_MEM * 0.62 + (i * HALF_MEM * 1.24) / (SENSOR_CHARGES - 1)) *
+        CH_SCALE
       drawChargeDot(ctx, x, y, badgeR * 0.62, 1)
     }
   }
@@ -793,15 +837,15 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
   ctx.textAlign = 'right'
   ctx.fillText(`×${CH_MAG.toLocaleString('en-US')}`, SIDE_W - 8, 18)
 
-  for (const { label, target } of sideLabelPlan()) {
-    ctx.strokeStyle = 'rgba(100, 116, 139, 0.75)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    const from = label.align === 'left' ? label.x + label.w - 6 : label.x + 6
-    ctx.moveTo(from, label.ay - 4)
-    ctx.lineTo(target.x * CH_SCALE, target.y * CH_SCALE)
-    ctx.stroke()
-    drawSpoken(ctx, label)
+  // ⚠ ONE LEADER IDIOM (user, 2026-09-04, unifying on the vesicle view): this
+  // one had its own ink and left the label's INK EDGE rather than its box
+  // centre, so the same gesture looked like two on two canvases. Gated by the
+  // app's one 🏷 switch; readings above it are never hidden.
+  if (labelsOn) {
+    for (const { label, target } of sideLabelPlan()) {
+      drawConnector(ctx, label, { x: target.x * CH_SCALE, y: target.y * CH_SCALE })
+      drawSpoken(ctx, label)
+    }
   }
 }
 
@@ -816,6 +860,7 @@ export function drawTop(
   ctx: CanvasRenderingContext2D,
   tried: TryState | null = null,
   ms = 0,
+  labelsOn = true,
 ): void {
   const cx = topW / 2
   const cy = topH / 2
@@ -955,7 +1000,13 @@ export function drawTop(
   ctx.stroke()
   for (let i = 0; i < SUBUNITS * 2; i++) {
     const a = (Math.PI * 2 * i) / (SUBUNITS * 2)
-    glossySphere(ctx, cx + Math.cos(a) * inner * 1.9, cy + Math.sin(a) * inner * 1.9, 0.55, OXY)
+    glossySphere(
+      ctx,
+      cx + Math.cos(a) * inner * 1.9,
+      cy + Math.sin(a) * inner * 1.9,
+      0.55,
+      OXY,
+    )
   }
 
   // The charges go on BEFORE the ion, and out of its path: it used to arrive
@@ -1022,5 +1073,5 @@ export function drawTop(
   ctx.font = '11px system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.fillText('looking down at the membrane', TOP_W / 2, 22)
-  for (const l of topLabels()) drawSpoken(ctx, l)
+  if (labelsOn) for (const l of topLabels()) drawSpoken(ctx, l)
 }

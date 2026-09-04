@@ -8,6 +8,9 @@ import {
   CLEFT_PX,
   LUMEN,
   OUTSIDE,
+  astrocyteFinger,
+  astrocyteHolds,
+  synapseCallouts,
   SCALE_NOTES,
   activeZone,
   CLOCK_LEGS,
@@ -90,7 +93,8 @@ import { CLEFT_NM, SPINE_TAU_MS, cleftRun, sampleCleft } from '../core/cleft'
 import { ION_KINDS, IONS, particlesFor } from '../core/ions'
 import type { IonCounts } from '../state/ionStore'
 import { spokenTermAt } from './spokenLabels'
-import { ZOOM_TARGETS } from './layout'
+import { boutonFloorAt } from './boutonShape'
+import { OUTGOING, ZOOM_TARGETS } from './layout'
 
 /** The app's own declared concentrations — the same helper the model's tests
  *  use, so the view is exercised against the run a child actually sees. */
@@ -106,7 +110,7 @@ const run = synapseRun(REAL, true)
 const cleft = cleftRun(run)
 
 describe('S12 — the synapse, leg 1', () => {
-  it('A3: traces the user\'s own bouton, whole, with its stalk at the top edge', () => {
+  it("A3: traces the user's own bouton, whole, with its stalk at the top edge", () => {
     // ⚠ "Use presynaptic-bouton.svg as base" and "the handover wins — draw the
     // whole bouton" (user, 2026-08-31). The reference outline is 39.37 × 50.32
     // in its own units; if that changes, the drawing is not the drawing given.
@@ -130,7 +134,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(place(fit, BOUTON_BOX.x + BOUTON_BOX.w, 0).x).toBeLessThan(SYN_W)
   })
 
-  it('A3: puts a SPINE under the terminal, apposed to the bouton\'s own wall', () => {
+  it("A3: puts a SPINE under the terminal, apposed to the bouton's own wall", () => {
     // ⚠ The one alteration, and it is a science correction. The reference's
     // lower shape dips AWAY beneath the bouton. Glutamate synapses land on
     // dendritic spines (Gray's type I), and the app's own plan depends on it —
@@ -200,9 +204,7 @@ describe('S12 — the synapse, leg 1', () => {
   it('A3: draws at every moment of the run without a NaN or a bad colour', () => {
     for (let i = 0; i <= 24; i++) {
       const c = strictCanvas()
-      expect(() =>
-        drawSynapse(c.ctx, { run, cleft, u: i / 24 }),
-      ).not.toThrow()
+      expect(() => drawSynapse(c.ctx, { run, cleft, u: i / 24 })).not.toThrow()
       expect(c.calls.length).toBeGreaterThan(200)
     }
     const rest = strictCanvas()
@@ -269,14 +271,22 @@ describe('S12 — the synapse, leg 1', () => {
     expect(SYNAPSE_SCREEN_MS / SYNAPSE_MS).toBeLessThan(400)
   })
 
-  it('A3: is a PLACE, reached by the camera, and turns on the way in', () => {
-    // This synapse lies along the x axis on the cell while the drawing puts the
-    // cleft across the middle — so the camera performs the rotation rather than
-    // the picture pretending the anatomy is something it is not.
+  it('A3: is a PLACE the camera reaches WITHOUT turning', () => {
+    // ⚠ It used to turn a quarter: the synapse lay along the scene's x axis
+    // while the drawing puts the cleft across the middle, and the camera made
+    // up the difference. The scene now STANDS that way — terminal above,
+    // target under it (user, 2026-09-04) — so there is nothing left to
+    // correct, and the two pictures agree BEFORE the flight rather than
+    // because of it. A turn here now would rotate the world away from the
+    // view it lands on.
     const t = ZOOM_TARGETS.find((z) => z.id === 'outgoing-synapse')!
     expect(t.presents).toBe('synapse')
-    expect(t.turn).toBeCloseTo(Math.PI / 2, 6)
+    expect(t.turn ?? 0).toBeCloseTo(0, 6)
     expect(t.frame).toBeUndefined()
+    // And the scene's own synapse really does stand vertically: the target is
+    // UNDER the bouton, not beside it.
+    expect(Math.abs(OUTGOING.tip.x - OUTGOING.bouton.x)).toBeLessThan(1)
+    expect(OUTGOING.tip.y).toBeGreaterThan(OUTGOING.bouton.y)
   })
 
   // ───────────────────────────────────────────── the redraw of 2026-08-31
@@ -303,7 +313,12 @@ describe('S12 — the synapse, leg 1', () => {
   it('A1+A2: everything still fits the frame, at every plausible size', () => {
     // The scale is SOLVED from a budget, so this is the claim that the budget
     // is the real one: nothing may run off the bottom.
-    for (const [w, h] of [[1060, 620], [1060, 660], [1280, 800], [1440, 1080]] as const) {
+    for (const [w, h] of [
+      [1060, 620],
+      [1060, 660],
+      [1280, 800],
+      [1440, 1080],
+    ] as const) {
       const g = synapseGeometry(w, h)
       expect(g.shaftTop, `${w}×${h}`).toBeLessThan(h)
       expect(g.foot.y, `${w}×${h}`).toBeGreaterThan(NECK_PX)
@@ -361,7 +376,7 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
-  it('A4: a vesicle\'s lumen IS the extracellular ink, not a match for it', () => {
+  it("A4: a vesicle's lumen IS the extracellular ink, not a match for it", () => {
     // ⚠ This reverses a ruling of 2026-08-27 ("a vesicle is a bilayer ring")
     // at the user's request, and the reason it is not a step backwards is the
     // topology: a lumen is outside the cell, folded in. So the guard is
@@ -422,7 +437,6 @@ describe('S12 — the synapse, leg 1', () => {
     expect(SCALE_NOTES.join(' ')).toMatch(/40 nm|40 nanometre/i)
   })
 
-
   // ─────────────────────────────────────── the corrections of 2026-09-01
   // "The animation looks broken." Five points, each measured before it was
   // fixed and pinned here afterwards.
@@ -437,10 +451,14 @@ describe('S12 — the synapse, leg 1', () => {
     const g = synapseGeometry()
     const r = vesicleR(g)
     for (const d of activeZone(g).docked) {
-      expect(d.y + r, `docked at ${d.x.toFixed(0)}`).toBeLessThanOrEqual(wallAt(g, d.x) + 1e-6)
+      expect(d.y + r, `docked at ${d.x.toFixed(0)}`).toBeLessThanOrEqual(
+        wallAt(g, d.x) + 1e-6,
+      )
     }
     for (const p of reservePool(g)) {
-      expect(p.y + r, `pool at ${p.x.toFixed(0)}`).toBeLessThanOrEqual(wallAt(g, p.x) + 1e-6)
+      expect(p.y + r, `pool at ${p.x.toFixed(0)}`).toBeLessThanOrEqual(
+        wallAt(g, p.x) + 1e-6,
+      )
     }
     // And the calcium doors are IN the wall, not near it.
     for (const d of activeZone(g).doors) expect(d.y).toBeCloseTo(wallAt(g, d.x), 6)
@@ -501,7 +519,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(SYNAPSE_SCREEN_MS).toBeGreaterThan(12000)
   })
 
-  it('B4: a vesicle carries visible cargo, in the transmitter\'s own ink', () => {
+  it("B4: a vesicle carries visible cargo, in the transmitter's own ink", () => {
     // ⚠ "Neurotransmitters are not visible inside the vesicles" (user). A
     // vesicle drawn empty is a bag of nothing, and what it carries is the whole
     // point of the object.
@@ -522,7 +540,9 @@ describe('S12 — the synapse, leg 1', () => {
     const c = strictCanvas()
     drawSynapse(c.ctx, { run, cleft, u: null })
     const dots = c.styles.filter((st) => st === TRANSMITTER_INK.dark).length
-    expect(dots).toBeGreaterThanOrEqual(reservePool(g).length + activeZone(g).docked.length)
+    expect(dots).toBeGreaterThanOrEqual(
+      reservePool(g).length + activeZone(g).docked.length,
+    )
   })
 
   // ─────────────────────────────── the omega rework of 2026-09-01 (round 2)
@@ -532,7 +552,7 @@ describe('S12 — the synapse, leg 1', () => {
   // A1 the merge follows the bouton's own curve (true omega, flattening away),
   // A2 the opening precedes the cloud it explains.
 
-  it('A1: the omega\'s feet stand ON the bouton\'s own curve, at different heights where it slopes', () => {
+  it("A1: the omega's feet stand ON the bouton's own curve, at different heights where it slopes", () => {
     // Pure geometry, asked at the OUTERMOST slot — where the wall slopes and a
     // horizontal cut was most wrong.
     const g = synapseGeometry()
@@ -554,7 +574,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(Math.abs(p!.yL - p!.yR)).toBeGreaterThan(1)
   })
 
-  it('A1: the tear runs exactly between the omega\'s feet — torn wall and arc cannot disagree', () => {
+  it("A1: the tear runs exactly between the omega's feet — torn wall and arc cannot disagree", () => {
     const g = synapseGeometry()
     const first = run.vesicles
       .map((v) => v.fusedAtMs)
@@ -562,7 +582,9 @@ describe('S12 — the synapse, leg 1', () => {
       .sort((a, b) => a - b)[0]
     const ms = first + PORE_OPEN_MS + 1
     const d = activeZone(g).docked.find(
-      (d) => run.vesicles[d.index].fusedAtMs !== null && run.vesicles[d.index].fusedAtMs! <= first,
+      (d) =>
+        run.vesicles[d.index].fusedAtMs !== null &&
+        run.vesicles[d.index].fusedAtMs! <= first,
     )!
     const shape = fusedShape(g, d.x, ms - run.vesicles[d.index].fusedAtMs!, d.r)!
     const p = pocketAt(g, d.x, shape.cy, shape.r)!
@@ -643,7 +665,9 @@ describe('S12 — the synapse, leg 1', () => {
     let together = false
     for (let i = 0; i <= 4000 && !together; i++) {
       const msAt = synapseClock(i / 4000) * SYNAPSE_MS
-      const gapCount = transmitterCast(g, run, cleft, msAt).filter((d) => d.where === 'gap').length
+      const gapCount = transmitterCast(g, run, cleft, msAt).filter(
+        (d) => d.where === 'gap',
+      ).length
       if (gapCount < 5) continue
       together = tearsAt(g, run, msAt).some((t) => t.half > vesicleR(g) * 0.7)
     }
@@ -688,7 +712,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(sorted[sorted.length - 1] - sorted[0]).toBe(sorted.length - 1)
   })
 
-  it('C2: a vesicle wears the wall\'s own band — leaflet ink WITH the oily core', () => {
+  it("C2: a vesicle wears the wall's own band — leaflet ink WITH the oily core", () => {
     // "Make vesicles outline look the same as membrane": same material, same
     // two strokes. At rest every bubble (9 pool + 5 docked) lays a core stroke
     // of its own on top of the three membrane bands'.
@@ -712,7 +736,11 @@ describe('S12 — the synapse, leg 1', () => {
     const c = strictCanvas()
     transmitterDot(c.ctx, 50, 50, 3)
     expect(c.calls.filter((k) => k === 'createRadialGradient').length).toBe(1)
-    expect(c.styles).toEqual([TRANSMITTER_INK.light, TRANSMITTER_INK.mid, TRANSMITTER_INK.dark])
+    expect(c.styles).toEqual([
+      TRANSMITTER_INK.light,
+      TRANSMITTER_INK.mid,
+      TRANSMITTER_INK.dark,
+    ])
   })
 
   it('C5: the spike-arrival membrane repaint is drawn UNDER the doors, never over them', () => {
@@ -778,20 +806,23 @@ describe('S12 — the synapse, leg 1', () => {
     expect(sampleCleft(cleft, 'mM', 1)).toBeLessThan(0.002)
   })
 
-  it('H2+J: cargo leaves ONLY through its own vesicle\'s mouth', () => {
+  it("H2+J: cargo leaves ONLY through its own vesicle's mouth", () => {
     const g = synapseGeometry()
     const docked = activeZone(g).docked
     // Precompute frames across the release window, then follow each emitted
     // ball to its FIRST moment outside the bubble: it must be at its own
     // vesicle's mouth, not anywhere else on the wall.
     const frames: { x: number; y: number; where: string }[][] = []
-    for (let s = 0; s <= 600; s++) frames.push(transmitterCast(g, run, cleft, 2 + (s / 600) * 3))
+    for (let s = 0; s <= 600; s++)
+      frames.push(transmitterCast(g, run, cleft, 2 + (s / 600) * 3))
     for (let i = 0; i < docked.length * 7; i++) {
       const v = Math.floor(i / 7)
       if (run.vesicles[docked[v].index].fusedAtMs === null) continue
       const firstOut = frames.map((f) => f[i]).find((b) => b.where !== 'vesicle')
       expect(firstOut, `ball ${i} emerges`).toBeDefined()
-      expect(Math.abs(firstOut!.x - docked[v].x), `ball ${i}`).toBeLessThan(vesicleR(g) * 1.6)
+      expect(Math.abs(firstOut!.x - docked[v].x), `ball ${i}`).toBeLessThan(
+        vesicleR(g) * 1.6,
+      )
     }
   })
 
@@ -833,7 +864,9 @@ describe('S12 — the synapse, leg 1', () => {
     for (const v of run.vesicles) {
       if (v.fusedAtMs !== null) expect(midMs).toBeGreaterThanOrEqual(v.fusedAtMs)
     }
-    expect(sampleCleft(cleft, 'mM', midMs / run.windowMs)).toBeGreaterThan(cleft.peakMM * 0.3)
+    expect(sampleCleft(cleft, 'mM', midMs / run.windowMs)).toBeGreaterThan(
+      cleft.peakMM * 0.3,
+    )
     // And the sink itself travels well over half a radius.
     const g = synapseGeometry()
     const d = activeZone(g).docked[mid]
@@ -875,7 +908,7 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
-  it('D4: the head\'s shoulders drop monotonically and congruently — no humps, no lopsided slab', () => {
+  it("D4: the head's shoulders drop monotonically and congruently — no humps, no lopsided slab", () => {
     // ⚠ THE FAULT: beyond the zone the face kept tracking the bouton's wall,
     // which curves steeply UP there — so each shoulder rose into its own hump
     // before falling. Beyond the zone the membranes are not apposed, so the
@@ -909,7 +942,7 @@ describe('S12 — the synapse, leg 1', () => {
   // ions entering, the spine depolarizing and passing it on." Built on the
   // app's own charge ramp, with the two science corrections in E1 and E3.
 
-  it('E1: the bouton\'s aura really goes RED at the spike; the spine\'s NEVER does', () => {
+  it("E1: the bouton's aura really goes RED at the spike; the spine's NEVER does", () => {
     // ⚠ The pushback, pinned: a spike overshoots past zero — red on the charge
     // ramp — while an EPSP is graded and stays negative for ever. If the
     // spine's aura ever reads positive, something is drawing a spike where
@@ -968,44 +1001,146 @@ describe('S12 — the synapse, leg 1', () => {
     // and a receptor that never opened keeps its pair waiting, which is the
     // honest picture of a shut door.
     const end = sodiumCast(g, run, cleft, SYNAPSE_MS)
-    const opened = sites.filter((_, r) => cleft.peakOpen > (r + 0.5) / sites.length).length
+    const opened = sites.filter(
+      (_, r) => cleft.peakOpen > (r + 0.5) / sites.length,
+    ).length
     expect(opened).toBeGreaterThan(0)
     expect(opened).toBeLessThan(sites.length)
     expect(end.filter((d) => d.where === 'spine').length).toBe(opened * 2)
-    expect(end.filter((d) => d.where === 'cleft').length).toBe((sites.length - opened) * 2)
+    expect(end.filter((d) => d.where === 'cleft').length).toBe(
+      (sites.length - opened) * 2,
+    )
     for (const ion of end.filter((d) => d.where === 'spine')) {
       expect(ion.y).toBeGreaterThan(faceAt(g, ion.x))
     }
   })
 
-  it('E3+J: clearance is DEPARTURE — balls leave by the ends and rest in the bath, none fades', () => {
+  it('21b-1a: the fingers reach for the CLEFT, clear of both neurons — not a second postsynaptic lobe', () => {
+    // The complaint (2026-09-04): the fingers sat level with the spine's
+    // shoulders and read as a second postsynaptic specialization. They now
+    // hover at the gap's own height, and no membrane point of either neuron
+    // lies inside them.
+    const g = synapseGeometry()
+    for (const side of [1, -1] as const) {
+      const f = astrocyteFinger(g, side)
+      // At the cleft's height, beyond the zone's mouth.
+      const edgeX = g.foot.x + side * g.activeHalf
+      expect(Math.abs(f.tip.y - (wallAt(g, edgeX) + CLEFT_PX * 0.5))).toBeLessThan(1)
+      expect(Math.abs(f.tip.x - g.foot.x)).toBeGreaterThan(g.activeHalf + f.rTip + 20)
+      // The spine's face, sampled across its whole width, stays outside.
+      for (let i = 0; i <= 60; i++) {
+        const x = g.head.cx - g.head.rx + (i / 60) * 2 * g.head.rx
+        expect(astrocyteHolds(f, { x, y: faceAt(g, x) }), `face at ${x.toFixed(0)}`).toBe(
+          false,
+        )
+      }
+      // And the bouton's own floor, wherever it exists.
+      for (let i = 0; i <= 80; i++) {
+        const x = g.foot.x - 450 + (i / 80) * 900
+        const floor = boutonFloorAt(g.fit, x)
+        if (floor === null) continue
+        expect(astrocyteHolds(f, { x, y: floor }), `wall at ${x.toFixed(0)}`).toBe(false)
+      }
+    }
+  })
+
+  it('21b-1b: every scene name is tied to its part, from measured open water', () => {
+    const g = synapseGeometry()
+    const cos = synapseCallouts(g)
+    expect(cos.map((c) => c.label.term).sort()).toEqual(
+      ['astrocyte', 'dendritic spine', 'synaptic cleft', 'vesicle'].sort(),
+    )
+    const fins = [astrocyteFinger(g, 1), astrocyteFinger(g, -1)]
+    for (const co of cos) {
+      // A connector must LEAVE its box — a zero-length line points at nothing.
+      const cxl = co.label.x + co.label.w / 2
+      const cyl = co.label.y + co.label.h / 2
+      expect(Math.hypot(co.to.x - cxl, co.to.y - cyl), co.label.term).toBeGreaterThan(20)
+      // The box sits in the frame and in open water: outside both fingers,
+      // off the bouton's body, off the spine.
+      const corners = [
+        { x: co.label.x, y: co.label.y },
+        { x: co.label.x + co.label.w, y: co.label.y },
+        { x: co.label.x, y: co.label.y + co.label.h },
+        { x: co.label.x + co.label.w, y: co.label.y + co.label.h },
+      ]
+      for (const p of corners) {
+        expect(p.x, co.label.term).toBeGreaterThanOrEqual(0)
+        expect(p.x, co.label.term).toBeLessThan(SYN_W)
+        expect(p.y, co.label.term).toBeGreaterThan(0)
+        expect(p.y, co.label.term).toBeLessThan(SYN_H)
+        for (const f of fins) {
+          expect(astrocyteHolds(f, p), `${co.label.term} on a finger`).toBe(false)
+        }
+        const floor = boutonFloorAt(g.fit, p.x)
+        if (floor !== null) {
+          expect(p.y, `${co.label.term} on the bouton`).toBeGreaterThan(floor - 2)
+        }
+        // ⚠ And clear of the bottom-left SHELF (user, 2026-09-04: "bottom
+        // left label is covered by buttons container"): the D06/D17 button
+        // plate owns that corner of the screen — a generous reserve covering
+        // the buttons laid side by side or stacked.
+        expect(p.x < 560 && p.y > SYN_H - 130, `${co.label.term} under the shelf`).toBe(
+          false,
+        )
+      }
+      // And no two labels overlap: each centre hits its OWN box.
+      expect(
+        spokenTermAt(
+          cos.map((c) => c.label),
+          cxl,
+          cyl,
+        ),
+      ).toBe(co.label.term)
+    }
+  })
+
+  it('E3+J (21b-1): clearance is COLLECTION — the escapees are taken up, most by the astrocyte', () => {
+    // Supersedes "rest in the bath" (2026-09-04): an escaping ball's journey
+    // now ENDS somewhere — inside a glial finger, in through a transporter
+    // tick, or (the declared minor route) inside the spine.
     const g = synapseGeometry()
     const first = cleft.firstFusionMs!
     expect(
-      transmitterCast(g, run, cleft, first - 0.1).filter((d) => d.where === 'bath').length,
+      transmitterCast(g, run, cleft, first - 0.1).filter(
+        (d) => d.where === 'glia' || d.where === 'spine' || d.where === 'bath',
+      ).length,
     ).toBe(0)
     const end = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01)
-    const bath = end.filter((d) => d.where === 'bath')
-    expect(bath.length).toBeGreaterThan(5)
-    for (const b of bath) {
-      expect(Math.abs(b.x - g.foot.x)).toBeGreaterThan(g.activeHalf)
+    const glia = end.filter((d) => d.where === 'glia')
+    const spineUp = end.filter((d) => d.where === 'spine')
+    expect(glia.length + spineUp.length).toBeGreaterThan(5)
+    // Most by the astrocyte — the declared split for glutamate (measured
+    // with these seeds: 10 glial to 1 neuronal) — and the minor route is
+    // really shown, not just declared.
+    expect(glia.length).toBeGreaterThanOrEqual((glia.length + spineUp.length) * 0.7)
+    expect(spineUp.length).toBeGreaterThanOrEqual(1)
+    // And every collected ball really is INSIDE a finger — held by the
+    // capsule's own decision, on one side or the other.
+    for (const b of glia) {
+      expect(
+        ([1, -1] as const).some((s) => astrocyteHolds(astrocyteFinger(g, s), b)),
+        `ball at ${b.x.toFixed(0)},${b.y.toFixed(0)}`,
+      ).toBe(true)
     }
+    // 'bath' is a travelling phase now, not a place to end up.
+    expect(end.filter((d) => d.where === 'bath').length).toBe(0)
     // ⚠ THE BOOKS BALANCE: unfused bubbles keep their cargo, and every
-    // emitted ball is accounted for — on a seat or in the bath, never gone.
+    // emitted ball is accounted for — seated, lingering in the gap, or
+    // collected. Never gone.
     const fusedCount = run.vesicles.filter((v) => v.fusedAtMs !== null).length
     expect(end.filter((d) => d.where === 'vesicle').length).toBe(
       (activeZone(g).docked.length - fusedCount) * 7,
     )
-    // Bath + seats + the released balls lingering in the cleft = everything
-    // that ever left a bubble.
     expect(
-      bath.length +
+      glia.length +
+        spineUp.length +
         end.filter((d) => d.where === 'seat').length +
         end.filter((d) => d.where === 'gap').length,
     ).toBe(fusedCount * 7)
   })
 
-  it('E4+J: a resting zone ball sits at a vesicle\'s FEET, outside every lumen', () => {
+  it("E4+J: a resting zone ball sits at a vesicle's FEET, outside every lumen", () => {
     const g = synapseGeometry()
     const r = vesicleR(g)
     // Sampled at the run's end, RESTING only: an ion the buffers are already
@@ -1017,7 +1152,9 @@ describe('S12 — the synapse, leg 1', () => {
     for (const ion of zone) {
       const docked = activeZone(g).docked
       const nearest = docked.reduce((a, b) =>
-        Math.hypot(a.x - ion.x, a.y - ion.y) < Math.hypot(b.x - ion.x, b.y - ion.y) ? a : b,
+        Math.hypot(a.x - ion.x, a.y - ion.y) < Math.hypot(b.x - ion.x, b.y - ion.y)
+          ? a
+          : b,
       )
       // Anchored to a slot, never over a lumen, inside the wall.
       expect(Math.abs(ion.x - nearest.x)).toBeLessThan(r * 2)
@@ -1080,7 +1217,7 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
-  it('F3: the spine\'s aura starts above EVERY point of the face — no straight edge inside', () => {
+  it("F3: the spine's aura starts above EVERY point of the face — no straight edge inside", () => {
     // ⚠ The "linear cut": a gradient that began at the face's centre height
     // clamped to zero alpha above that line, so the aura stopped along a ruler
     // edge wherever the curved face rose past it. The wash must begin above
@@ -1212,7 +1349,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(CAST_ALPHA).toBeGreaterThanOrEqual(0.9)
   })
 
-  it('K1: the trigger is SEATED before the triggered — calcium at each fusing vesicle\'s feet first', () => {
+  it("K1: the trigger is SEATED before the triggered — calcium at each fusing vesicle's feet first", () => {
     // ⚠ (user, 2026-09-01: "vesicles should only start merging when calcium
     // ions are bound at the SNARE"). Fusion IS calcium seated at the vesicle,
     // so the drawn schedule must land ions at each fusing slot's feet BEFORE
@@ -1235,7 +1372,9 @@ describe('S12 — the synapse, leg 1', () => {
     const g = synapseGeometry()
     const l = activeZoneLabelAt(g)
     for (const d of activeZone(g).docked) {
-      expect(Math.hypot(l.x - d.x, l.y - d.y), `slot ${d.index}`).toBeGreaterThan(d.r + 12)
+      expect(Math.hypot(l.x - d.x, l.y - d.y), `slot ${d.index}`).toBeGreaterThan(
+        d.r + 12,
+      )
     }
     for (const p of reservePool(g)) {
       expect(Math.hypot(l.x - p.x, l.y - p.y)).toBeGreaterThan(vesicleR(g) * 1.1 + 12)
@@ -1274,7 +1413,7 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
-  it('O2: at the zone\'s depth the membrane is molecules — on the walls, never in a tear', () => {
+  it("O2: at the zone's depth the membrane is molecules — on the walls, never in a tear", () => {
     const g = synapseGeometry()
     const first = run.vesicles
       .map((v) => v.fusedAtMs)
@@ -1289,9 +1428,10 @@ describe('S12 — the synapse, leg 1', () => {
       expect(onWall || onFace, `at ${p.at.x.toFixed(0)}`).toBe(true)
       if (onWall) {
         for (const t of tears) {
-          expect(p.at.x < t.xL - 2 || p.at.x > t.xR + 2, `in tear at ${p.at.x.toFixed(0)}`).toBe(
-            true,
-          )
+          expect(
+            p.at.x < t.xL - 2 || p.at.x > t.xR + 2,
+            `in tear at ${p.at.x.toFixed(0)}`,
+          ).toBe(true)
         }
       }
     }
@@ -1384,7 +1524,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(checked).toBe(3)
   })
 
-  it('C6: the spine\'s flanks are curves, not corner lines', () => {
+  it("C6: the spine's flanks are curves, not corner lines", () => {
     // The sides used to be a straight diagonal plus a vertical hop — two
     // corners per side. Each flank is one cubic now, so drawing the spine at
     // rest lays bezier calls (fill + the band's two traced strokes).
@@ -1392,7 +1532,6 @@ describe('S12 — the synapse, leg 1', () => {
     drawSynapse(c.ctx, { run, cleft, u: null })
     expect(c.calls.filter((k) => k === 'bezierCurveTo').length).toBeGreaterThanOrEqual(6)
   })
-
 })
 
 /** Where a leg begins on the SCREEN's own scale — the sum of the shares before
@@ -1406,7 +1545,6 @@ function legStart(leg: (typeof CLOCK_LEGS)[number]): number {
   }
   return at
 }
-
 
 // ── The timeline tool (user, 2026-09-01). Point letters cite that round's
 // ACTION LIST: A2 "rewind, never teleport" needs the inverse clock to be a
@@ -1452,7 +1590,11 @@ describe('the timeline tool — S12 events on the bar', () => {
     const events = synapseEvents(run, cleft)
     const first = run.vesicles.reduce(
       (best: number | null, v) =>
-        v.fusedAtMs === null ? best : best === null ? v.fusedAtMs : Math.min(best, v.fusedAtMs),
+        v.fusedAtMs === null
+          ? best
+          : best === null
+            ? v.fusedAtMs
+            : Math.min(best, v.fusedAtMs),
       null,
     )
     expect(events.find((e) => e.id === 'fusion')?.ms).toBe(first)
@@ -1538,7 +1680,11 @@ describe('bound ions and the reflection pauses', () => {
     expect(ntHeld?.a).toBe(1)
     // Mid-fade: dimming, still there.
     const fading = bindPulses(g, run, cleft, rel - GLOW_FADE_MS / 2).find(
-      (q) => Math.hypot(q.x - ntSeatAt(g, first.r, 0, 1).x, q.y - ntSeatAt(g, first.r, 0, 1).y) < 0.5,
+      (q) =>
+        Math.hypot(
+          q.x - ntSeatAt(g, first.r, 0, 1).x,
+          q.y - ntSeatAt(g, first.r, 0, 1).y,
+        ) < 0.5,
     )
     expect(fading).toBeDefined()
     expect(fading!.a).toBeGreaterThan(0)
@@ -1571,9 +1717,21 @@ describe('bound ions and the reflection pauses', () => {
     // While the channel eases open, a cast ball sits EXACTLY on the moving
     // seat — and its mirrored partner on the other subunit.
     const midOpen = first.openAt + OPEN_EASE_MS / 2
-    const want0 = ntSeatAt(g, first.r, 0, receptorOpenFrac(g, run, cleft, first.r, midOpen))
-    const want1 = ntSeatAt(g, first.r, 1, receptorOpenFrac(g, run, cleft, first.r, midOpen))
-    const seatsNow = transmitterCast(g, run, cleft, midOpen, 0).filter((d) => d.where === 'seat')
+    const want0 = ntSeatAt(
+      g,
+      first.r,
+      0,
+      receptorOpenFrac(g, run, cleft, first.r, midOpen),
+    )
+    const want1 = ntSeatAt(
+      g,
+      first.r,
+      1,
+      receptorOpenFrac(g, run, cleft, first.r, midOpen),
+    )
+    const seatsNow = transmitterCast(g, run, cleft, midOpen, 0).filter(
+      (d) => d.where === 'seat',
+    )
     for (const want of [want0, want1]) {
       expect(
         seatsNow.some((d) => Math.hypot(d.x - want.x, d.y - want.y) < 1e-6),
@@ -1582,7 +1740,9 @@ describe('bound ions and the reflection pauses', () => {
     }
     // Still plugged while the ions flow and the pause holds…
     const rel = receptorSeatWindow(g, run, cleft, first.r).releasedAt as number
-    const late = transmitterCast(g, run, cleft, rel - 0.05, 0).filter((d) => d.where === 'seat')
+    const late = transmitterCast(g, run, cleft, rel - 0.05, 0).filter(
+      (d) => d.where === 'seat',
+    )
     expect(late.length).toBeGreaterThanOrEqual(2)
     // …and off the seat once released, while the door is STILL open.
     expect(rel).toBeLessThan(first.closeAt)
@@ -1591,7 +1751,9 @@ describe('bound ions and the reflection pauses', () => {
       (d) => d.where === 'seat' && Math.abs(d.x - receptorSites(g)[first.r].x) < 12,
     )
     expect(nearSeat.length).toBe(0)
-    expect(receptorOpenFrac(g, run, cleft, first.r, (rel + first.closeAt) / 2)).toBeGreaterThan(0.5)
+    expect(
+      receptorOpenFrac(g, run, cleft, first.r, (rel + first.closeAt) / 2),
+    ).toBeGreaterThan(0.5)
   })
 
   it('glow-off, departure and close land as readable beats, in order (A2, A4)', () => {
@@ -1609,7 +1771,9 @@ describe('bound ions and the reflection pauses', () => {
 
   it('walks the clock: ~1 s between opening and flow, and ~1 s of reflection before the nudge and the close (A3, A4)', () => {
     // Opening → the first ion moves.
-    expect(screenMsAt(first.openAt + NA_PAUSE_MS) - screenMsAt(first.openAt)).toBeGreaterThan(700)
+    expect(
+      screenMsAt(first.openAt + NA_PAUSE_MS) - screenMsAt(first.openAt),
+    ).toBeGreaterThan(700)
     // Last ion of the first chain settled → its door closes.
     const lastSettled =
       first.openAt + NA_PAUSE_MS + 0.8 + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
@@ -1628,7 +1792,9 @@ describe('bound ions and the reflection pauses', () => {
     const knobs = docked.flatMap((d) => snareMini(g, d).knobs)
     expect(knobs.length).toBe(docked.length * 2)
     for (let i = 0; i < docked.length * 2; i++) {
-      const knob = snareMini(g, docked[i % docked.length]).knobs[Math.floor(i / docked.length) % 2]
+      const knob = snareMini(g, docked[i % docked.length]).knobs[
+        Math.floor(i / docked.length) % 2
+      ]
       let seated = false
       for (let ms = 0; ms <= SYNAPSE_MS; ms += 0.2) {
         const dot = calciumCast(g, run, ms, 0)[i]
@@ -1643,7 +1809,8 @@ describe('bound ions and the reflection pauses', () => {
     for (let i = docked.length * 2; i < CA_N; i++) {
       for (let ms = 0; ms <= SYNAPSE_MS; ms += 0.2) {
         const dot = calciumCast(g, run, ms, 0)[i]
-        for (const k of knobs) expect(Math.hypot(dot.x - k.x, dot.y - k.y)).toBeGreaterThan(2)
+        for (const k of knobs)
+          expect(Math.hypot(dot.x - k.x, dot.y - k.y)).toBeGreaterThan(2)
       }
     }
   })

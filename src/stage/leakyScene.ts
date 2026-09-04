@@ -133,9 +133,6 @@ export function lanes() {
   ]
 }
 
-
-
-
 /** Where the ruler sits, and the marks on it — whole half-millimetres across
  *  the 3 mm on stage. Exported so a test can put a mark where it claims to be. */
 export const RULER_Y = LK_H - RULER_FLOOR + 8
@@ -151,7 +148,9 @@ export function rulerTicks(): { x: number; label: string }[] {
 
 /** Where a distance along the fibre falls on a lane, in px. */
 export function xOnLane(geo: { left: number; right: number }, um: number): number {
-  return geo.left + (Math.max(0, Math.min(SPAN_UM, um)) / SPAN_UM) * (geo.right - geo.left)
+  return (
+    geo.left + (Math.max(0, Math.min(SPAN_UM, um)) / SPAN_UM) * (geo.right - geo.left)
+  )
 }
 
 /** The holes, as fractions along the fibre — the SAME in both pipes, because
@@ -182,7 +181,6 @@ export function leakyLabels(): SpokenLabel[] {
   ]
 }
 
-
 // ⚠ NO LOCATOR ON THE CANVAS (user, 2026-08-31: "small neuron is placed on the
 // canvas. Should be placed in the same location as across the app").
 //
@@ -200,6 +198,7 @@ export function drawLeaky(
    *  gets, in decades, from either side. The scene underneath is given the
    *  SAME number as its own opacity, so exactly one axon is ever on screen. */
   fade = 1,
+  labelsOn = true,
 ): void {
   // ⚠ NO clearRect. Konva clears a layer before drawing its children, and a
   // shape that wipes the canvas erases whatever sibling drew before it rather
@@ -257,7 +256,6 @@ export function drawLeaky(
         ctx.restore()
       }
     }
-
 
     if (lane.wall.myelin) drawSheathBands(ctx, geo, sleeveSpans())
 
@@ -340,7 +338,14 @@ export function drawLeaky(
       const left = survivesAt(lane.wall, pulse * SPAN_UM)
       const px = xOnLane(geo, pulse * SPAN_UM)
       signalAura(ctx, geo, px, Math.pow(left, 0.5))
-      softGlow(ctx, px, geo.tubeMid, geo.tubeHalf * (1 + 1.2 * left), SIGNAL_RGB, 0.75 * left)
+      softGlow(
+        ctx,
+        px,
+        geo.tubeMid,
+        geo.tubeHalf * (1 + 1.2 * left),
+        SIGNAL_RGB,
+        0.75 * left,
+      )
       ctx.save()
       ctx.globalAlpha *= left
       ctx.fillStyle = SIGNAL_CORE
@@ -363,7 +368,11 @@ export function drawLeaky(
     ctx.fillStyle = '#fca5a5'
     ctx.font = 'bold 13px system-ui, sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText(`λ = ${Math.round(lambda)} µm`, lx, geo.tubeMid - geo.tubeHalf - OUTSIDE_H - 6)
+    ctx.fillText(
+      `λ = ${Math.round(lambda)} µm`,
+      lx,
+      geo.tubeMid - geo.tubeHalf - OUTSIDE_H - 6,
+    )
 
     ctx.fillStyle = INK
     ctx.font = '12px system-ui, sans-serif'
@@ -379,6 +388,9 @@ export function drawLeaky(
   ctx.font = '11px system-ui, sans-serif'
   drawScaleRuler(ctx, floor.left, floor.right, RULER_Y, rulerTicks())
 
-  for (const l of leakyLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of leakyLabels()) drawSpoken(ctx, l)
   ctx.restore()
 }

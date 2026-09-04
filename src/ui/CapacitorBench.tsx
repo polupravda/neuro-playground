@@ -74,7 +74,7 @@ export function CapacitorBench() {
       )
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, CAP_W * CAP_SCALE, CAP_H * CAP_SCALE)
-      drawCapacitor(ctx, vmRef.current, ms)
+      drawCapacitor(ctx, vmRef.current, ms, true)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
@@ -82,7 +82,11 @@ export function CapacitorBench() {
 
   const onCanvasDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const term = spokenTermAt(capacitorLabels(), e.clientX - rect.left, e.clientY - rect.top)
+    const term = spokenTermAt(
+      capacitorLabels(),
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+    )
     if (term) speakAloud(term)
   }
 
@@ -124,7 +128,11 @@ export function CapacitorBench() {
             />
             <span className="w-40 text-right text-lg font-semibold tabular-nums text-slate-100">
               {fmtMv(shown)}
-              {settling && <span className="ml-2 text-xs font-normal text-amber-300">catching up…</span>}
+              {settling && (
+                <span className="ml-2 text-xs font-normal text-amber-300">
+                  catching up…
+                </span>
+              )}
             </span>
             <ResetButton onClick={reset} title="Back to the cell's own resting voltage" />
           </div>
@@ -134,11 +142,15 @@ export function CapacitorBench() {
               never asked ("held against what?") in bars they could not read.
               Its numbers are readings ON the picture now, beside the things
               they count, and the ratio is a sentence in the info block. */}
-          <div className="min-w-0 self-start rounded-xl border border-slate-700 bg-slate-950/40 p-2">
+          <div className="relative min-w-0 self-start rounded-xl border border-slate-700 bg-slate-950/40 p-2">
             <canvas
               ref={canvasRef}
               onPointerDown={onCanvasDown}
-              style={{ width: CAP_W * CAP_SCALE, height: CAP_H * CAP_SCALE, touchAction: 'none' }}
+              style={{
+                width: CAP_W * CAP_SCALE,
+                height: CAP_H * CAP_SCALE,
+                touchAction: 'none',
+              }}
               aria-label="A membrane patch with charge on its faces and the cell's potassium crowd below"
             />
           </div>

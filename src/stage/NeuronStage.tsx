@@ -4,7 +4,6 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import { Circle, Layer, Line, Rect, Shape, Stage } from 'react-konva'
 import type { NeuronPartId } from '../core/neuron'
 import {
-  AXON_END,
   AXON_FLAT,
   AXON_VIEW_SCALE,
   SYNAPSE_VIEW_SCALE,
@@ -16,8 +15,7 @@ import {
   DENDRITE_TRUNKS,
   INPUTS,
   MARKER_R,
-  SOMA,
-  SOMA_R,
+  SOMA_OUTLINE,
   STAGE_H,
   STAGE_W,
   TERMINALS,
@@ -25,7 +23,7 @@ import {
   cameraDuration,
   clamp01,
 } from './layout'
-import { drawScene, nativeCtx } from './drawScene'
+import { drawScene, nativeCtx, sceneSpokenTermAt } from './drawScene'
 import { FIT, cameraFor, viewRect, type Camera } from './camera'
 import {
   TAIL_HASTE,
@@ -57,11 +55,15 @@ import {
   SYNAPSE_END_HOLD_MS,
 } from './synapseScene'
 import { useSnareStore } from '../state/snareStore'
+import { useReuptakeStore } from '../state/reuptakeStore'
 import { synapseRun } from '../core/synapse'
 import { cleftRun } from '../core/cleft'
 import { drawLeaky, leakyLabels } from './leakyScene'
 import { speakAloud } from '../ui/SpeakButton'
 import { RACE_MS } from '../core/leaky'
+import { useLabelsStore } from '../state/labelsStore'
+import { LabelsSwitch } from '../ui/LabelsSwitch'
+import { ToggleSwitch } from '../ui/ToggleSwitch'
 import { ResetButton } from '../ui/ResetButton'
 import { useNeuronStore } from '../state/neuronStore'
 import { inColour, useIonStore } from '../state/ionStore'
@@ -89,7 +91,15 @@ import {
   toggleSpotlight,
 } from '../state/experiment'
 import { AP_REAL_MS } from '../core/actionPotential'
-import { STEP_NAMES, advance, apBar, apSteps, gateFlashAt, gateMoments, stepAt } from '../core/apSteps'
+import {
+  STEP_NAMES,
+  advance,
+  apBar,
+  apSteps,
+  gateFlashAt,
+  gateMoments,
+  stepAt,
+} from '../core/apSteps'
 import { TransportBar } from '../ui/Timeline'
 import { useMembraneStore } from '../state/membraneStore'
 import { ionCloud } from './ions'
@@ -129,8 +139,7 @@ const AXON_MODES = [
   },
 ] as const
 
-const easeInOut = (t: number): number =>
-  t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2
+const easeInOut = (t: number): number => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2)
 
 /** Fraction of the journey spent moving sideways.
  *
@@ -215,15 +224,28 @@ export function NeuronStage() {
   const selected = useNeuronStore((s) => s.selected)
   const run = useNeuronStore((s) => s.run)
   const zoom = useNeuronStore((s) => s.zoom)
-  const selectPart = useNeuronStore((s) => s.selectPart)
-  const clearSelection = useNeuronStore((s) => s.clearSelection)
+  const selectPartRaw = useNeuronStore((s) => s.selectPart)
+  const clearSelectionRaw = useNeuronStore((s) => s.clearSelection)
+  /** Set when the pointer went down on a spoken name, so the click that
+   *  follows says the word instead of changing what is selected. */
+  const spokeRef = useRef(false)
+  const selectPart = (part: NeuronPartId) => {
+    if (spokeRef.current) return
+    selectPartRaw(part)
+  }
+  const clearSelection = () => {
+    if (spokeRef.current) return
+    clearSelectionRaw()
+  }
   const fire = useNeuronStore((s) => s.fire)
   const setPhase = useNeuronStore((s) => s.setPhase)
   const zoomTo = useNeuronStore((s) => s.zoomTo)
-  const zoomOut = useNeuronStore((s) => s.zoomOut)
   const leakyStartedMs = useLeakyStore((s) => s.startedMs)
   const synU = useSynapseStore((s) => s.u)
   const synPlaying = useSynapseStore((s) => s.playing)
+  const synLabelsOn = useLabelsStore((s) => s.labelsOn)
+  const synLabelsOnRef = useRef(true)
+  synLabelsOnRef.current = synLabelsOn
   const leakyRace = useLeakyStore((s) => s.race)
   const leakyReset = useLeakyStore((s) => s.reset)
 
@@ -321,10 +343,7 @@ export function NeuronStage() {
   )
   const colourRef = useRef(inColourNow)
   colourRef.current = inColourNow
-  const trace = useMemo(
-    () => apTrace(counts, leaksOn, 96, push),
-    [counts, leaksOn, push],
-  )
+  const trace = useMemo(() => apTrace(counts, leaksOn, 96, push), [counts, leaksOn, push])
   const traceRef = useRef(trace)
   traceRef.current = trace
   // The staged moments, and how long playback holds on each. Measured off the
@@ -355,7 +374,7 @@ export function NeuronStage() {
   )
   const momentsRef = useRef(moments)
   momentsRef.current = moments
-  const beat = beatKey === null ? null : steps.find((b) => b.key === beatKey) ?? null
+  const beat = beatKey === null ? null : (steps.find((b) => b.key === beatKey) ?? null)
   const beatNumber = beat ? steps.indexOf(beat) + 1 : 0
   const beatCount = steps.length
   /** Milliseconds still to hold at the moment we stopped on. */
@@ -408,8 +427,18 @@ export function NeuronStage() {
     () =>
       racing
         ? ([
-            fibreRun(counts, leaksOn, STIMULI[axonStimulus].amplitude, viewFibre(false, true)),
-            fibreRun(counts, leaksOn, STIMULI[axonStimulus].amplitude, viewFibre(true, true)),
+            fibreRun(
+              counts,
+              leaksOn,
+              STIMULI[axonStimulus].amplitude,
+              viewFibre(false, true),
+            ),
+            fibreRun(
+              counts,
+              leaksOn,
+              STIMULI[axonStimulus].amplitude,
+              viewFibre(true, true),
+            ),
           ] as const)
         : null,
     [racing, counts, leaksOn, axonStimulus],
@@ -441,19 +470,33 @@ export function NeuronStage() {
       })),
     [synRun, synCleft],
   )
-  const synapseRef = useRef({ at: atSynapse, run: synRun, cleft: synCleft, u: synU, playing: synPlaying })
-  synapseRef.current = { at: atSynapse, run: synRun, cleft: synCleft, u: synU, playing: synPlaying }
+  const synapseRef = useRef({
+    at: atSynapse,
+    run: synRun,
+    cleft: synCleft,
+    u: synU,
+    playing: synPlaying,
+  })
+  synapseRef.current = {
+    at: atSynapse,
+    run: synRun,
+    cleft: synCleft,
+    u: synU,
+    playing: synPlaying,
+  }
   /** Stage-clock stamp of the moment the run PLAYED to its end — the
    *  auto-reset's timer, never set by scrubbing. */
   const synEndAtRef = useRef<number | null>(null)
   /** Where the active zone sits in the synapse view's own frame — the anchor
    *  the deeper place dives toward. Computed once: geometry is static. */
-  const zoneAnchorRef = useRef((() => {
-    const g0 = synapseGeometry()
-    // Slightly BELOW the foot (user, 2026-09-01: "camera should go down so
-    // the postsynaptic channels are fully in view").
-    return { x: g0.foot.x, y: g0.foot.y + 8 }
-  })())
+  const zoneAnchorRef = useRef(
+    (() => {
+      const g0 = synapseGeometry()
+      // Slightly BELOW the foot (user, 2026-09-01: "camera should go down so
+      // the postsynaptic channels are fully in view").
+      return { x: g0.foot.x, y: g0.foot.y + 8 }
+    })(),
+  )
   /** How much of the synapse view's chrome (labels, lenses, captions) is
    *  shown — it dissolves on the dive to the active zone. */
   const synapseChromeRef = useRef(1)
@@ -505,347 +548,351 @@ export function NeuronStage() {
   useEffect(() => {
     const layer = layerRef.current
     if (!layer) return
-    const anim = new Konva.Animation((frame) => {
-      if (!frame) return
-      const now = frame.time
-      animRef.current.timeMs = now
+    const anim = new Konva.Animation(
+      (frame) => {
+        if (!frame) return
+        const now = frame.time
+        animRef.current.timeMs = now
 
-      const active = viewRef.current.run
-      if (!active) {
-        animRef.current.chain = IDLE
-      } else {
-        if (runStartRef.current === null) runStartRef.current = now
-        const elapsed = now - runStartRef.current
-        animRef.current.chain = chainStateAt(elapsed, active.inputs.length)
-        // React only hears about discrete phase changes.
-        const phase = animRef.current.chain.phase
-        if (phase !== phaseRef.current) {
-          phaseRef.current = phase
-          setPhase(phase)
-        }
-      }
-
-      if (transmitterAtRef.current === null && transmitterPulse > 0) {
-        transmitterAtRef.current = now
-      }
-
-      // The spike is a POSITION, not a clock reading: the loop advances it while
-      // it is playing, and leaves it alone while it is paused or being dragged.
-      // Everything else — the gates, the voltage, the aura, the trace marker —
-      // reads off that one number.
-      let ap: ApState | null = null
-      const { u, playing } = useApStore.getState()
-      // A fresh spike opens with a pause on "resting, nothing is happening", so
-      // there is a before picture to compare against. Applied here rather than by
-      // crossing it, because the first moment sits AT the start and so is never
-      // crossed.
-      if (prevURef.current === null && u === 0) {
-        dwellRef.current = stepsRef.current[0].dwellMs
-      }
-      prevURef.current = u
-      if (u !== null) {
-        let next = u
-        let over = false
-        if (playing && frame.timeDiff > 0) {
-          const tick = advance(
-            stepsRef.current,
-            u,
-            dwellRef.current,
-            frame.timeDiff,
-            AP_MS,
-          )
-          dwellRef.current = tick.dwellLeft
-          next = tick.u
-          over = tick.over
-          // Over means over: back to rest, and the button offers another. There
-          // is no finished state sitting there waiting to be dismissed.
-          if (over) useApStore.getState().stop()
-          else if (next !== u) useApStore.setState({ u: next })
-        }
-        if (!over) {
-          ap = apStateAt(
-            next * AP_MS,
-            countsRef.current,
-            membraneRef.current.leaksOn,
-            pushRef.current,
-          )
-        }
-      }
-      apRef.current = ap
-      // Derived from the position, not by watching for a change: the moments a
-      // gate opens and shuts are known, so "how near are we to one" is a
-      // function of u like everything else — and it therefore survives scrubbing
-      // backwards, which change-detection would not.
-      // A gate that has just changed gets an expanding, fading ring — and NOT
-      // while playback is holding on a beat.
-      //
-      // The two were on a collision course by construction. The ring is a pure
-      // function of the position, fading over the 5 % of the run after the change;
-      // the beats stop the position EXACTLY at each change, because those are the
-      // moments worth stopping on. So the ring froze at full strength and its
-      // tightest radius for the whole dwell — a hard static circle sitting on the
-      // channel for a second or more, which is not what a flash is and was read as
-      // a bug, correctly.
-      //
-      // Suppressed while held rather than made time-based: the ring stays a pure
-      // function of position, so scrubbing still reproduces exactly, and it plays
-      // properly the moment the position starts moving again.
-      const held = dwellRef.current > 0
-      flashRef.current =
-        ap && !held
-          ? // ⚠ ON OPENING ONLY (user, 2026-08-30: "remove flash before the
-            // channel closes"). The decision moved into `gateFlashAt` so it
-            // can be tested — inline in a component, nothing could reach it.
-            gateFlashAt(ap.u, momentsRef.current)
-          : null
-
-      // Which channels are open, then where the voltage is heading. Channel
-      // TYPES rather than protein instances: there is one cell, so one voltage,
-      // however many patches happen to be drawn.
-      const env: GateEnv = {
-        ap: ap && { na: ap.naOpen, k: ap.kOpen },
-        transmitter:
-          transmitterAtRef.current !== null && now - transmitterAtRef.current < TRANSMITTER_MS,
-      }
-      gateEnvRef.current = env
-      // Which protein is carrying the current, as a brightness — derived, so the
-      // spotlight hands over from sodium's channel to potassium's to the plain
-      // leak in the same order the narration describes.
-      if (ap && focusingRef.current) {
-        const share = channelShare(ap, membraneRef.current.leaksOn, env.transmitter)
-        const flash = flashRef.current
-        emphasisRef.current = {
-          // The pump has no share of the current at all — it is not in the
-          // voltage equation — so during a spike it is always context.
-          pump: SPOTLIGHT_MIN,
-          ...Object.fromEntries(
-            CHANNEL_IDS.map((id) => [
-              id,
-              // Lit for EITHER of two reasons: it is carrying the current, or it
-              // has just changed. Share alone put the picture at odds with the
-              // caption — at the moment potassium's door opens, sodium is still
-              // carrying most of the current, so the beat announcing potassium
-              // was spotlighting sodium. Both facts are true and both deserve
-              // the light; a moment later the flash fades and the share takes
-              // over again, which itself says something worth seeing.
-              Math.max(spotlight(share[id]), flash?.[id] ?? 0),
-            ]),
-          ),
-        }
-      } else {
-        emphasisRef.current = null
-      }
-
-      // A cheap identity for "has anything the panels display changed".
-      const coarse = emphasisRef.current
-        ? Object.fromEntries(
-            Object.entries(emphasisRef.current).map(([k, v]) => [
-              k,
-              Math.round(v * 10) / 10,
-            ]),
-          )
-        : null
-      const beat = ap ? stepAt(stepsRef.current, ap.u).key : null
-      const holding = held
-      const shown = ap
-        ? `${ap.phase}|${beat}|${holding}|${ap.vm.toFixed(1)}|${JSON.stringify(coarse)}`
-        : ''
-      if (shown !== apShownRef.current) {
-        apShownRef.current = shown
-        publishAp(ap, coarse, beat, holding)
-      }
-      const open = CHANNEL_IDS.map((id) => CHANNELS[id]).filter(
-        (channel) =>
-          (channel.gating !== 'always' || membraneRef.current.leaksOn) &&
-          gateOf(channel, env) === 'open',
-      )
-      if (ap) {
-        // During a spike the model IS the voltage — smoothing it would flatten
-        // the very peak the spike is about. The model already has the membrane's
-        // time constant in the shape of its gates.
-        animRef.current.vm = ap.vm
-      } else {
-        // At rest the membrane takes a moment to charge, as a real one does.
-        const target = membraneVoltageMv(countsRef.current, open)
-        const step = frame.timeDiff > 0 ? 1 - Math.exp(-frame.timeDiff / VM_SETTLE_MS) : 1
-        animRef.current.vm += (target - animRef.current.vm) * step
-      }
-
-      // The propagation run, clocked the same way the spike is: a POSITION that
-      // the loop advances while it is playing, so pausing is not a special case
-      // and dragging backwards is free. Two positions, in sequence — the signal
-      // coming in to the axon, and then the axon's own run.
-      {
-        const { lead, u: cu, playing } = useAxonStore.getState()
-        if (playing && lead !== null && frame.timeDiff > 0) {
-          if (lead < 1) {
-            const next = lead + frame.timeDiff / LEAD_MS
-            // Arriving is what starts the spike. Nothing else does — which is the
-            // point of having a lead-in at all.
-            if (next >= 1) useAxonStore.setState({ lead: 1, u: 0 })
-            else useAxonStore.setState({ lead: next })
-          } else if (cu !== null) {
-            // The axon's own pace, per fibre: the shared rate over the run's own
-            // trimmed window, extra slow-motion for the sheathed fibre, and a
-            // fast-forward through the recovery tail — the drama at full slow
-            // motion, the tidying-up skimmed. See MYELIN_SLOWDOWN and TAIL_HASTE.
-            //
-            // The race gets one rate and no slow-motion — either would be a thumb
-            // on the scale. It does hurry the tail, but only from the moment the
-            // SECOND fibre is home: until then hurrying would be shortening one
-            // axon's recovery while the other is still running.
-            const run = axonRef.current.cable
-            const races = axonRef.current.raceRuns
-            const isRace = races !== null
-            const duration = isRace ? raceDurationMs() : screenDurationMs(run)
-            const tailFrom = isRace ? raceTailStartU(races) : tailStartU(run)
-            const haste = cu > tailFrom ? TAIL_HASTE : 1
-            const next = cu + (frame.timeDiff * haste) / duration
-            // Stop AT the end rather than dropping back to rest: the last thing
-            // to see is the far end of the axon coming back down, and clearing
-            // the run would wipe it off the screen the instant it finished.
-            if (next >= 1) useAxonStore.setState({ u: 1, playing: false })
-            else useAxonStore.setState({ u: next })
+        const active = viewRef.current.run
+        if (!active) {
+          animRef.current.chain = IDLE
+        } else {
+          if (runStartRef.current === null) runStartRef.current = now
+          const elapsed = now - runStartRef.current
+          animRef.current.chain = chainStateAt(elapsed, active.inputs.length)
+          // React only hears about discrete phase changes.
+          const phase = animRef.current.chain.phase
+          if (phase !== phaseRef.current) {
+            phaseRef.current = phase
+            setPhase(phase)
           }
         }
-      }
 
-      // The synapse's run walks forward on the frame's own clock. ⚠ SLOWED,
-      // and declared: `SYNAPSE_MS` of model time is stretched over
-      // `SYNAPSE_SCREEN_MS` on screen, because the whole event — arrival,
-      // calcium, fusion, binding — is over in sixty milliseconds and nothing in
-      // it can be watched at life speed.
-      jiggleRef.current = frame.time * 0.0035
-      {
-        const syn = synapseRef.current
-        if (syn.at && syn.playing && syn.u !== null) {
-          const next = syn.u + frame.timeDiff / SYNAPSE_SCREEN_MS
-          // Hold AT the end first — clearing the instant the run finished
-          // would wipe the last thing it teaches off the screen — and stamp
-          // WHEN it ended, on the stage's own clock, so the reset below can
-          // wait out the hold.
-          if (next >= 1) {
-            useSynapseStore.setState({ u: 1, playing: false })
-            synEndAtRef.current = frame.time
-          } else useSynapseStore.setState({ u: next })
+        if (transmitterAtRef.current === null && transmitterPulse > 0) {
+          transmitterAtRef.current = now
         }
-        // ⚠ THE RUN PUTS ITSELF BACK TO REST (user, 2026-09-01: "remove reset
-        // button — after the animation is over, the state should be reset to
-        // new"). Only a run that PLAYED to its end resets itself: the stamp is
-        // set in the branch above, never by scrubbing, so a user parked at
-        // u = 1 by the slider is not yanked back to rest under their thumb.
-        if (syn.u !== 1) synEndAtRef.current = null
-        else if (
-          syn.at &&
-          !syn.playing &&
-          synEndAtRef.current !== null &&
-          frame.time - synEndAtRef.current > SYNAPSE_END_HOLD_MS
-        ) {
-          synEndAtRef.current = null
-          useSynapseStore.getState().reset()
-        }
-      }
 
-      // Two things have to be true before the propagation view is drawn: the
-      // camera has to be going there, and it has to have most of the way
-      // arrived. The first is eased so leaving fades out instead of popping.
-      const wantAxon = axonRef.current.at ? 1 : 0
-      const ease =
-        frame.timeDiff > 0 ? 1 - Math.exp(-frame.timeDiff / 240) : 1
-      axonFadeRef.current += (wantAxon - axonFadeRef.current) * ease
-      const wantPassive = passiveRef.current.at ? 1 : 0
-      passiveFadeRef.current += (wantPassive - passiveFadeRef.current) * ease
-      const wantSynapse = synapseRef.current.at ? 1 : 0
-      synapseFadeRef.current += (wantSynapse - synapseFadeRef.current) * ease
-
-      const cam = cameraRef.current
-      if (cam.startedAt === null) cam.startedAt = now
-      const t = easeInOut(clamp01((now - cam.startedAt) / cam.duration))
-      const current = interpolate(cam.from, cam.to, t)
-      animRef.current.camera = current
-      // The scene gives way as the propagation view arrives. Without this the
-      // scene's own straight tube fringes out around the wobbling one drawn over
-      // it, and two axons at slightly different widths is one axon too many.
-      // Both views are gated on ARRIVAL as well as on intent, so the scene gives
-      // way exactly as fast as something else takes over from it — never sooner.
-      // On the way out of a patch this is what keeps the bilayer on screen,
-      // shrinking, until the axon's two walls have appeared under it.
-      axonShownRef.current = axonFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
-      // Both axon views arrive at the SAME magnification, so they share the
-      // arrival ramp and differ only in which one the camera is going to. The
-      // scene gives way to whichever is further in — never to their sum, which
-      // would fade the cell out twice on a flight between the two.
-      passiveShownRef.current =
-        passiveFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
-      // ⚠ A SPAN, not a band: the synapse view is home from its own scale down
-      // to the active zone's (×4 deeper); a single-scale band blinked the view
-      // out midway through the dive between the two places.
-      synapseShownRef.current =
-        synapseFadeRef.current *
-        arrivalSpan(current.scale, SYNAPSE_VIEW_SCALE, SYNAPSE_VIEW_SCALE * 4)
-      // The dive INTO the view: past the synapse's own magnification the
-      // layer itself scales about the active zone, so the camera keeps going
-      // into the same picture rather than swapping it.
-      {
-        const extra = Math.min(4, Math.max(1, current.scale / SYNAPSE_VIEW_SCALE))
-        const az = zoneAnchorRef.current
-        const sl = synapseLayerRef.current
-        if (sl) {
-          sl.scale({ x: extra, y: extra })
-          sl.position({ x: az.x * (1 - extra), y: az.y * (1 - extra) })
+        // The spike is a POSITION, not a clock reading: the loop advances it while
+        // it is playing, and leaves it alone while it is paused or being dragged.
+        // Everything else — the gates, the voltage, the aura, the trace marker —
+        // reads off that one number.
+        let ap: ApState | null = null
+        const { u, playing } = useApStore.getState()
+        // A fresh spike opens with a pause on "resting, nothing is happening", so
+        // there is a before picture to compare against. Applied here rather than by
+        // crossing it, because the first moment sits AT the start and so is never
+        // crossed.
+        if (prevURef.current === null && u === 0) {
+          dwellRef.current = stepsRef.current[0].dwellMs
         }
-        synapseChromeRef.current = Math.max(0, Math.min(1, 1 - (extra - 1) / 0.6))
-      }
-      // ⚠ CSS OPACITY ON THE LAYER'S OWN CANVAS, not `layer.opacity()` (user,
-      // 2026-08-31: "I can see a ghost axon behind the visualisation, on both
-      // 'passive spread' and 'Axonal conduction and myelin'").
-      //
-      // Konva applies a node's opacity by SETTING `globalAlpha` on the context
-      // before calling its `sceneFunc`. `drawScene` then assigns `globalAlpha`
-      // itself in eighteen places — every part of the cell that has a fade of
-      // its own — and an assignment overwrites rather than multiplies. So the
-      // moment the drawing set an alpha, the layer's fade was gone and those
-      // parts painted at full strength however far out the camera had flown:
-      // a whole-cell axon standing behind the view that replaced it.
-      //
-      // Compositing the layer's CANVAS ELEMENT instead makes the fade a
-      // property of the surface rather than of the ink, so nothing the drawing
-      // does to `globalAlpha` can escape it. It is also the honest semantic:
-      // "the scene gives way" is one thing happening to one picture, not a
-      // thousand alphas that must each remember to be multiplied.
-      const hidden = Math.max(
-        axonShownRef.current,
-        passiveShownRef.current,
-        synapseShownRef.current,
-      )
-      layer.getNativeCanvasElement().style.opacity = String(1 - hidden)
-      // And an invisible cell must not still be clickable underneath the view
-      // that replaced it.
-      layer.listening(hidden < 0.5)
-      layer.scale({ x: current.scale, y: current.scale })
-      layer.rotation((current.angle * 180) / Math.PI)
-      // Konva applies scale, then rotation, then position — so the offset that
-      // lands `center` in the middle of the stage has to be rotated too.
-      const cos = Math.cos(current.angle)
-      const sin = Math.sin(current.angle)
-      const sx = current.center.x * current.scale
-      const sy = current.center.y * current.scale
-      layer.position({
-        x: STAGE_W / 2 - (cos * sx - sin * sy),
-        y: STAGE_H / 2 + current.drop - (sin * sx + cos * sy),
-      })
-    }, [
-      layer,
-      axonLayerRef.current,
-      passiveLayerRef.current,
-      synapseLayerRef.current,
-    ].filter(Boolean) as Konva.Layer[])
+        prevURef.current = u
+        if (u !== null) {
+          let next = u
+          let over = false
+          if (playing && frame.timeDiff > 0) {
+            const tick = advance(
+              stepsRef.current,
+              u,
+              dwellRef.current,
+              frame.timeDiff,
+              AP_MS,
+            )
+            dwellRef.current = tick.dwellLeft
+            next = tick.u
+            over = tick.over
+            // Over means over: back to rest, and the button offers another. There
+            // is no finished state sitting there waiting to be dismissed.
+            if (over) useApStore.getState().stop()
+            else if (next !== u) useApStore.setState({ u: next })
+          }
+          if (!over) {
+            ap = apStateAt(
+              next * AP_MS,
+              countsRef.current,
+              membraneRef.current.leaksOn,
+              pushRef.current,
+            )
+          }
+        }
+        apRef.current = ap
+        // Derived from the position, not by watching for a change: the moments a
+        // gate opens and shuts are known, so "how near are we to one" is a
+        // function of u like everything else — and it therefore survives scrubbing
+        // backwards, which change-detection would not.
+        // A gate that has just changed gets an expanding, fading ring — and NOT
+        // while playback is holding on a beat.
+        //
+        // The two were on a collision course by construction. The ring is a pure
+        // function of the position, fading over the 5 % of the run after the change;
+        // the beats stop the position EXACTLY at each change, because those are the
+        // moments worth stopping on. So the ring froze at full strength and its
+        // tightest radius for the whole dwell — a hard static circle sitting on the
+        // channel for a second or more, which is not what a flash is and was read as
+        // a bug, correctly.
+        //
+        // Suppressed while held rather than made time-based: the ring stays a pure
+        // function of position, so scrubbing still reproduces exactly, and it plays
+        // properly the moment the position starts moving again.
+        const held = dwellRef.current > 0
+        flashRef.current =
+          ap && !held
+            ? // ⚠ ON OPENING ONLY (user, 2026-08-30: "remove flash before the
+              // channel closes"). The decision moved into `gateFlashAt` so it
+              // can be tested — inline in a component, nothing could reach it.
+              gateFlashAt(ap.u, momentsRef.current)
+            : null
+
+        // Which channels are open, then where the voltage is heading. Channel
+        // TYPES rather than protein instances: there is one cell, so one voltage,
+        // however many patches happen to be drawn.
+        const env: GateEnv = {
+          ap: ap && { na: ap.naOpen, k: ap.kOpen },
+          transmitter:
+            transmitterAtRef.current !== null &&
+            now - transmitterAtRef.current < TRANSMITTER_MS,
+        }
+        gateEnvRef.current = env
+        // Which protein is carrying the current, as a brightness — derived, so the
+        // spotlight hands over from sodium's channel to potassium's to the plain
+        // leak in the same order the narration describes.
+        if (ap && focusingRef.current) {
+          const share = channelShare(ap, membraneRef.current.leaksOn, env.transmitter)
+          const flash = flashRef.current
+          emphasisRef.current = {
+            // The pump has no share of the current at all — it is not in the
+            // voltage equation — so during a spike it is always context.
+            pump: SPOTLIGHT_MIN,
+            ...Object.fromEntries(
+              CHANNEL_IDS.map((id) => [
+                id,
+                // Lit for EITHER of two reasons: it is carrying the current, or it
+                // has just changed. Share alone put the picture at odds with the
+                // caption — at the moment potassium's door opens, sodium is still
+                // carrying most of the current, so the beat announcing potassium
+                // was spotlighting sodium. Both facts are true and both deserve
+                // the light; a moment later the flash fades and the share takes
+                // over again, which itself says something worth seeing.
+                Math.max(spotlight(share[id]), flash?.[id] ?? 0),
+              ]),
+            ),
+          }
+        } else {
+          emphasisRef.current = null
+        }
+
+        // A cheap identity for "has anything the panels display changed".
+        const coarse = emphasisRef.current
+          ? Object.fromEntries(
+              Object.entries(emphasisRef.current).map(([k, v]) => [
+                k,
+                Math.round(v * 10) / 10,
+              ]),
+            )
+          : null
+        const beat = ap ? stepAt(stepsRef.current, ap.u).key : null
+        const holding = held
+        const shown = ap
+          ? `${ap.phase}|${beat}|${holding}|${ap.vm.toFixed(1)}|${JSON.stringify(coarse)}`
+          : ''
+        if (shown !== apShownRef.current) {
+          apShownRef.current = shown
+          publishAp(ap, coarse, beat, holding)
+        }
+        const open = CHANNEL_IDS.map((id) => CHANNELS[id]).filter(
+          (channel) =>
+            (channel.gating !== 'always' || membraneRef.current.leaksOn) &&
+            gateOf(channel, env) === 'open',
+        )
+        if (ap) {
+          // During a spike the model IS the voltage — smoothing it would flatten
+          // the very peak the spike is about. The model already has the membrane's
+          // time constant in the shape of its gates.
+          animRef.current.vm = ap.vm
+        } else {
+          // At rest the membrane takes a moment to charge, as a real one does.
+          const target = membraneVoltageMv(countsRef.current, open)
+          const step =
+            frame.timeDiff > 0 ? 1 - Math.exp(-frame.timeDiff / VM_SETTLE_MS) : 1
+          animRef.current.vm += (target - animRef.current.vm) * step
+        }
+
+        // The propagation run, clocked the same way the spike is: a POSITION that
+        // the loop advances while it is playing, so pausing is not a special case
+        // and dragging backwards is free. Two positions, in sequence — the signal
+        // coming in to the axon, and then the axon's own run.
+        {
+          const { lead, u: cu, playing } = useAxonStore.getState()
+          if (playing && lead !== null && frame.timeDiff > 0) {
+            if (lead < 1) {
+              const next = lead + frame.timeDiff / LEAD_MS
+              // Arriving is what starts the spike. Nothing else does — which is the
+              // point of having a lead-in at all.
+              if (next >= 1) useAxonStore.setState({ lead: 1, u: 0 })
+              else useAxonStore.setState({ lead: next })
+            } else if (cu !== null) {
+              // The axon's own pace, per fibre: the shared rate over the run's own
+              // trimmed window, extra slow-motion for the sheathed fibre, and a
+              // fast-forward through the recovery tail — the drama at full slow
+              // motion, the tidying-up skimmed. See MYELIN_SLOWDOWN and TAIL_HASTE.
+              //
+              // The race gets one rate and no slow-motion — either would be a thumb
+              // on the scale. It does hurry the tail, but only from the moment the
+              // SECOND fibre is home: until then hurrying would be shortening one
+              // axon's recovery while the other is still running.
+              const run = axonRef.current.cable
+              const races = axonRef.current.raceRuns
+              const isRace = races !== null
+              const duration = isRace ? raceDurationMs() : screenDurationMs(run)
+              const tailFrom = isRace ? raceTailStartU(races) : tailStartU(run)
+              const haste = cu > tailFrom ? TAIL_HASTE : 1
+              const next = cu + (frame.timeDiff * haste) / duration
+              // Stop AT the end rather than dropping back to rest: the last thing
+              // to see is the far end of the axon coming back down, and clearing
+              // the run would wipe it off the screen the instant it finished.
+              if (next >= 1) useAxonStore.setState({ u: 1, playing: false })
+              else useAxonStore.setState({ u: next })
+            }
+          }
+        }
+
+        // The synapse's run walks forward on the frame's own clock. ⚠ SLOWED,
+        // and declared: `SYNAPSE_MS` of model time is stretched over
+        // `SYNAPSE_SCREEN_MS` on screen, because the whole event — arrival,
+        // calcium, fusion, binding — is over in sixty milliseconds and nothing in
+        // it can be watched at life speed.
+        jiggleRef.current = frame.time * 0.0035
+        {
+          const syn = synapseRef.current
+          if (syn.at && syn.playing && syn.u !== null) {
+            const next = syn.u + frame.timeDiff / SYNAPSE_SCREEN_MS
+            // Hold AT the end first — clearing the instant the run finished
+            // would wipe the last thing it teaches off the screen — and stamp
+            // WHEN it ended, on the stage's own clock, so the reset below can
+            // wait out the hold.
+            if (next >= 1) {
+              useSynapseStore.setState({ u: 1, playing: false })
+              synEndAtRef.current = frame.time
+            } else useSynapseStore.setState({ u: next })
+          }
+          // ⚠ THE RUN PUTS ITSELF BACK TO REST (user, 2026-09-01: "remove reset
+          // button — after the animation is over, the state should be reset to
+          // new"). Only a run that PLAYED to its end resets itself: the stamp is
+          // set in the branch above, never by scrubbing, so a user parked at
+          // u = 1 by the slider is not yanked back to rest under their thumb.
+          if (syn.u !== 1) synEndAtRef.current = null
+          else if (
+            syn.at &&
+            !syn.playing &&
+            synEndAtRef.current !== null &&
+            frame.time - synEndAtRef.current > SYNAPSE_END_HOLD_MS
+          ) {
+            synEndAtRef.current = null
+            useSynapseStore.getState().reset()
+          }
+        }
+
+        // Two things have to be true before the propagation view is drawn: the
+        // camera has to be going there, and it has to have most of the way
+        // arrived. The first is eased so leaving fades out instead of popping.
+        const wantAxon = axonRef.current.at ? 1 : 0
+        const ease = frame.timeDiff > 0 ? 1 - Math.exp(-frame.timeDiff / 240) : 1
+        axonFadeRef.current += (wantAxon - axonFadeRef.current) * ease
+        const wantPassive = passiveRef.current.at ? 1 : 0
+        passiveFadeRef.current += (wantPassive - passiveFadeRef.current) * ease
+        const wantSynapse = synapseRef.current.at ? 1 : 0
+        synapseFadeRef.current += (wantSynapse - synapseFadeRef.current) * ease
+
+        const cam = cameraRef.current
+        if (cam.startedAt === null) cam.startedAt = now
+        const t = easeInOut(clamp01((now - cam.startedAt) / cam.duration))
+        const current = interpolate(cam.from, cam.to, t)
+        animRef.current.camera = current
+        // The scene gives way as the propagation view arrives. Without this the
+        // scene's own straight tube fringes out around the wobbling one drawn over
+        // it, and two axons at slightly different widths is one axon too many.
+        // Both views are gated on ARRIVAL as well as on intent, so the scene gives
+        // way exactly as fast as something else takes over from it — never sooner.
+        // On the way out of a patch this is what keeps the bilayer on screen,
+        // shrinking, until the axon's two walls have appeared under it.
+        axonShownRef.current =
+          axonFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
+        // Both axon views arrive at the SAME magnification, so they share the
+        // arrival ramp and differ only in which one the camera is going to. The
+        // scene gives way to whichever is further in — never to their sum, which
+        // would fade the cell out twice on a flight between the two.
+        passiveShownRef.current =
+          passiveFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
+        // ⚠ A SPAN, not a band: the synapse view is home from its own scale down
+        // to the active zone's (×4 deeper); a single-scale band blinked the view
+        // out midway through the dive between the two places.
+        synapseShownRef.current =
+          synapseFadeRef.current *
+          arrivalSpan(current.scale, SYNAPSE_VIEW_SCALE, SYNAPSE_VIEW_SCALE * 4)
+        // The dive INTO the view: past the synapse's own magnification the
+        // layer itself scales about the active zone, so the camera keeps going
+        // into the same picture rather than swapping it.
+        {
+          const extra = Math.min(4, Math.max(1, current.scale / SYNAPSE_VIEW_SCALE))
+          const az = zoneAnchorRef.current
+          const sl = synapseLayerRef.current
+          if (sl) {
+            sl.scale({ x: extra, y: extra })
+            sl.position({ x: az.x * (1 - extra), y: az.y * (1 - extra) })
+          }
+          synapseChromeRef.current = Math.max(0, Math.min(1, 1 - (extra - 1) / 0.6))
+        }
+        // ⚠ CSS OPACITY ON THE LAYER'S OWN CANVAS, not `layer.opacity()` (user,
+        // 2026-08-31: "I can see a ghost axon behind the visualisation, on both
+        // 'passive spread' and 'Axonal conduction and myelin'").
+        //
+        // Konva applies a node's opacity by SETTING `globalAlpha` on the context
+        // before calling its `sceneFunc`. `drawScene` then assigns `globalAlpha`
+        // itself in eighteen places — every part of the cell that has a fade of
+        // its own — and an assignment overwrites rather than multiplies. So the
+        // moment the drawing set an alpha, the layer's fade was gone and those
+        // parts painted at full strength however far out the camera had flown:
+        // a whole-cell axon standing behind the view that replaced it.
+        //
+        // Compositing the layer's CANVAS ELEMENT instead makes the fade a
+        // property of the surface rather than of the ink, so nothing the drawing
+        // does to `globalAlpha` can escape it. It is also the honest semantic:
+        // "the scene gives way" is one thing happening to one picture, not a
+        // thousand alphas that must each remember to be multiplied.
+        const hidden = Math.max(
+          axonShownRef.current,
+          passiveShownRef.current,
+          synapseShownRef.current,
+        )
+        layer.getNativeCanvasElement().style.opacity = String(1 - hidden)
+        // And an invisible cell must not still be clickable underneath the view
+        // that replaced it.
+        layer.listening(hidden < 0.5)
+        layer.scale({ x: current.scale, y: current.scale })
+        layer.rotation((current.angle * 180) / Math.PI)
+        // Konva applies scale, then rotation, then position — so the offset that
+        // lands `center` in the middle of the stage has to be rotated too.
+        const cos = Math.cos(current.angle)
+        const sin = Math.sin(current.angle)
+        const sx = current.center.x * current.scale
+        const sy = current.center.y * current.scale
+        layer.position({
+          x: STAGE_W / 2 - (cos * sx - sin * sy),
+          y: STAGE_H / 2 + current.drop - (sin * sx + cos * sy),
+        })
+      },
+      [
+        layer,
+        axonLayerRef.current,
+        passiveLayerRef.current,
+        synapseLayerRef.current,
+      ].filter(Boolean) as Konva.Layer[],
+    )
     anim.start()
     return () => {
       anim.stop()
     }
   }, [setPhase])
-
 
   useEffect(() => {
     if (transmitterPulse > 0) transmitterAtRef.current = null
@@ -900,14 +947,29 @@ export function NeuronStage() {
           out belongs on the canvas too. It is screen-fixed chrome rather than
           part of the scene — it is not anchored to any structure — so it is a
           real button overlaying the stage rather than a Konva shape. */}
-      {zoom !== null && (
-        <button
-          type="button"
-          onClick={zoomOut}
-          className="absolute left-3 top-3 z-10 rounded-lg border border-amber-500/60 bg-slate-950/85 px-2.5 py-1.5 text-xs text-amber-200 backdrop-blur transition hover:bg-amber-500/20"
-        >
-          ⤢ back to the whole picture
-        </button>
+
+      {/* ⚠ THE 🏷 SWITCH OUT HERE TOO (user, 2026-09-04: unify labels, switch
+          "everywhere"). The synapse view carries its own beside its ⚡/▶
+          plate, so this one stands down there to avoid two switches for one
+          preference. On the whole picture it sits top-right; inside a zoom
+          it moves to the top-LEFT, off the instruments. */}
+      {!atSynapse && !(atMembrane && showSpike) && (
+        <LabelsSwitch
+          on={synLabelsOn}
+          onToggle={() => useLabelsStore.getState().toggleLabels()}
+          titleOn="Labels on: the picture carries its names"
+          titleOff="Labels off: the picture carries no names"
+          // ⚠ TOP-LEFT INSIDE A ZOOM (user, 2026-09-04: "place 'labels' in
+          // 'myelin' section, to the top, as it overlaps with the graph").
+          // Bottom-right laid it over the axon views' voltage-against-distance
+          // plot — an instrument, and the thing that view exists to be read.
+          // Top-left is the one corner free everywhere this appears: those
+          // views' own plates are CENTRED at the top, the ×N reading is
+          // top-right, and the escape hatch has left the canvas for the map.
+          className={
+            zoom === null ? 'absolute right-3 top-3 z-10' : 'absolute left-3 top-3 z-10'
+          }
+        />
       )}
       {/* THE DOORS ON THE PATCH — one row, its own container, bottom left.
           They were pinned to the structures they open (bilayer on bare wall,
@@ -1022,24 +1084,32 @@ export function NeuronStage() {
             )}
             {/* ⚠ NOT IN THE TIMELINE ROW (user, 2026-09-02): the emphasis
                 switch lives on its own plate under the bar's right end. */}
-            <div className="pointer-events-auto rounded-lg border border-slate-700 bg-slate-950/85 p-0.5 shadow-lg backdrop-blur">
-              <button
-                type="button"
-                onClick={toggleSpotlight}
-                aria-pressed={spotlightOn}
-                title={
-                  spotlightOn
-                    ? 'Showing everything at full strength again'
-                    : 'Bring forward whatever is carrying the current'
-                }
-                className={`rounded-md px-2 py-1 text-[11px] transition ${
-                  spotlightOn
-                    ? 'bg-amber-500/20 text-amber-100 hover:bg-amber-500/35'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                }`}
-              >
-                🔆 focus
-              </button>
+            {/* ⚠ THE TWO SWITCHES SIT TOGETHER (user, 2026-09-04: "place
+                'labels' on 'AP' demo, on the left from 'focus' toggle").
+                They are the same kind of control — each turns one way of
+                reading the picture on and off — so they belong in one place,
+                in one grammar. 🏷 first: names are what the picture SAYS,
+                focus is how hard it says it. */}
+            <div className="flex items-center gap-2">
+              <LabelsSwitch
+                on={synLabelsOn}
+                onToggle={() => useLabelsStore.getState().toggleLabels()}
+                titleOn="Labels on: the picture carries its names"
+                titleOff="Labels off: the picture carries no names"
+              />
+              {/* ⚠ A SWITCH, like 🏷 labels beside it (user, 2026-09-04:
+                  "turn 'focus' into a switch toggle, same as 'labels'"). It
+                  was a press-to-light chip, so two controls that both turn
+                  one thing on and off looked like two different kinds of
+                  control. */}
+              <ToggleSwitch
+                icon="🔆"
+                word="focus"
+                on={spotlightOn}
+                onToggle={toggleSpotlight}
+                titleOn="Focus on: whatever is carrying the current comes forward"
+                titleOff="Focus off: everything is drawn at full strength"
+              />
             </div>
           </div>
           {/* What to look at, in words, one moment at a time. Watched as a
@@ -1055,7 +1125,9 @@ export function NeuronStage() {
                 </span>{' '}
                 {beat.title}
               </p>
-              <p className="mt-1 text-[12px] leading-snug text-slate-400">👀 {beat.watch}</p>
+              <p className="mt-1 text-[12px] leading-snug text-slate-400">
+                👀 {beat.watch}
+              </p>
             </div>
           )}
         </div>
@@ -1173,6 +1245,22 @@ export function NeuronStage() {
             </span>
             <span className="whitespace-nowrap">Vesicles & the SNARE machinery</span>
           </button>
+          {/* ⚠ THE DOOR INTO D17, open since step 21b-2. It was reserved and
+              disabled from 2026-09-04 ("add now, disabled") because a dead
+              door is worse than none; the drawer has landed, so the door
+              behaves like its sibling beside it. Two doors at one place need
+              two icons — 🫧 for what gets OUT, ♻️ for where it goes. */}
+          <button
+            type="button"
+            onClick={() => useReuptakeStore.getState().openBench()}
+            title="Where the released transmitter goes — the astrocyte's transporters, and the round trip home."
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
+          >
+            <span aria-hidden className="text-base leading-none">
+              ♻️
+            </span>
+            <span className="whitespace-nowrap">Where the transmitter goes</span>
+          </button>
         </div>
       )}
       {/* ⚠ THE TIMELINE TOOL here too (user, 2026-09-01): the run's dated
@@ -1208,32 +1296,45 @@ export function NeuronStage() {
                 end puts itself back to rest after a short hold, so the
                 transport can never strand at an end — the start-over control
                 the pacing rule demands is the ⚡ button this hands back. */}
-            {!synRunning && (
-              <button
-                type="button"
-                onClick={() => useSynapseStore.getState().fire()}
-                title="Send an action potential down the axon into this terminal"
-                className="pointer-events-auto flex h-[38px] min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 shadow-lg backdrop-blur transition hover:bg-amber-500/45"
-              >
-                <span aria-hidden style={{ fontSize: STIMULI.spike.bolt, lineHeight: 1 }}>
-                  ⚡
-                </span>
-                <span className="text-[13px] font-semibold">{STIMULI.spike.label}</span>
-              </button>
-            )}
-            {synRunning && (
-              <button
-                type="button"
-                onClick={() =>
-                  synPlaying
-                    ? useSynapseStore.getState().pause()
-                    : useSynapseStore.getState().resume()
-                }
-                className="pointer-events-auto h-[38px] w-[128px] rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 shadow-lg backdrop-blur transition hover:bg-amber-500/30"
-              >
-                {synPlaying ? '⏸ Pause' : '▶ Play'}
-              </button>
-            )}
+            <div className="flex items-start gap-2">
+              {!synRunning && (
+                <button
+                  type="button"
+                  onClick={() => useSynapseStore.getState().fire()}
+                  title="Send an action potential down the axon into this terminal"
+                  className="pointer-events-auto flex h-[38px] min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 shadow-lg backdrop-blur transition hover:bg-amber-500/45"
+                >
+                  <span
+                    aria-hidden
+                    style={{ fontSize: STIMULI.spike.bolt, lineHeight: 1 }}
+                  >
+                    ⚡
+                  </span>
+                  <span className="text-[13px] font-semibold">{STIMULI.spike.label}</span>
+                </button>
+              )}
+              {synRunning && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    synPlaying
+                      ? useSynapseStore.getState().pause()
+                      : useSynapseStore.getState().resume()
+                  }
+                  className="pointer-events-auto h-[38px] w-[128px] rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 shadow-lg backdrop-blur transition hover:bg-amber-500/30"
+                >
+                  {synPlaying ? '⏸ Pause' : '▶ Play'}
+                </button>
+              )}
+              {/* The labels switch (user, 2026-09-04): D06's own affordance,
+                  beside the action button — off hides every callout. */}
+              <LabelsSwitch
+                on={synLabelsOn}
+                onToggle={() => useLabelsStore.getState().toggleLabels()}
+                titleOn="Labels on: each name points at the part it names"
+                titleOff="Labels off: the picture carries no names"
+              />
+            </div>
             {/* ⚠ THE SCALE SWITCH on its own top-right plate (user,
                 2026-09-01: "top right corner"; 2026-09-02: no extra buttons
                 in the timeline element) — the axon views' own two-way
@@ -1295,7 +1396,28 @@ export function NeuronStage() {
           />
         </div>
       )}
-      <Stage width={STAGE_W} height={STAGE_H}>
+      <Stage
+        width={STAGE_W}
+        height={STAGE_H}
+        // ⚠ F04 ON THE SCENE'S OWN NAMES (user, 2026-09-04: "add voice on the
+        // labels, which name neuron parts (not navigation)"). These names are
+        // painted on a canvas, not laid out as elements, and where they end up
+        // is only known once the frame is composed — the camera has moved
+        // them and the keep-out nudger may have pushed them sideways. So the
+        // drawing records where each spoken name landed and the stage asks
+        // THAT, which is the app's rule everywhere: a hit box is built from
+        // the geometry the drawing used, never a second set of numbers.
+        //
+        // It claims the click so that saying a part's name does not also
+        // clear the selection under it.
+        onPointerDown={(e) => {
+          const p = e.target.getStage()?.getPointerPosition()
+          if (!p) return
+          const term = sceneSpokenTermAt(p.x, p.y)
+          spokeRef.current = term !== null
+          if (term !== null) speakAloud(term)
+        }}
+      >
         <Layer ref={layerRef}>
           {/* Clicking empty space lets go of the selected part. */}
           <Rect
@@ -1312,6 +1434,7 @@ export function NeuronStage() {
               const view = viewRef.current
               const { chain, camera, timeMs, vm } = animRef.current
               drawScene(nativeCtx(ctx), {
+                labelsOn: synLabelsOnRef.current,
                 selected: view.selected,
                 hovered: view.hovered,
                 hoveredInput: view.hoveredInput,
@@ -1384,10 +1507,12 @@ export function NeuronStage() {
             onTap={() => selectPart('axon')}
             {...partHover('axon')}
           />
+          {/* Each terminal's hit line follows its traced branch route, not a
+              chord across the arbor. */}
           {TERMINALS.map((t, i) => (
             <Line
               key={`t-${i}`}
-              points={[AXON_END.x, AXON_END.y, t.end.x, t.end.y]}
+              points={t.path.flatMap((p) => [p.x, p.y])}
               stroke={HIT}
               strokeWidth={1}
               hitStrokeWidth={18}
@@ -1408,10 +1533,11 @@ export function NeuronStage() {
               {...partHover('terminals')}
             />
           ))}
-          <Circle
-            x={SOMA.x}
-            y={SOMA.y}
-            radius={SOMA_R}
+          {/* The soma is a traced star now; its hit region is the outline
+              itself, closed and filled. */}
+          <Line
+            points={SOMA_OUTLINE.flatMap((p) => [p.x, p.y])}
+            closed
             fill={HIT}
             onClick={() => selectPart('soma')}
             onTap={() => selectPart('soma')}
@@ -1510,7 +1636,10 @@ export function NeuronStage() {
               const at = e.target.getStage()?.getPointerPosition()
               if (!at) return
               setAxonPatch(
-                patchAtX(ribbonGeometry(STAGE_W, STAGE_H, AXON_W * AXON_VIEW_SCALE), at.x),
+                patchAtX(
+                  ribbonGeometry(STAGE_W, STAGE_H, AXON_W * AXON_VIEW_SCALE),
+                  at.x,
+                ),
               )
             }}
           />
@@ -1544,6 +1673,7 @@ export function NeuronStage() {
                 began === null ? null : clamp01((now - began) / RACE_MS),
                 now,
                 fade,
+                synLabelsOnRef.current,
               )
             }}
           />
@@ -1596,23 +1726,25 @@ export function NeuronStage() {
                 jiggle: jiggleRef.current,
                 // Labels and lenses dissolve on the dive to the active zone.
                 chrome: synapseChromeRef.current,
+                labelsOn: synLabelsOnRef.current,
               })
             }}
           />
-          {synapseLabels(synapseGeometry()).map((l) => (
-            <Rect
-              key={l.term}
-              x={l.x}
-              y={l.y}
-              width={l.w}
-              height={l.h}
-              fill={HIT}
-              onClick={() => speakAloud(l.term)}
-              onTap={() => speakAloud(l.term)}
-              onMouseEnter={(e) => cursor(e, 'pointer')}
-              onMouseLeave={(e) => cursor(e, 'default')}
-            />
-          ))}
+          {synLabelsOn &&
+            synapseLabels(synapseGeometry()).map((l) => (
+              <Rect
+                key={l.term}
+                x={l.x}
+                y={l.y}
+                width={l.w}
+                height={l.h}
+                fill={HIT}
+                onClick={() => speakAloud(l.term)}
+                onTap={() => speakAloud(l.term)}
+                onMouseEnter={(e) => cursor(e, 'pointer')}
+                onMouseLeave={(e) => cursor(e, 'default')}
+              />
+            ))}
         </Layer>
       </Stage>
     </div>

@@ -10,7 +10,7 @@ import {
   needsIonKey,
 } from './particleStyle'
 import { ELEMENT_COLOR } from './lipidLabScene'
-import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
+import { spoken, drawSpoken, drawName, named, type SpokenLabel } from './spokenLabels'
 import {
   TRAVELLERS,
   travellerOf,
@@ -104,7 +104,8 @@ export function containerAt(x: number, y: number): TravellerId | null {
     // The tray and the sample perched on its rim — but NOT the name below it,
     // which belongs to the speaker. A bucket that fires when you meant to hear
     // its name, or speaks when you meant to fire it, is the same bug twice.
-    if (x >= c.x - 4 && x <= c.x + c.w + 4 && y >= c.y - 14 && y <= c.y + c.h + 2) return c.sp
+    if (x >= c.x - 4 && x <= c.x + c.w + 4 && y >= c.y - 14 && y <= c.y + c.h + 2)
+      return c.sp
   }
   return null
 }
@@ -202,7 +203,12 @@ const FUNNEL = 5
  *  it, not only one already grazing the wall. */
 const FUNNEL_REACH = 260
 
-export function stepMotes(motes: Mote[], dtMs: number, ms: number, aquaporin: boolean): void {
+export function stepMotes(
+  motes: Mote[],
+  dtMs: number,
+  ms: number,
+  aquaporin: boolean,
+): void {
   const dt = Math.min(50, dtMs) / 1000
   const epoch = Math.floor(ms / 240)
   for (const m of motes) {
@@ -287,7 +293,10 @@ export function firedSpecies(motes: readonly Mote[]): Set<TravellerId> {
 
 /** Crossed counts per species — the readings collecting at the tank's foot. */
 export function crossedCounts(motes: readonly Mote[]): Record<TravellerId, number> {
-  const out = { o2: 0, co2: 0, water: 0, glucose: 0, na: 0 } as Record<TravellerId, number>
+  const out = { o2: 0, co2: 0, water: 0, glucose: 0, na: 0 } as Record<
+    TravellerId,
+    number
+  >
   for (const m of motes) if (m.side === 'below') out[m.sp] += 1
   return out
 }
@@ -468,6 +477,7 @@ export function drawPermea(
   ctx: CanvasRenderingContext2D,
   motes: readonly Mote[],
   aquaporin: boolean,
+  labelsOn = true,
 ): void {
   const counts = crossedCounts(motes)
   // The wall OPENS around whoever is crossing: its molecules are shoved aside
@@ -491,9 +501,15 @@ export function drawPermea(
             const d = x - m.x
             // How far into the wall it has got: the parting swells as it
             // enters and closes behind it.
-            const depth = Math.min(1, Math.max(0, (m.y - (WALL_Y - HALF_MEM)) / (2 * HALF_MEM)))
+            const depth = Math.min(
+              1,
+              Math.max(0, (m.y - (WALL_Y - HALF_MEM)) / (2 * HALF_MEM)),
+            )
             const envelope = Math.sin(Math.PI * depth)
-            return sum + Math.sign(d) * openFor(m.sp) * envelope * Math.exp(-((d / REACH) ** 2))
+            return (
+              sum +
+              Math.sign(d) * openFor(m.sp) * envelope * Math.exp(-((d / REACH) ** 2))
+            )
           }, 0)
 
   ctx.save()
@@ -640,15 +656,33 @@ export function drawPermea(
   ctx.fillStyle = LABEL
   ctx.textAlign = 'left'
   ctx.fillText('🚰 aquaporin', chip.x + 12, chip.y + chip.h / 2 + 4)
+  // ⚠ A NAME, drawn like every other name (found 2026-09-04): it was a bare
+  // fillText sitting beside the spoken names below it — same canvas, two
+  // kinds of label. The '🚰 aquaporin' above is the CHIP's own text, a
+  // control, and stays as it is.
   if (aquaporin) {
-    ctx.fillText('aquaporin', AQP_X * PERMEA_SCALE, (WALL_Y + HALF_MEM + 16) * PERMEA_SCALE)
+    drawName(
+      ctx,
+      named(
+        'aquaporin',
+        AQP_X * PERMEA_SCALE,
+        (WALL_Y + HALF_MEM + 16) * PERMEA_SCALE,
+        'left',
+      ),
+    )
   }
-  for (const l of permeaLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of permeaLabels()) drawSpoken(ctx, l)
 }
 
 // ── Words ───────────────────────────────────────────────────────────────────
 
-export function permeaRightNow(lastShot: TravellerId | null, aquaporin: boolean): TeachingPara[] {
+export function permeaRightNow(
+  lastShot: TravellerId | null,
+  aquaporin: boolean,
+): TeachingPara[] {
   const out: TeachingPara[] = []
   if (lastShot === null) {
     out.push({

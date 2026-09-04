@@ -52,6 +52,15 @@ export function SideDrawer({
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 33 }}
           >
+            {/* ⚠ A DRAWER CLOSES; IT DOES NOT TRAVEL (user, 2026-09-04:
+                "drawers do not need such"). It briefly carried the stage's
+                own "⤢ back to the whole picture" — a misreading of a request
+                that was about the synapse ZOOM view, not this container. The
+                two are different acts: a zoom is somewhere you went, and the
+                camera has to bring you back; a drawer is something you
+                opened OVER where you already are, and closing it is the whole
+                of the return. Naming it as travel would promise a journey
+                that never happens. Escape and a backdrop click also close. */}
             <button
               type="button"
               onClick={onClose}

@@ -9,7 +9,7 @@ import {
 } from './bilayer'
 import { PX_PER_UM } from './layout'
 import { glossySphere } from './particleStyle'
-import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
+import { spoken, drawSpoken, drawConnector, type SpokenLabel } from './spokenLabels'
 import type { TeachingPara } from '../core/neuron'
 
 // D01 — the lipid lab. What the wall is actually made of, why it assembles
@@ -74,7 +74,9 @@ export const CC_BOND_NM = 0.154
 /** Molecule-local logical height, scaled to fill row 1. */
 export const MOL_LOGICAL_H = 268
 export const MOL_SCALE = Math.max(1, (ROW1_H - PANEL_PAD) / MOL_LOGICAL_H)
-export const MOLECULE_MAG = Math.round((CC_STEP * MOL_SCALE) / CC_BOND_NM / SCENE_PX_PER_NM)
+export const MOLECULE_MAG = Math.round(
+  (CC_STEP * MOL_SCALE) / CC_BOND_NM / SCENE_PX_PER_NM,
+)
 
 /** Row 1's width is shared between the two panels — both stretch, so the row
  *  fills the drawer edge to edge. */
@@ -208,7 +210,8 @@ function travel(
   return {
     x: lerp(from.x, to.x, u) + Math.cos(phi) * 20 * wob,
     y: lerp(from.y, to.y, u) + Math.sin(phi) * 14 * wob,
-    angle: lerpAngle(from.angle, to.angle, u) + Math.sin(u * Math.PI * 2 + phi) * 1.2 * wob,
+    angle:
+      lerpAngle(from.angle, to.angle, u) + Math.sin(u * Math.PI * 2 + phi) * 1.2 * wob,
   }
 }
 
@@ -239,7 +242,11 @@ export function clampHeldY(i: number, y: number): number {
 /** Thermal jiggle, a pure function of the clock and the lipid's identity —
  *  no per-lipid state, nothing to shimmer. Free lipids tumble more than
  *  lipids packed in the wall. */
-export function jiggle(i: number, ms: number, free: boolean): { dx: number; dy: number; dth: number } {
+export function jiggle(
+  i: number,
+  ms: number,
+  free: boolean,
+): { dx: number; dy: number; dth: number } {
   // Wall lipids jostle visibly too — a bilayer is a liquid crowd, not a
   // parked one (amplitude raised 2026-08-27 on review: the wall read as
   // still). Free lipids still tumble more.
@@ -355,7 +362,9 @@ export function posesAt(s: LabState, ms: number): LipidPose[] {
 export function coreAlphaAt(s: LabState, ms: number): number {
   if (s.phase === 'wall') return 1
   if (s.phase === 'scattered') return 0
-  const t = clamp01((ms - s.phaseStart) / (s.phase === 'settling' ? SETTLE_MS : SCATTER_MS))
+  const t = clamp01(
+    (ms - s.phaseStart) / (s.phase === 'settling' ? SETTLE_MS : SCATTER_MS),
+  )
   return s.phase === 'settling' ? t * t : (1 - t) * (1 - t)
 }
 
@@ -406,8 +415,12 @@ export const VES_H = Math.round((ROW1_H - PANEL_PAD) / VES_SCALE)
 export const VES_R_MID = 27
 /** Each leaflet carries as many molecules as fit at the real spacing on its
  *  own circumference — the outer one is bigger, so it holds more. */
-export const VES_OUT = Math.round((2 * Math.PI * (VES_R_MID + HALF_MEM - HEAD_R)) / HEAD_GAP)
-export const VES_IN = Math.round((2 * Math.PI * (VES_R_MID - HALF_MEM + HEAD_R)) / HEAD_GAP)
+export const VES_OUT = Math.round(
+  (2 * Math.PI * (VES_R_MID + HALF_MEM - HEAD_R)) / HEAD_GAP,
+)
+export const VES_IN = Math.round(
+  (2 * Math.PI * (VES_R_MID - HALF_MEM + HEAD_R)) / HEAD_GAP,
+)
 export const VES_LIPIDS = VES_OUT + VES_IN
 const VES_CX = VES_W / 2
 const VES_CY = VES_H / 2
@@ -437,9 +450,14 @@ export function vesSlotPose(k: number, slots?: SlotMap): LipidPose {
 /** Where lipid k belongs while `held` is out of the ring: its own leaflet
  *  re-spreads evenly round the full circle — the bag closes — and the other
  *  leaflet does not move. */
-export function vesTargetPose(k: number, held: number | null, slots?: SlotMap): LipidPose {
+export function vesTargetPose(
+  k: number,
+  held: number | null,
+  slots?: SlotMap,
+): LipidPose {
   const outer = k < VES_OUT
-  if (held === null || held === k || outer !== held < VES_OUT) return vesSlotPose(k, slots)
+  if (held === null || held === k || outer !== held < VES_OUT)
+    return vesSlotPose(k, slots)
   const n = outer ? VES_OUT : VES_IN
   const j = slots ? slots[k] : outer ? k : k - VES_OUT
   const heldJ = slots ? slots[held] : held < VES_OUT ? held : held - VES_OUT
@@ -454,7 +472,12 @@ export function vesTargetPose(k: number, held: number | null, slots?: SlotMap): 
 
 /** A released vesicle lipid rejoins the ring at the NEAREST place — the same
  *  shortest-path rule as the wall, on a circle. */
-export function vesReinsertSlots(slots: SlotMap, k: number, x: number, y: number): number[] {
+export function vesReinsertSlots(
+  slots: SlotMap,
+  k: number,
+  x: number,
+  y: number,
+): number[] {
   const outer = k < VES_OUT
   const n = outer ? VES_OUT : VES_IN
   const phi = Math.atan2(y - VES_CY, x - VES_CX)
@@ -557,7 +580,8 @@ export function vesPosesAt(s: LabState, ms: number): LipidPose[] {
   for (let k = 0; k < VES_LIPIDS; k++) {
     if (s.phase === 'settling' || s.phase === 'scattering') {
       const dir: TransitDir = s.phase === 'settling' ? 'settle' : 'scatter'
-      const from = dir === 'settle' ? vesScatterPose(k, s.seed) : vesSlotPose(k, s.vesSlots)
+      const from =
+        dir === 'settle' ? vesScatterPose(k, s.seed) : vesSlotPose(k, s.vesSlots)
       const to = dir === 'settle' ? vesSlotPose(k, s.vesSlots) : vesScatterPose(k, s.seed)
       poses.push(travel(from, to, k + 100, ms - s.phaseStart, dir, s.seed))
       continue
@@ -585,7 +609,9 @@ export function vesPosesAt(s: LabState, ms: number): LipidPose[] {
       poses.push({
         x: lerp(s.vesReturning.x, home.x, u) + j.dx * (1 - u),
         y: lerp(s.vesReturning.y, home.y, u) + j.dy * (1 - u),
-        angle: lerpAngle(vesHeldAngle(k, s.vesReturning.x, s.vesReturning.y), home.angle, u) + j.dth,
+        angle:
+          lerpAngle(vesHeldAngle(k, s.vesReturning.x, s.vesReturning.y), home.angle, u) +
+          j.dth,
       })
       continue
     }
@@ -594,11 +620,19 @@ export function vesPosesAt(s: LabState, ms: number): LipidPose[] {
     if (s.vesHeld) {
       const u = smooth((ms - s.vesHeld.since) / CLOSE_MS)
       const t = vesTargetPose(k, s.vesHeld.k, s.vesSlots)
-      p = { x: lerp(home.x, t.x, u), y: lerp(home.y, t.y, u), angle: lerpAngle(home.angle, t.angle, u) }
+      p = {
+        x: lerp(home.x, t.x, u),
+        y: lerp(home.y, t.y, u),
+        angle: lerpAngle(home.angle, t.angle, u),
+      }
     } else if (s.vesReturning) {
       const u = smooth((ms - s.vesReturning.at) / CLOSE_MS)
       const t = vesTargetPose(k, s.vesReturning.k, s.vesSlots)
-      p = { x: lerp(t.x, home.x, u), y: lerp(t.y, home.y, u), angle: lerpAngle(t.angle, home.angle, u) }
+      p = {
+        x: lerp(t.x, home.x, u),
+        y: lerp(t.y, home.y, u),
+        angle: lerpAngle(t.angle, home.angle, u),
+      }
     }
     const j = jiggle(k + 100, ms, false)
     poses.push({ x: p.x + j.dx, y: p.y + j.dy, angle: p.angle + j.dth })
@@ -611,7 +645,6 @@ export function vesPosesAt(s: LabState, ms: number): LipidPose[] {
 const WATER = 'rgba(96, 165, 250, 0.05)'
 const RING = '#f59e0b'
 const LABEL = '#cbd5e1'
-const LEADER = '#64748b'
 const KINK = 1.6
 
 // Speakable names (F04) live in stage/spokenLabels.ts, shared with every
@@ -631,7 +664,12 @@ export const vesicleLabels = (): SpokenLabel[] => [
 
 /** The water box: faint water, the oily middle once it exists, and every
  *  lipid wherever its pose puts it — the held one drawn last, on top. */
-export function drawLab(ctx: CanvasRenderingContext2D, s: LabState, ms: number): void {
+export function drawLab(
+  ctx: CanvasRenderingContext2D,
+  s: LabState,
+  ms: number,
+  labelsOn = true,
+): void {
   ctx.save()
   ctx.scale(LAB_SCALE, LAB_SCALE)
   ctx.fillStyle = WATER
@@ -671,13 +709,21 @@ export function drawLab(ctx: CanvasRenderingContext2D, s: LabState, ms: number):
   ctx.font = '11px system-ui, sans-serif'
   ctx.textAlign = 'right'
   ctx.fillText(`×${WALL_MAG.toLocaleString('en-US')}`, LAB_W * LAB_SCALE - 8, 16)
-  for (const l of tankLabels()) drawSpoken(ctx, l)
+  // ⚠ Gated by the app's one 🏷 switch (user, 2026-09-04: unify labels
+  // "everywhere"). Readings on a scale are never hidden by it — a graph
+  // without its axis is not a simpler graph — only NAMES.
+  if (labelsOn) for (const l of tankLabels()) drawSpoken(ctx, l)
 }
 
 const ROSE = '244, 171, 189'
 
 /** The vesicle tank: same water, same molecules, the closed shape. */
-export function drawVesicle(ctx: CanvasRenderingContext2D, s: LabState, ms: number): void {
+export function drawVesicle(
+  ctx: CanvasRenderingContext2D,
+  s: LabState,
+  ms: number,
+  labelsOn = true,
+): void {
   ctx.save()
   ctx.scale(VES_SCALE, VES_SCALE)
   ctx.fillStyle = WATER
@@ -725,7 +771,7 @@ export function drawVesicle(ctx: CanvasRenderingContext2D, s: LabState, ms: numb
   ctx.font = '11px system-ui, sans-serif'
   ctx.textAlign = 'right'
   ctx.fillText(`×${VES_MAG.toLocaleString('en-US')}`, VES_W * VES_SCALE - 8, 16)
-  for (const l of vesicleLabels()) drawSpoken(ctx, l)
+  if (labelsOn) for (const l of vesicleLabels()) drawSpoken(ctx, l)
 }
 
 /** CSS height of the molecule panel's canvas (its width is set with the row
@@ -753,7 +799,13 @@ export const MOLECULE_H = Math.round(MOL_LOGICAL_H * MOL_SCALE)
 export type ElementK = 'C' | 'H' | 'O' | 'N' | 'P'
 
 /** Van-der-Waals-ish size ratios: H 0.45, O/N 1.05, P 1.25 of carbon. */
-export const ELEMENT_R: Record<ElementK, number> = { C: 6.5, H: 3, O: 6.8, N: 6.8, P: 8.1 }
+export const ELEMENT_R: Record<ElementK, number> = {
+  C: 6.5,
+  H: 3,
+  O: 6.8,
+  N: 6.8,
+  P: 8.1,
+}
 
 export const ELEMENT_COLOR: Record<ElementK, string> = {
   C: '#6b7688', // graphite — the same grey family as the schematic tails
@@ -868,7 +920,7 @@ export function buildPhospholipid(): Phospholipid {
       const len = Math.hypot(d.dx, d.dy)
       const px = -d.dy / len
       const py = d.dx / len
-      const zig = (i % 2 === 0 ? -2.6 : 2.6)
+      const zig = i % 2 === 0 ? -2.6 : 2.6
       const cx = x + px * zig
       const cy = y + py * zig
       C(cx, cy)
@@ -882,9 +934,15 @@ export function buildPhospholipid(): Phospholipid {
   }
 
   // sn-1 (left): saturated, straight-ish, leaning left.
-  const left = tail(-26, 106, TAIL_C_DRAWN[0], { dx: -2.0, dy: 9.3 }, null, { dx: 0, dy: 0 })
+  const left = tail(-26, 106, TAIL_C_DRAWN[0], { dx: -2.0, dy: 9.3 }, null, {
+    dx: 0,
+    dy: 0,
+  })
   // sn-2 (right): unsaturated — four carbons down, then the cis bend.
-  const right = tail(16, 104, TAIL_C_DRAWN[1], { dx: 2.0, dy: 9.3 }, 4, { dx: 6.6, dy: 6.9 })
+  const right = tail(16, 104, TAIL_C_DRAWN[1], { dx: 2.0, dy: 9.3 }, 4, {
+    dx: 6.6,
+    dy: 6.9,
+  })
 
   return {
     heavy,
@@ -935,9 +993,21 @@ export function moleculeLabels(): Array<SpokenLabel & { tx?: number; ty?: number
   const tey = P(MOL_OY + MOLECULE.leftTailEnd.y)
   return [
     spoken('phospholipid', MOL_FRAME.x + 18, Math.max(16, MOL_FRAME.y - 6)),
-    { ...spoken('choline', P(MOL_OX + 40) + 14, P(MOL_OY - 12)), tx: P(MOL_OX + 15), ty: P(MOL_OY - 8) },
-    { ...spoken('phosphate', P(MOL_OX + 42) + 14, P(MOL_OY + 44)), tx: P(MOL_OX + 22), ty: P(MOL_OY + 43) },
-    { ...spoken('glycerol', P(MOL_OX - 44) - 14, P(MOL_OY + 62), 'right'), tx: P(MOL_OX - 12), ty: P(MOL_OY + 66) },
+    {
+      ...spoken('choline', P(MOL_OX + 40) + 14, P(MOL_OY - 12)),
+      tx: P(MOL_OX + 15),
+      ty: P(MOL_OY - 8),
+    },
+    {
+      ...spoken('phosphate', P(MOL_OX + 42) + 14, P(MOL_OY + 44)),
+      tx: P(MOL_OX + 22),
+      ty: P(MOL_OY + 43),
+    },
+    {
+      ...spoken('glycerol', P(MOL_OX - 44) - 14, P(MOL_OY + 62), 'right'),
+      tx: P(MOL_OX - 12),
+      ty: P(MOL_OY + 66),
+    },
     { ...spoken('kink', kxs + 42, kys + 4), tx: kxs + 10, ty: kys },
     { ...spoken('fatty-acid tails', tex + 16, tey + 26), tx: tex + 4, ty: tey + 8 },
   ]
@@ -964,8 +1034,12 @@ export function moleculeLabels(): Array<SpokenLabel & { tx?: number; ty?: number
 export function headCircle(): { x: number; y: number; r: number } {
   const HEAD_BELOW = 56
   const atoms = [
-    ...MOLECULE.heavy.filter((a) => a.y <= HEAD_BELOW).map((a) => ({ ...a, r: ELEMENT_R[a.k] })),
-    ...MOLECULE.hydrogens.filter((a) => a.y <= HEAD_BELOW).map((a) => ({ ...a, r: ELEMENT_R.H })),
+    ...MOLECULE.heavy
+      .filter((a) => a.y <= HEAD_BELOW)
+      .map((a) => ({ ...a, r: ELEMENT_R[a.k] })),
+    ...MOLECULE.hydrogens
+      .filter((a) => a.y <= HEAD_BELOW)
+      .map((a) => ({ ...a, r: ELEMENT_R.H })),
   ]
   const xs = atoms.map((a) => a.x)
   const ys = atoms.map((a) => a.y)
@@ -977,7 +1051,11 @@ export function headCircle(): { x: number; y: number; r: number } {
 
 /** One molecule of the wall, atoms and all, gently vibrating. Names and
  *  leader lines only — every sentence is in the describer. */
-export function drawMolecule(ctx: CanvasRenderingContext2D, ms: number): void {
+export function drawMolecule(
+  ctx: CanvasRenderingContext2D,
+  ms: number,
+  labelsOn = true,
+): void {
   const sphere = (x: number, y: number, r: number, base: string) =>
     glossySphere(ctx, x, y, r, base)
 
@@ -1072,17 +1150,16 @@ export function drawMolecule(ctx: CanvasRenderingContext2D, ms: number): void {
   ctx.lineTo(mx - 9, my - 3)
   ctx.stroke()
 
-  // Names, each with its voice glyph; leaders to their parts.
-  for (const l of moleculeLabels()) {
-    if (l.tx !== undefined && l.ty !== undefined) {
-      ctx.strokeStyle = LEADER
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(l.ax + (l.align === 'left' ? -4 : 4), l.ay - 4)
-      ctx.lineTo(l.tx, l.ty)
-      ctx.stroke()
+  // Names, each with its voice glyph; leaders to their parts — the app's one
+  // leader idiom (2026-09-04), which leaves the label's box centre rather
+  // than its ink edge.
+  if (labelsOn) {
+    for (const l of moleculeLabels()) {
+      if (l.tx !== undefined && l.ty !== undefined) {
+        drawConnector(ctx, l, { x: l.tx, y: l.ty })
+      }
+      drawSpoken(ctx, l)
     }
-    drawSpoken(ctx, l)
   }
 
   ctx.fillStyle = LABEL
