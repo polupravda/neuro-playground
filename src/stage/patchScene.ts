@@ -1,3 +1,4 @@
+import { drawVoltageChannel } from './voltageChannel'
 import {
   PATCH_WINDOW_MS,
   dwells,
@@ -6,12 +7,8 @@ import {
   unitaryPa,
 } from '../core/patchClamp'
 import {
-  CHANNEL_DARK,
-  CHANNEL_MID,
-  drawGatedChannel,
   drawLipids,
   HALF_MEM,
-  mix,
   PX_PER_NM,
 } from './bilayer'
 import {
@@ -61,6 +58,11 @@ export const TRACE_X = 58
 export const TRACE_W = PC_W - TRACE_X - 18
 
 const LABEL = '#cbd5e1'
+/** How loud the charge wash is at full polarity. Exported because the bug was
+ *  a VALUE — the ramp's colours were always right and its strength was not —
+ *  and the way to pin a value is to test the value. */
+export const WASH_PEAK = 0.78
+
 const GRID = 'rgba(148, 163, 184, 0.16)'
 const GLASS = 'rgba(186, 230, 253, 0.35)'
 const TRACE = '#fbbf24'
@@ -110,7 +112,18 @@ function drawRig(ctx: CanvasRenderingContext2D, vm: number, now: number): void {
   const t = polarityT(vm)
   if (Math.abs(t) > 0.01) {
     const from = wallY + HALF_MEM * scale
-    ctx.fillStyle = chargeWash(ctx, from, RIG_H, t)
+    // ⚠ LOUDER THAN THE DEFAULT, so RED READS (user, 2026-08-30: "when I keep
+    // charge positive, I expect to see red color-coding").
+    //
+    // The ramp was always right — red for an inside gone positive, blue for
+    // one held negative, the same `chargeRamp` the neuron scene and the spike
+    // graph use. What was wrong was the STRENGTH. This clamp's steps are −72,
+    // 0 and +40 mV, and the wash's alpha is proportional to how far from zero
+    // the membrane is: at rest it came out at 0.39 and at the top step at
+    // 0.24, so the blue was two-thirds louder than the red and the red barely
+    // registered. The proportion between them is honest and is kept; the whole
+    // ramp is simply turned up so the quieter end of it is visible at all.
+    ctx.fillStyle = chargeWash(ctx, from, RIG_H, t, WASH_PEAK)
     ctx.fillRect(0, from, PC_W, RIG_H - from)
   }
 
@@ -153,13 +166,20 @@ function drawRig(ctx: CanvasRenderingContext2D, vm: number, now: number): void {
     to: cx / scale,
     gaps: [[-1.2 * PX_PER_NM, 1.2 * PX_PER_NM]],
   })
-  drawGatedChannel(ctx, {
+  // ⚠ THE TRACED VOLTAGE-GATED SHAPE, IN PURPLE, WITH NO BALL (user,
+  // 2026-08-30). This clamp records a voltage-gated potassium channel — and
+  // its model is two-state, open and closed, with no inactivation anywhere in
+  // it. A ball plugging the pore would be a mechanism the trace directly
+  // underneath visibly never performs, which is the worst place in the app to
+  // put one.
+  drawVoltageChannel(ctx, {
     cx: 0,
     midY: 0,
     open: open ? 1 : 0,
-    mid: mix(CHANNEL_MID, GLOSSY_COLORS.k.mid, 0.3),
-    dark: mix(CHANNEL_DARK, GLOSSY_COLORS.k.dark, 0.25),
     species: GLOSSY_COLORS.k.mid,
+    speciesDark: GLOSSY_COLORS.k.dark,
+    plug: 0,
+    ball: false,
   })
   ctx.restore()
 

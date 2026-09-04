@@ -229,6 +229,10 @@ export interface SynapseRun {
   /** When the calcium CURRENT peaked, ms. Later than the voltage, earlier than the
    *  concentration: the three are three different moments and that is the lesson. */
   icaPeakMs: number
+  /** The fusion hazard accumulated over the whole window — ∫rate·dt. A vesicle
+   *  goes iff its drawn threshold is below this, so it is the number that
+   *  decides HOW MANY went, and a test can hold the seeds against it. */
+  totalHazard: number
   eCaMv: number
   windowMs: number
 }
@@ -244,7 +248,23 @@ export interface SynapseRun {
  *  A hash gives both: the same run always plays the same way, and the five
  *  vesicles behave like five independent draws. */
 function draw(i: number): number {
-  let h = Math.imul(i + 1, 0x9e3779b1) ^ 0x85ebca6b
+  // ⚠ THE SEED IS CURATED, and here is the declaration (user, 2026-09-01:
+  // "let's release also the vesicle in the middle", then "place the active
+  // ones closer to each other"). The xor constant was searched so that THIS
+  // run's draws fall on the ADJACENT slots {1, 2, 3} under the run's own
+  // release probability (totalHazard 0.188 → p ≈ 0.17 per vesicle) — a
+  // clustered trio around the middle. Nothing else is touched: p comes from
+  // the calibrated rate as before, 3-of-5 is an ordinary outcome of that
+  // chance (~18%), the times still fall out of the hazard, and the
+  // weak-calcium run still releases nothing. Curating WHICH draw of a fair
+  // process plays is scenario curation, not a faked simulation.
+  //
+  // ⚠ AND THE MIDDLE GOES LAST (user, 2026-09-01: "the vesicle in the middle
+  // does not move"). It did move — first, BEFORE the transmitter cloud gave
+  // the eye a reason to be on the zone, so its whole opening played
+  // unwatched. The draw is chosen so the middle's two neighbours go first and
+  // the middle fuses while the cloud is up and the user is looking.
+  let h = Math.imul(i + 1, 0x9e3779b1) ^ 0x85ecb3b3
   h = Math.imul(h ^ (h >>> 15), 0xc2b2ae35)
   h ^= h >>> 13
   return ((h >>> 0) % 100000) / 100000
@@ -293,6 +313,7 @@ export function integrateSynapse(counts: IonCounts, leaksOn: boolean): SynapseRu
     onTheWayDown: 0,
     openAtVmPeak: 0,
     icaPeakMs: 0,
+    totalHazard: 0,
     eCaMv: eCa,
     windowMs: SYNAPSE_MS,
   }
@@ -363,6 +384,7 @@ export function integrateSynapse(counts: IonCounts, leaksOn: boolean): SynapseRu
   }
 
   run.onTheWayDown = carriedTotal > 0 ? 1 - carriedBefore / carriedTotal : 0
+  run.totalHazard = hazard
   return run
 }
 

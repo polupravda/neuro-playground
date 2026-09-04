@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { strictCanvas } from './strictCanvas'
-import { HEAD_R, HEAD_GAP, TAIL_LEN, HALF_MEM, MID_SEAM, PX_PER_NM,
-  drawGatedChannel
-} from './bilayer'
+import { HEAD_R, HEAD_GAP, TAIL_LEN, HALF_MEM, MID_SEAM, PX_PER_NM } from './bilayer'
 import { LIPID_HEAD_NM, LIPID_SPACING_NM, MEMBRANE_THICKNESS_NM } from '../core/membrane'
 
 // The phospholipid's proportions, pinned to the measured bilayer they came
@@ -46,54 +43,9 @@ describe('the phospholipid, against the real thing', () => {
   })
 })
 
-describe('the channel silhouette', () => {
-  it('is TWO subunits with a gap, not one body with a slot', () => {
-    // ⚠ It was one outline with a hole cut in it, and the user judged it
-    // "not even close" to the reference figure (2026-08-28). They were right,
-    // and the difference is not cosmetic: a channel IS several separate
-    // protein subunits standing in a ring, and the gap between them IS the
-    // way through. Two closed paths, not one.
-    const c = strictCanvas()
-    drawGatedChannel(c.ctx, {
-      cx: 40,
-      midY: 40,
-      open: 1,
-      mid: '#a78bfa',
-      dark: '#6d28d9',
-      species: '#a78bfa',
-    })
-    expect(c.calls.filter((k) => k === 'closePath').length).toBeGreaterThanOrEqual(2)
-    // Lobed edges, which is what beziers are for here.
-    expect(c.calls).toContain('bezierCurveTo')
-  })
-
-  it('opens by widening the gap, never by moving the subunits apart', () => {
-    // The protein does not fly apart. What changes is the pore between the
-    // same two pieces — so a wider opening must not make the whole thing
-    // wider.
-    const wide = strictCanvas()
-    const shut = strictCanvas()
-    const base = { cx: 40, midY: 40, mid: '#a78bfa', dark: '#6d28d9', species: '#a78bfa' }
-    drawGatedChannel(wide.ctx, { ...base, open: 1 })
-    drawGatedChannel(shut.ctx, { ...base, open: 0 })
-    // Same shape, same number of strokes: only the numbers inside differ.
-    expect(wide.calls.filter((k) => k === 'closePath').length).toBe(
-      shut.calls.filter((k) => k === 'closePath').length,
-    )
-  })
-
-  it('has no gate flap or sensor of its own any more', () => {
-    // Both belonged to the voltage-gated channel, which is a TRACED drawing
-    // now with its own flap and its own inactivation ball (2026-08-29). Dead
-    // options on a shared drawing are worse than dead code — the next caller
-    // reaches for them — so they were removed rather than left switched off.
-    const base = { cx: 40, midY: 40, open: 1, mid: '#a78bfa', dark: '#6d28d9', species: '#a78bfa' }
-    const plain = strictCanvas()
-    drawGatedChannel(plain.ctx, base)
-    const asked = strictCanvas()
-    // @ts-expect-error the options are gone, and asking for them must not
-    // quietly draw something.
-    drawGatedChannel(asked.ctx, { ...base, sensor: true, gate: 0.5 })
-    expect(asked.calls).toEqual(plain.calls)
-  })
-})
+// ⚠ THE `drawGatedChannel` TESTS WENT WITH THE DRAWING (2026-08-30).
+//
+// They pinned a generic lobed silhouette that no longer exists: every caller
+// now draws the protein it actually means, and each of those has its own
+// tests. Keeping these would have been a suite defending a shape nothing
+// renders — which is worse than no test, because it reads as coverage.

@@ -1,10 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { useGatingStore, busyNow } from '../state/gatingStore'
+import { useChannelStore } from '../state/channelStore'
 import { SideDrawer } from './SideDrawer'
 import { Section } from './InfoPanel'
-import { speakAloud } from './SpeakButton'
-import { spokenTermAt } from '../stage/spokenLabels'
-import { PANEL_W, PANEL_H, drawFamilyPanel, panelLabels } from '../stage/gatingScene'
+import { SpeakButton } from './SpeakButton'
+import {
+  PANEL_W,
+  PANEL_H,
+  drawFamilyPanel,
+  lensChipAt,
+  panelTerm,
+} from '../stage/gatingScene'
 import {
   FAMILIES,
   GATING_PARTS,
@@ -47,6 +53,7 @@ const CAUSE: Record<FamilyId, string> = {
 function Panel({ id }: { id: FamilyId }) {
   const since = useGatingStore((s) => s.since[id])
   const poke = useGatingStore((s) => s.poke)
+  const openStructure = useChannelStore((s) => s.openBench)
   const family = FAMILIES.find((f) => f.id === id)!
   const tint = GLOSSY_COLORS[family.tint]
   const ref = useRef<HTMLCanvasElement>(null)
@@ -74,21 +81,49 @@ function Panel({ id }: { id: FamilyId }) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 rounded-xl border border-slate-700 bg-slate-950/40 p-2">
-      <h3 className="px-1 text-[13px] font-semibold" style={{ color: tint.mid }}>
-        <span aria-hidden>{family.icon}</span> {family.name}
+      {/* ⚠ THE SPEAKER SITS IN FRONT OF THE TITLE (user, 2026-08-30), not on
+          the canvas. The word it pronounces is written right here; putting the
+          button anywhere else made the child hunt for a word they could
+          already read, and cost the drawing space it needed. */}
+      <h3
+        className="flex items-center gap-1.5 px-1 text-[13px] font-semibold"
+        style={{ color: tint.mid }}
+      >
+        <SpeakButton text={panelTerm(id)} />
+        <span aria-hidden>{family.icon}</span>
+        <span className="min-w-0 truncate">{family.name}</span>
       </h3>
-      <p className="px-1 text-[11px] leading-snug text-slate-400">
-        Opens when {family.opensWhen}.
+      {/* ⚠ A FIXED HEIGHT, so the four MEMBRANES line up (user, 2026-08-30:
+          "because the text line got shorter, the image got lifted").
+          Every panel's canvas is the same size and draws its wall at the same
+          place inside it, so the walls agree only as long as the canvases
+          start at the same y — and this line is the one thing above them whose
+          height depends on what it says. Rewriting the leak's sentence shorter
+          lifted its whole picture, which is a caption moving a membrane.
+          Anything laid above a row of drawings has to be a fixed size, or the
+          drawings are not a row.
+
+          Sized for THREE lines, not the two these sentences take on a wide
+          screen: the panels narrow as the window does, and a height that fits
+          exactly today's longest sentence clips it on a smaller display —
+          swapping a moving membrane for a truncated one. */}
+      <p className="h-[46px] shrink-0 overflow-hidden px-1 text-[11px] leading-snug text-slate-400">
+        {family.opensLine ?? `Opens when ${family.opensWhen}.`}
       </p>
       <canvas
         ref={ref}
         onPointerDown={(e) => {
+          if (id !== 'leak') return
           const box = e.currentTarget.getBoundingClientRect()
-          const term = spokenTermAt(panelLabels(id), e.clientX - box.left, e.clientY - box.top)
-          if (term) speakAloud(term)
+          if (lensChipAt(e.clientX - box.left, e.clientY - box.top)) openStructure()
         }}
-        style={{ width: PANEL_W, height: PANEL_H, touchAction: 'none', cursor: 'pointer' }}
-        aria-label={`${family.name}: opens when ${family.opensWhen}`}
+        style={{
+          width: PANEL_W,
+          height: PANEL_H,
+          touchAction: 'none',
+          cursor: id === 'leak' ? 'zoom-in' : 'default',
+        }}
+        aria-label={family.opensLine ?? `${family.name}: opens when ${family.opensWhen}`}
       />
       {isGated(id) ? (
         <button
@@ -105,9 +140,19 @@ function Panel({ id }: { id: FamilyId }) {
           <span aria-hidden>{family.icon}</span> {CAUSE[id]}
         </button>
       ) : (
-        <p className="flex h-[38px] items-center justify-center px-2 text-center text-[11px] leading-snug text-slate-500">
-          No button — it has no gate to open.
-        </p>
+        /* ⚠ AN EMPTY SLOT, and it has to stay exactly the button's height
+           (user, 2026-08-30: "'How it is built' is incorrectly placed. It does
+           a different action than the rest of the buttons").
+           
+           A magnifier that navigates elsewhere was sitting where the other
+           three panels keep the CAUSE that opens their door — the wrong
+           promise, right beside three buttons keeping it. It has moved onto
+           the canvas as a magnifier chip, which is this app's own grammar for
+           "there is more to see here" and cannot be mistaken for a cause.
+           
+           The space stays because the four canvases must start at the same y,
+           or the membranes stop lining up. */
+        <div className="h-[38px]" aria-hidden />
       )}
     </div>
   )

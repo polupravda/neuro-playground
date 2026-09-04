@@ -9,11 +9,13 @@ import { SpikeTrainBench } from './ui/SpikeTrainBench'
 import { LipidLab } from './ui/LipidLab'
 import { PermeaBench } from './ui/PermeaBench'
 import { CapacitorBench } from './ui/CapacitorBench'
+import { RestingBench } from './ui/RestingBench'
 import { ChannelBench } from './ui/ChannelBench'
 import { FilterBench } from './ui/FilterBench'
 import { PatchBench } from './ui/PatchBench'
 import { GatingBench } from './ui/GatingBench'
 import { ScalesBench } from './ui/ScalesBench'
+import { SnareBench } from './ui/SnareBench'
 import { ContentsRail } from './ui/ContentsRail'
 
 export default function App() {
@@ -82,12 +84,23 @@ export default function App() {
         <LipidLab />
         <PermeaBench />
         <CapacitorBench />
+        <RestingBench />
+        {/* ⚠ MOUNT ORDER IS Z-ORDER HERE. Every drawer is `fixed z-50`, so
+            among equals the one written LATER paints on top — which makes this
+            list an ordering, not a bag. A drawer that can be opened FROM
+            another must come after it, or it opens behind the one that opened
+            it and looks like a dead button.
+
+            The chain is: types → structure → filter close-up. */}
+        <GatingBench />
         <ChannelBench />
-        {/* Reached from the filter inside the channel drawer, not from a list. */}
+        {/* Reached from the filter inside the channel drawer, and from the
+            magnifier on the gating bench's potassium panel — not from a list. */}
         <FilterBench />
         {/* Reached by tapping the electrode in the spike-train bench. */}
         <PatchBench />
-        <GatingBench />
+        {/* Reached from the fusing vesicle on the synapse view. */}
+        <SnareBench />
         {/* One signal at three sizes — draws its own views, touches nothing. */}
         <ScalesBench />
       </main>

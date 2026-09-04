@@ -193,3 +193,61 @@ export function tracePath(
     }
   }
 }
+
+/** Segments → a polyline, curves flattened.
+ *
+ *  Enough to ASK THINGS OF A TRACED SHAPE rather than only draw it: where is
+ *  this outline's floor at that x? The synapse needed it because its vesicles
+ *  were being laid along a straight line while the bouton's foot is a curve,
+ *  which put the outer ones outside the cell (user, 2026-09-01).
+ *
+ *  A fixed number of steps per curve, not an adaptive flattener: the shapes here
+ *  are small and the answer feeds a placement, not a hit test. */
+export function flattenPath(segs: readonly Seg[], per = 24): { x: number; y: number }[] {
+  const out: { x: number; y: number }[] = []
+  let x = 0
+  let y = 0
+  let startX = 0
+  let startY = 0
+  for (const s of segs) {
+    if (s.kind === 'close') {
+      out.push({ x: startX, y: startY })
+      x = startX
+      y = startY
+      continue
+    }
+    if (s.kind === 'move') {
+      x = s.x
+      y = s.y
+      startX = x
+      startY = y
+      out.push({ x, y })
+      continue
+    }
+    if (s.kind === 'line') {
+      x = s.x
+      y = s.y
+      out.push({ x, y })
+      continue
+    }
+    for (let i = 1; i <= per; i++) {
+      const t = i / per
+      const u = 1 - t
+      if (s.kind === 'quad') {
+        out.push({
+          x: u * u * x + 2 * u * t * s.x1 + t * t * s.x,
+          y: u * u * y + 2 * u * t * s.y1 + t * t * s.y,
+        })
+      } else {
+        out.push({
+          x: u * u * u * x + 3 * u * u * t * s.x1 + 3 * u * t * t * s.x2 + t * t * t * s.x,
+          y: u * u * u * y + 3 * u * u * t * s.y1 + 3 * u * t * t * s.y2 + t * t * t * s.y,
+        })
+      }
+    }
+    x = s.x
+    y = s.y
+  }
+  return out
+}
+

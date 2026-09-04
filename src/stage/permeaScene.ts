@@ -1,13 +1,6 @@
-import {
-  HALF_MEM,
-  HEAD_GAP,
-  PX_PER_NM,
-  drawLipids,
-  drawGatedChannel,
-  mix,
-  CHANNEL_MID,
-  CHANNEL_DARK,
-} from './bilayer'
+import { drawResetChip, resetChipBox, resetChipHit, RESET_LABEL } from './resetChip'
+import { drawAquaporin } from './aquaporin'
+import { HALF_MEM, HEAD_GAP, PX_PER_NM, drawLipids } from './bilayer'
 import { PX_PER_UM } from './layout'
 import {
   glossySphere,
@@ -83,6 +76,13 @@ export interface Container {
  *  the tray promise a different creature from the one that comes out. The
  *  tray is a bucket of that substance, not a diagram of it. */
 export const TRAY_KEY_MAG = 1
+
+/** The tray's corner radius and rim, in THIS bench's logical units — exported
+ *  so the resting bench can be checked against them rather than against a
+ *  number copied by eye. Both are drawn inside a ×`PERMEA_SCALE` context, so
+ *  on screen they are four times these (2026-08-30). */
+export const PERMEA_TRAY_R = 6
+export const PERMEA_TRAY_LINE = 1
 
 const CONT_W = 112 / PERMEA_SCALE
 const CONT_H = 26 / PERMEA_SCALE
@@ -445,14 +445,18 @@ export function aquaporinChip(): { x: number; y: number; w: number; h: number } 
 }
 
 /** ↺ Reset, on the canvas rather than above it — the drawer has no room to
- *  spare and a control belongs with the thing it controls (2026-08-28). */
+ *  spare and a control belongs with the thing it controls (2026-08-28).
+ *
+ *  ⚠ Its geometry moved to `stage/resetChip` (2026-08-30): this bench is the
+ *  source of truth for how a reset looks, so the numbers had to be somewhere
+ *  every other bench could reach them rather than here where they were copied
+ *  from by eye. */
 export function resetChip(): { x: number; y: number; w: number; h: number } {
-  return { x: 14, y: 12, w: 92, h: 28 }
+  return resetChipBox()
 }
 
 export function resetChipAt(x: number, y: number): boolean {
-  const c = resetChip()
-  return x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h
+  return resetChipHit(x, y)
 }
 
 export function aquaporinChipAt(x: number, y: number): boolean {
@@ -508,17 +512,25 @@ export function drawPermea(
     ctx.fillStyle = '#1e293b'
     ctx.strokeStyle = '#334155'
     ctx.beginPath()
-    ctx.roundRect(c.x, c.y, c.w, c.h, 6)
+    ctx.roundRect(c.x, c.y, c.w, c.h, PERMEA_TRAY_R)
     ctx.fill()
     ctx.stroke()
     // A spent tray keeps a GHOST of what it held: the bucket is empty, but
     // the child still needs to know which one it was — and, once several have
     // been fired, what all five were (2026-08-28).
     //
-    // Drawn ON the tray, overlapping its middle, rather than perched above
-    // its rim: a sample balanced on the edge reads as a separate object that
-    // happens to be nearby, and the tray is meant to be holding it.
-    drawTraveller(ctx, c.sp, c.cx, c.y + c.h / 2, TRAY_KEY_MAG, 1, 0, true)
+    // ⚠ PERCHED ON THE RIM, and this REVERSES the 2026-08-28 decision recorded
+    // here, at the user's request (2026-08-30: "place the molecules 'sitting'
+    // on the buckets").
+    //
+    // The old reasoning was that a sample balanced on the edge reads as a
+    // separate object that happens to be nearby. What settles it the other way
+    // is the resting bench, whose buckets you DRAG things off: there, sitting
+    // on the rim is what says "there are more of these, take one". The two
+    // benches were drawn differently for a round, the user saw both, and chose
+    // this one for both. Overlapping the rim rather than floating above it is
+    // what keeps the tray reading as holding it.
+    drawTraveller(ctx, c.sp, c.cx, c.y, TRAY_KEY_MAG, 1, 0, true)
     ctx.restore()
   }
 
@@ -529,15 +541,18 @@ export function drawPermea(
     : []
   drawLipids(ctx, { midY: WALL_Y, from: 0, to: PT_W, gaps: gap, pushAt })
   if (aquaporin) {
-    drawGatedChannel(ctx, {
+    // ⚠ ITS OWN PROTEIN, not an ion channel wearing a different tint (user,
+    // 2026-08-30). It used to borrow the generic gated-channel drawing with
+    // `open: 0.45` — a door held permanently ajar — which said an aquaporin is
+    // one of the four doors, half-open. It is not one of them at all: no gate,
+    // no ions, and a WAIST too narrow for a hydrated one. That pinch is the
+    // whole mechanism and the generic shape did not have it.
+    drawAquaporin(ctx, {
       cx: AQP_X,
       midY: WALL_Y,
-      // An aquaporin has no gate: it is open, narrowly, always.
-      open: 0.45,
-      mid: mix(CHANNEL_MID, AQP_TINT, 0.3),
-      dark: mix(CHANNEL_DARK, AQP_TINT, 0.25),
+      halfHeight: 13,
       species: AQP_TINT,
-      halfWidth: 13,
+      speciesDark: AQP_TINT,
     })
   }
 
@@ -594,18 +609,7 @@ export function drawPermea(
   // A switch, not a wordy chip: a track with a knob that slides, which a
   // child reads as on/off without reading anything.
   // The way back to an empty tank, always in the same corner.
-  const rc = resetChip()
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.15)'
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)'
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.roundRect(rc.x, rc.y, rc.w, rc.h, 9)
-  ctx.fill()
-  ctx.stroke()
-  ctx.fillStyle = '#fcd34d'
-  ctx.font = '12px system-ui, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillText('↺ Reset', rc.x + rc.w / 2, rc.y + 18)
+  drawResetChip(ctx)
 
   const chip = aquaporinChip()
   ctx.fillStyle = 'rgba(30, 41, 59, 0.92)'
@@ -649,7 +653,7 @@ export function permeaRightNow(lastShot: TravellerId | null, aquaporin: boolean)
   if (lastShot === null) {
     out.push({
       icon: '🫗',
-      text: 'Five containers, one bare lipid wall. Click a container to squirt its contents at the wall — one squirt each, ↺ Reset refills them — and watch which of them get through. The crossings collect as counts at the tank’s foot; the measured numbers are under “How easily it crosses”.',
+      text: `Five containers, one bare lipid wall. Click a container to squirt its contents at the wall — one squirt each, ${RESET_LABEL} refills them — and watch which of them get through. The crossings collect as counts at the tank’s foot; the measured numbers are under “How easily it crosses”.`,
     })
   } else {
     const t = travellerOf(lastShot)

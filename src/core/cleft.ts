@@ -73,6 +73,33 @@ export const K_DESENS = 1.6
  *  synapse pushed hard has less to give the second time. */
 export const K_RESENS = 0.02
 
+// ── the far side's answer: a GRADED potential, not a spike ──────────────────
+//
+// What the open gates do to the spine (user, 2026-09-01: "let the
+// corresponding ions penetrate... it gets depolarized"). Sodium comes in
+// through every open receptor and the spine's voltage climbs — but it is an
+// EPSP: it never passes the receptors' own reversal, it decays on the
+// membrane's clock, and nothing regenerates it. The "flash down the dendrite"
+// the storyboard asked for would have drawn an action potential; whether one
+// ever happens is decided at the soma, after summation, and is not this view's
+// to claim.
+
+/** The spine's resting voltage, mV. ⚠ DECLARED, not derived: this run has no
+ *  postsynaptic ion counts to derive it from, so the app's standard −70 is
+ *  used and said out loud. */
+export const SPINE_REST_MV = -70
+/** The spine's membrane time constant, ms — typical for a thin process, and
+ *  the reason the EPSP outlives the transmitter a hundredfold. */
+export const SPINE_TAU_MS = 12
+/** Synaptic-to-leak conductance ratio with every receptor open — a strong
+ *  local synapse. ⚠ TYPICAL, NOT MEASURED HERE: it sets how big the drawn
+ *  EPSP is, and the facts below declare it. */
+export const SPINE_G_RATIO = 1.5
+/** The AMPA-type receptor's reversal, mV — the ceiling an EPSP can approach
+ *  and never pass, because at 0 mV the pull on Na⁺ in equals the push on K⁺
+ *  out through the same pore. */
+export const AMPA_REVERSAL_MV = 0
+
 const AVOGADRO = 6.022e23
 
 /** How long a transmitter molecule takes to cross the gap, MICROseconds.
@@ -101,6 +128,11 @@ export interface CleftRun {
   open: number[]
   /** Receptors that have shut themselves while still holding transmitter, 0→1. */
   desensitized: number[]
+  /** The spine's voltage, mV — the EPSP the open receptors drive. */
+  vmPost: number[]
+  /** Where the EPSP tops out, mV — always negative, which is the lesson. */
+  peakPostMv: number
+  peakPostAtMs: number
   peakMM: number
   peakMMAtMs: number
   peakOpen: number
@@ -131,6 +163,7 @@ export function integrateCleft(terminal: SynapseRun): CleftRun {
   let open = 0
   let des = 0
   let mM = 0
+  let vPost = SPINE_REST_MV
 
   const run: CleftRun = {
     t: [],
@@ -138,6 +171,9 @@ export function integrateCleft(terminal: SynapseRun): CleftRun {
     bound: [],
     open: [],
     desensitized: [],
+    vmPost: [],
+    peakPostMv: SPINE_REST_MV,
+    peakPostAtMs: 0,
     peakMM: 0,
     peakMMAtMs: 0,
     peakOpen: 0,
@@ -169,6 +205,11 @@ export function integrateCleft(terminal: SynapseRun): CleftRun {
       run.bound.push(c1 + c2 + open + des)
       run.open.push(open)
       run.desensitized.push(des)
+      run.vmPost.push(vPost)
+    }
+    if (vPost > run.peakPostMv) {
+      run.peakPostMv = vPost
+      run.peakPostAtMs = ms
     }
     trace.push([ms, mM, open])
     if (mM > run.peakMM) {
@@ -192,6 +233,14 @@ export function integrateCleft(terminal: SynapseRun): CleftRun {
     open += o * DT
     des += d * DT
     mM -= (mM / CLEAR_MS) * DT
+    // The spine: leak pulling back to rest, open receptors pulling toward
+    // their reversal — a conductance synapse on an RC membrane. Nothing here
+    // can pass AMPA_REVERSAL_MV, and nothing regenerates: the EPSP's shape is
+    // a consequence, not a script.
+    vPost +=
+      ((SPINE_REST_MV - vPost + SPINE_G_RATIO * open * (AMPA_REVERSAL_MV - vPost)) /
+        SPINE_TAU_MS) *
+      DT
   }
 
   const spanAbove = (index: 1 | 2, peak: number): number => {
@@ -226,7 +275,7 @@ export function cleftRun(terminal: SynapseRun): CleftRun {
 /** Read a series at a position 0→1 through the run. */
 export function sampleCleft(
   run: CleftRun,
-  field: 'mM' | 'bound' | 'open' | 'desensitized',
+  field: 'mM' | 'bound' | 'open' | 'desensitized' | 'vmPost',
   u: number,
 ): number {
   const series = run[field]
@@ -280,13 +329,25 @@ export function cleftFacts(run: CleftRun): TeachingPara[] {
     },
     {
       icon: '😴',
-      text: `And watch what shuts them. Look for a receptor that goes grey while the two green molecules are STILL sitting in its mouth — it has stopped answering without letting go. That is called desensitizing. About ${Math.round(
+      text: `And watch what shuts them. Look for a receptor that goes grey while the two teal molecules are STILL sitting in its mouth — it has stopped answering without letting go. That is called desensitizing. About ${Math.round(
         Math.max(...run.desensitized) * 100,
       )}% of them do it here, and it is slow to undo, so a synapse shouted at over and over has less to give each time.`,
     },
     {
-      icon: '🚧',
-      text: 'What the open gates DO to the next cell — push its voltage up towards firing, or hold it down — is the next step. Right now they are open, and nothing is coming through them yet.',
+      icon: '🌊',
+      text: `And now something comes THROUGH them: sodium. Every open gate lets Na⁺ pour into the spine, and the inside climbs — from ${SPINE_REST_MV} mV up to about ${run.peakPostMv.toFixed(
+        0,
+      )} mV at ${run.peakPostAtMs.toFixed(
+        1,
+      )} ms, and then back down. Watch the colour inside the spine: it warms toward neutral and NEVER turns red, because the inside never goes positive. This is not an action potential — it is a graded nudge, and it fades on the membrane's own clock.`,
+    },
+    {
+      icon: '📉',
+      text: `That nudge cannot become a spike here. It tops out well below zero — the receptors' own reversal is ${AMPA_REVERSAL_MV} mV, a ceiling it only approaches — and it shrinks as it spreads down the neck into the dendrite. Whether the CELL fires is decided far away at the soma, after nudges like this one from thousands of synapses are added up.`,
+    },
+    {
+      icon: '✏️',
+      text: `NOT MEASURED: how hard this one synapse pushes. The spine's answer is drawn from typical numbers — a ${SPINE_TAU_MS} ms membrane clock and a synapse about ${SPINE_G_RATIO}× as strong as the spine's own leak — because this run has no postsynaptic ion counts to derive them from. The SHAPE is a consequence of those numbers, not a script.`,
     },
   ]
 }

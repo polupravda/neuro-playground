@@ -37,6 +37,14 @@ export interface Family {
   name: string
   /** What opens it, in a child's words. */
   opensWhen: string
+  /** The whole sentence, where "Opens when …" cannot be completed sensibly.
+   *
+   *  ⚠ The leak read "Opens when never — it has no gate, so it is always
+   *  open", which is a sentence a child has to unpick backwards before it says
+   *  anything (user, 2026-08-30). A phrase written to slot into a template is
+   *  not the same thing as a phrase that reads. When the template fights the
+   *  meaning, replace the sentence, do not contort the phrase. */
+  opensLine?: string
   /** The settings the child can hold, low to high. */
   steps: { label: string; value: number }[]
   /** The unit the setting is in, for the reading. */
@@ -52,10 +60,16 @@ export const V_HALF_MV = 10
 export const V_SLOPE_MV = 12
 
 /** Ligand-gated: a Hill curve in the messenger's concentration. Half-open at
- *  50 µM with a Hill coefficient of 2 — a nicotinic receptor's numbers, and
- *  the 2 is not decoration: it takes TWO messenger molecules to open one of
- *  those, which is why the curve is S-shaped rather than a slow climb. */
-export const EC50_UM = 50
+ *  10 µM with a Hill coefficient of 2 — a GABA-A receptor's numbers, and the 2
+ *  is not decoration: that receptor has TWO messenger binding sites and needs
+ *  both, which is why the curve is S-shaped rather than a slow climb.
+ *
+ *  ⚠ The exemplar CHANGED (2026-08-30), and the numbers changed with it. It
+ *  used to be a nicotinic receptor at 50 µM. See the family's `tint` for why —
+ *  and note that swapping the exemplar without swapping its calibrated figures
+ *  would have left the app quoting one receptor's numbers under another
+ *  receptor's name. */
+export const EC50_UM = 10
 export const HILL_N = 2
 
 /** Mechanically-gated: a Boltzmann in how hard the membrane is being pulled.
@@ -73,6 +87,7 @@ export const FAMILIES: Family[] = [
     tint: 'k',
     name: 'Leak channel',
     opensWhen: 'never — it has no gate, so it is always open',
+    opensLine: 'Always open. There is no gate on it to shut.',
     steps: [{ label: 'always open', value: 1 }],
     unit: '',
     tauOpenMs: 400,
@@ -95,16 +110,27 @@ export const FAMILIES: Family[] = [
   {
     id: 'ligand',
     icon: '🥄',
-    // Also sodium — and it SHARES the voltage-gated channel's colour on
-    // purpose. Two doors that pass the same ion look the same; what tells
-    // them apart is what opens them, which is the exhibit's whole point.
-    tint: 'na',
+    // ⚠ CHLORIDE, and that is a change of EXEMPLAR, not a change of rule
+    // (user, 2026-08-30: "ligand- and voltage-gated currently have the same
+    // color, make different… unless absolutely necessary for consistency").
+    //
+    // It used to be a sodium receptor, which made it yellow — the same yellow
+    // as the voltage-gated door beside it AND the same yellow as the ion
+    // arriving to open it, so three different things on one panel were one
+    // colour. The rule that put them there (colour means SPECIES, never
+    // category) is right and stays. What was wrong was the CHOICE of
+    // exemplar: "ligand-gated" is a family, not a channel, and its members
+    // pass different ions. This panel is now a GABA-A receptor — the
+    // commonest inhibitory ligand-gated channel there is — and a GABA-A
+    // receptor really does pass chloride. So it is green because of what goes
+    // through it, exactly like every other channel in this app.
+    tint: 'cl',
     name: 'Ligand-gated',
     opensWhen: 'a messenger molecule lands on it',
     steps: [
       { label: 'none', value: 0 },
-      { label: 'a little', value: 30 },
-      { label: 'a lot', value: 200 },
+      { label: 'a little', value: 6 },
+      { label: 'a lot', value: 60 },
     ],
     unit: 'µM',
     tauOpenMs: 4,
@@ -234,7 +260,13 @@ export const pokedAt = (id: FamilyId): number =>
  *  leaving. The gate is not a switch wired to a button: something has to come
  *  and DO something to it, and a child should watch that happen (user,
  *  2026-08-28). */
-export const POKE_MS = 3600
+// ⚠ SLOWED, twice now (user, 2026-08-30: "make all channel demos slower").
+// A run has to hold FIVE separate events in the voltage case — flash,
+// depolarisation, sensor, flap, ball — and each of them needs to be seen to
+// happen before the next begins, with a real gap between. Six seconds is not
+// generosity: at 3.6 s the pauses that make the chain a chain were shorter
+// than the eye takes to notice something has stopped.
+export const POKE_MS = 6000
 
 export interface Poke {
   /** 0→1 across the whole poke. */
@@ -258,11 +290,52 @@ export interface Poke {
  *  exhibit about how often. This one is about what happens. */
 export function gateOpennessAt(poke: Poke): number {
   const t = poke.t
-  if (t < 0.28) return 0
-  if (t < 0.38) return (t - 0.28) / 0.1
-  if (t < 0.74) return 1
-  if (t < 0.86) return 1 - (t - 0.74) / 0.12
+  // ⚠ IT WAITS FOR THE SENSOR (2026-08-30). The gate used to start moving at
+  // 0.28, which overlapped the sensor's own travel and let the two read as one
+  // event — "the charge opens the door". They are two events with a cause
+  // between them, and the pause is what makes the chain legible.
+  if (t < 0.4) return 0
+  if (t < 0.5) return (t - 0.4) / 0.1
+  if (t < 0.76) return 1
+  if (t < 0.86) return 1 - (t - 0.76) / 0.1
   return 0
+}
+
+/** How far the VOLTAGE SENSOR has been shoved outward, 0→1.
+ *
+ *  ⚠ THIS IS THE ONLY CHARGE-DRIVEN STEP, and the app was missing it (user,
+ *  2026-08-30: "it's not clear what makes the 'ball' get pulled into the
+ *  hole"). The honest answer to that question is that NOTHING pulls the ball.
+ *  The chain is:
+ *
+ *    the inside goes positive
+ *      → the S4 helix, which carries positive charge, is REPELLED outward
+ *      → its movement drags the activation gate open
+ *      → and only then does the ball have anywhere to land
+ *
+ *  A real Nav channel's inactivation ball is the hydrophobic IFM motif on the
+ *  III–IV linker. It is not dragged in by the field; its receptor site is
+ *  buried until the gate opens and only then becomes available. Inactivation
+ *  borrows its whole voltage dependence from activation. Drawing the ball as
+ *  charge-pulled would teach a mechanism that does not exist — and would also
+ *  leave the child with no answer to why it waits.
+ *
+ *  It goes out with the charge and comes back with it, because it is the thing
+ *  the charge is actually acting on. */
+export function sensorOutAt(poke: Poke): number {
+  const t = poke.t
+  if (t < 0.24) return 0
+  if (t < 0.34) return (t - 0.24) / 0.1
+  if (t < 0.84) return 1
+  if (t < 0.94) return 1 - (t - 0.84) / 0.1
+  return 0
+}
+
+/** Whether the ball has anywhere to land yet, 0→1 — the seat inside the pore's
+ *  mouth, which EXISTS ONLY WHILE THE GATE IS OPEN. Drawn, so that the reason
+ *  the ball waits is on the screen rather than in a paragraph. */
+export function seatOpenAt(poke: Poke): number {
+  return Math.max(0, Math.min(1, (gateOpennessAt(poke) - 0.35) / 0.3))
 }
 
 // ⚠ `sensorUpAt` USED TO LIVE HERE, and it is gone (2026-08-29).
@@ -280,10 +353,33 @@ export function gateOpennessAt(poke: Poke): number {
  *  It arrives WHILE THE DOOR IS STILL OPEN, which is what makes it the thing
  *  that stops the channel rather than a decoration that follows the door, and
  *  it leaves again before the next go. */
+/** How far a STRETCH-gated door is open, 0→1.
+ *
+ *  ⚠ IT OPENS WITH THE PUSH (user, 2026-08-30: "remove pause in
+ *  'Mechanically-gated' channel demo. Push and open should look as cause and
+ *  consequence"). It used to share `gateOpennessAt` with the other two, which
+ *  holds a deliberate pause before the door moves — and that pause is right
+ *  for them: the voltage-gated door waits on its sensor, and the ligand-gated
+ *  one waits for a messenger to finish landing. **This door waits for
+ *  nothing.** The tension in the bent sheet pulls the subunits apart, and the
+ *  bending IS the opening. A gap between them invented a middle step that does
+ *  not exist and left the finger looking as if it had missed.
+ *
+ *  It begins while the finger is still coming down, so the two overlap rather
+ *  than queue: push and open, one movement. */
+export function stretchOpenAt(poke: Poke): number {
+  const t = poke.t
+  if (t < 0.13) return 0
+  if (t < 0.23) return (t - 0.13) / 0.1
+  if (t < 0.84) return 1
+  if (t < 0.94) return 1 - (t - 0.84) / 0.1
+  return 0
+}
+
 export function ballInAt(poke: Poke): number {
   const t = poke.t
-  if (t < 0.56) return 0
-  if (t < 0.7) return (t - 0.56) / 0.14
+  if (t < 0.6) return 0
+  if (t < 0.7) return (t - 0.6) / 0.1
   if (t < 0.86) return 1
   if (t < 0.96) return 1 - (t - 0.86) / 0.1
   return 0
@@ -296,13 +392,19 @@ export function pokeAt(sinceMs: number | null): Poke {
   const t = Math.max(0, Math.min(1, sinceMs / POKE_MS))
   // Coming in → landing → holding → leaving. Most of the window is the
   // HOLDING, because that is the part with something to watch.
-  if (t < 0.18) return { t, approach: t / 0.18, contact: 0, strength: 0, done: false }
-  if (t < 0.3) {
-    const c = (t - 0.18) / 0.12
+  //
+  // ⚠ THE CAUSE ARRIVES AND THE MEMBRANE ANSWERS AT ONCE (user, 2026-08-30:
+  // "flash — depolarization (consequent, no pause)"). These two share one
+  // ramp on purpose: the flash IS the depolarisation arriving, and a gap
+  // between them would invent a delay that does not exist. Every pause in this
+  // run is between a cause and its CONSEQUENCE, never inside one event.
+  if (t < 0.1) return { t, approach: t / 0.1, contact: 0, strength: 0, done: false }
+  if (t < 0.18) {
+    const c = (t - 0.1) / 0.08
     return { t, approach: 1, contact: c, strength: c, done: false }
   }
-  if (t < 0.82) return { t, approach: 1, contact: 1, strength: 1, done: false }
-  const g = (t - 0.82) / 0.18
+  if (t < 0.84) return { t, approach: 1, contact: 1, strength: 1, done: false }
+  const g = (t - 0.84) / 0.16
   return { t, approach: 1 - g, contact: 1 - g, strength: 1 - g, done: t >= 1 }
 }
 
@@ -315,8 +417,33 @@ export function pokeAt(sinceMs: number | null): Poke {
  *  nothing holding it. */
 export function boundAt(poke: Poke): number {
   const t = poke.t
-  if (t < 0.06) return 0
-  if (t < 0.26) return (t - 0.06) / 0.2
+  // ⚠ Its approach is SLOW (user, 2026-08-30: "ion in ligand-gated should
+  // move slower"). It used to cover the whole distance in the first third of
+  // its rise and then sit waiting; it now travels for as long as it is
+  // arriving, and lands just before the door answers.
+  if (t < 0.08) return 0
+  if (t < 0.34) return (t - 0.08) / 0.26
+  if (t < 0.88) return 1
+  return Math.max(0, 1 - (t - 0.88) / 0.12)
+}
+
+/** When the bound messenger reads as LOCKED IN, 0→1 — the white collar drawn
+ *  round it once it has settled.
+ *
+ *  ⚠ IT WAITS A BEAT AFTER THE LANDING (user, 2026-08-30: "make it appear
+ *  after the ion settled on the channel, with a pause"). Drawn the instant the
+ *  ion arrived, the collar was part of the arriving — one event, and the
+ *  landing and the catching read as the same thing. Held back, they become two:
+ *  the ion comes to rest, nothing happens for a moment, and THEN the receptor
+ *  closes on it. That pause is the same length as every other pause in this
+ *  run, because it is the same kind of thing: a cause and its consequence.
+ *
+ *  It lands with the door opening, which is the point — the collar and the
+ *  gap appearing together say the binding is what did it. */
+export function ligandLockedAt(poke: Poke): number {
+  const t = poke.t
+  if (t < 0.42) return 0
+  if (t < 0.48) return (t - 0.42) / 0.06
   if (t < 0.88) return 1
   return Math.max(0, 1 - (t - 0.88) / 0.12)
 }
@@ -339,11 +466,19 @@ export const GATING_PARTS: TeachingPara[] = [
   },
   {
     icon: '⚡',
-    text: `The first one watches the charge across the wall. Flip the charge and its flap swings out of the way — this is the door the nerve spike is made of. Then watch what happens NEXT: a little ball on a chain swings up and plugs the hole from underneath, while the charge is still flipped. The door shuts itself. That is called INACTIVATION, and it is why a nerve fires a quick spike instead of staying on.`,
+    text: `The first one watches the charge across the wall, and it opens in a CHAIN of three steps — watch for them in order. One: the inside flashes positive. Two: a little piece of the door called the SENSOR is covered in plus charges, so the positive inside SHOVES IT OUT — two pluses push each other apart, and that is the only step the charge itself does. Three: the sensor dragging outward pulls the flap open. This is the door the nerve spike is made of.`,
+  },
+  {
+    icon: '⛔',
+    text: `Now watch what happens NEXT, and watch it carefully, because it answers a question you might already be asking. A little ball on a chain swings up and plugs the hole from underneath, and the door shuts itself while the charge is STILL flipped. So what pulls the ball in? Nothing does. There is nowhere for the ball to sit until the flap has opened — the seat only appears once the door is open, which is why the ball always waits its turn. It lights up when it is ready. That is called INACTIVATION, and it is why a nerve fires a quick spike instead of staying on.`,
   },
   {
     icon: '🥄',
     text: `The second one waits to be TOUCHED by a messenger molecule. No messenger, no opening, however hard you push the voltage. And watch HOW it opens — there is no flap and no ball here: the pieces of the door itself lean apart and leave a gap. That is what a messenger landing on it does to its shape. This is the door a synapse uses.`,
+  },
+  {
+    icon: '🟢',
+    text: `Notice that this one is GREEN while the spike's door is yellow. That is not a code for "different kind of door" — in this app a channel is always painted the colour of what goes THROUGH it. This one is a GABA-A receptor, and it lets chloride through, so it is chloride green. The messenger that opens it is the odd one out on the whole screen: it is not an ion at all, it is a molecule, so it is not painted like one.`,
   },
   {
     icon: '👆',
@@ -374,7 +509,19 @@ export function gatingRightNow(busy: Record<FamilyId, boolean>): TeachingPara[] 
 export const GATING_HONESTY: TeachingPara[] = [
   {
     icon: '🧮',
-    text: `CALIBRATED: the three laws are the real ones — a Boltzmann in voltage (half open at ${V_HALF_MV} mV), a Hill curve in messenger with ${HILL_N} molecules needed (half open at ${EC50_UM} µM, a nicotinic receptor's figure), and a Boltzmann in membrane push (half open near ${P_HALF_MMHG} mmHg, a Piezo channel's ballpark). The percentage under each door is MEASURED off its record, not read from the law — which is why it wobbles a little away from the curve, exactly as a real measurement does.`,
+    text: `CALIBRATED: the three laws are the real ones — a Boltzmann in voltage (half open at ${V_HALF_MV} mV), a Hill curve in messenger with ${HILL_N} molecules needed (half open at ${EC50_UM} µM, a GABA-A receptor's figure), and a Boltzmann in membrane push (half open near ${P_HALF_MMHG} mmHg, a Piezo channel's ballpark). The percentage under each door is MEASURED off its record, not read from the law — which is why it wobbles a little away from the curve, exactly as a real measurement does.`,
+  },
+  {
+    icon: '⛓️',
+    text: 'THE BALL IS NOT PULLED IN. It would be easier to draw it being dragged into the pore by the flipped charge, and that is not what happens: the ball is a greasy little knot of protein with no useful charge on it, and its landing site is buried until the gate opens. Inactivation borrows all of its timing from the opening it follows. The order on the screen — charge, then sensor, then flap, then ball — is the real order, and the ball waiting is the real reason it waits.',
+  },
+  {
+    icon: '🎨',
+    text: 'NOT DRAWN TO ONE SCALE OF EXEMPLAR: each panel is one real channel standing for a whole family. The spike door is a Nav channel, the messenger door a GABA-A receptor, the push door a Piezo channel, the leak a K2P. Another member of the same family can pass a different ion and would be painted a different colour here — which is the point of painting by ion rather than by family.',
+  },
+  {
+    icon: '🔋',
+    text: 'EVERY MEMBRANE IS CHARGED, all the time — all four of these walls, not just the one with the ± marks on it. The marks are drawn on the voltage-gated panel alone because that is the only door the charge means anything TO. The other three sit in exactly the same charged wall and take no notice of it whatsoever, which is the point: a cause is only a cause for the door that listens for it.',
   },
   {
     icon: '🎲',

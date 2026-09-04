@@ -117,7 +117,7 @@ export function FilterBench() {
                 className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-[13px] font-semibold text-amber-50 shadow-md transition hover:bg-amber-500/45"
               >
                 {b.kind ? (
-                  <IonKey kind={b.kind} />
+                  <IonKey kind={b.kind} size="bare" />
                 ) : (
                   <span aria-hidden className="text-base leading-none">
                     ⚖️

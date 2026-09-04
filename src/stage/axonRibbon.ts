@@ -1,16 +1,20 @@
+import { flowAt, flowFade, flowSpread } from '../core/ionFlow'
+import { CHANNELS } from '../core/channels'
+import { drawVoltageChannel, voltageHalfWidth } from './voltageChannel'
+
+/** The gap the lens cuts for each door — ASKED OF THE DRAWING that stands in
+ *  it (2026-08-30). It used to be a shared constant of 21, which is wider than
+ *  any of the traced proteins and left bare stripes beside every one. */
+export const LENS_DOOR_HALF = voltageHalfWidth(HALF_MEM) * 1.06
+
 import { GLOSSY_COLORS, chargeRamp, drawGlossyIon } from './particleStyle'
 import {
-  CHANNEL_DARK,
-  CHANNEL_HALF,
-  CHANNEL_MID,
   HALF_MEM,
   LIPID_HEAD_DARK,
   LIPID_HEAD_MID,
   OILY_CORE,
   PX_PER_NM,
-  drawGatedChannel,
   drawLipids,
-  mix,
 } from './bilayer'
 import { polarizationT } from '../core/actionPotential'
 import { SIGNAL_CORE, SIGNAL_RGB, softGlow } from './signal'
@@ -243,7 +247,7 @@ export function atMid(geo: RibbonGeometry, tubeMid: number): RibbonGeometry {
 }
 
 /** How far the world outside the cell is drawn, px. */
-const OUTSIDE_H = 24
+export const OUTSIDE_H = 24
 // Narrow gutters, because nothing is written in them any more. Every word this
 // view had to say has moved into the describer beside the canvas — the bench
 // settled that principle and this view had drifted from it: one place to read,
@@ -722,7 +726,10 @@ export function drawRibbon(ctx: CanvasRenderingContext2D, view: RibbonView): voi
  *  one, and invites "which is it, then?" about a quantity that only has one side.
  *  The balance bench settled this the same way and for the same reason; this view
  *  had quietly gone its own way. */
-function drawOutside(ctx: CanvasRenderingContext2D, geo: RibbonGeometry): void {
+/** The bath either side of the fibre. Exported with `drawTube` so another view
+ *  can draw THIS pipe rather than invent a second one (user, 2026-08-30: "use
+ *  this view, do not reinvent"). */
+export function drawOutside(ctx: CanvasRenderingContext2D, geo: RibbonGeometry): void {
   const bath = 'rgba(100, 116, 139, 0.07)'
   ctx.fillStyle = bath
   ctx.fillRect(geo.left, geo.tubeTop - OUTSIDE_H, geo.right - geo.left, OUTSIDE_H + geo.tubeHalf)
@@ -733,7 +740,7 @@ function drawOutside(ctx: CanvasRenderingContext2D, geo: RibbonGeometry): void {
  *  drawn patch, and a membrane down each wall. Both ends are rounded rather than
  *  running off the frame, because the model's ends are sealed and a tube that
  *  vanished off the edge would promise axon the model does not have. */
-function drawTube(
+export function drawTube(
   ctx: CanvasRenderingContext2D,
   geo: RibbonGeometry,
   heat: (p: number) => number,
@@ -838,9 +845,26 @@ function drawSignal(
     const p = patchCentre(i)
     const lit = patchSignal(run, u, p)
     if (lit <= 0) continue
-    const x = xAt(geo, p)
-    softGlow(ctx, x, geo.tubeMid, geo.tubeHalf * 5, SIGNAL_RGB, 0.4 * lit * lit)
+    signalAura(ctx, geo, xAt(geo, p), lit)
   }
+}
+
+/** THE SIGNAL, as this app draws it on a fibre: a broad warm glow through the
+ *  tube, five times its half-height across.
+ *
+ *  ⚠ Exported so another view can show the same signal at the same size (user,
+ *  2026-08-31: "we display a very bright signal, as you see it in 'Axonal
+ *  conduction and myelin'"). The passive-spread bench was drawing its own at
+ *  two and a half times, which is a different, dimmer thing wearing the same
+ *  colour. */
+export function signalAura(
+  ctx: CanvasRenderingContext2D,
+  geo: RibbonGeometry,
+  x: number,
+  lit: number,
+): void {
+  if (lit <= 0) return
+  softGlow(ctx, x, geo.tubeMid, geo.tubeHalf * 5, SIGNAL_RGB, 0.4 * lit * lit)
 }
 
 /** On a sheathed fibre the light goes on at the NODES, one after another, and
@@ -858,6 +882,35 @@ function drawSignal(
  *  spec asks this feature to show. The sleeves stay dark not because nothing is
  *  happening in them but because nothing is being MADE there, and the describer
  *  says exactly that rather than leaving the darkness to be misread. */
+/** How far a flash's glow reaches at full brightness. Exported so a view can
+ *  leave room for one. */
+export const FLASH_REACH = 26 + 38
+
+/** ONE FLASH — a wide soft glow with a white-hot core.
+ *
+ *  ⚠ EXPORTED, because the passive-spread bench needs the same one (user,
+ *  2026-08-31: "make leaking look like flashes coming out… take a look at the
+ *  flash implementation in myelinated axon versus non-myelinated race"). It
+ *  had a 20 px halo and a 1.6 px line, which is the "tiny string" that was
+ *  almost invisible. Sharing the drawing rather than the numbers means the two
+ *  cannot come to differ again. */
+export function drawFlash(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  lit: number,
+): void {
+  if (lit <= 0) return
+  softGlow(ctx, x, y, 26 + 38 * lit, SIGNAL_RGB, 0.95 * lit)
+  ctx.save()
+  ctx.fillStyle = SIGNAL_CORE
+  ctx.globalAlpha = Math.min(1, lit)
+  ctx.beginPath()
+  ctx.arc(x, y, 2.8 + 4.8 * lit, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
 function drawNodeFlashes(
   ctx: CanvasRenderingContext2D,
   geo: RibbonGeometry,
@@ -911,16 +964,7 @@ function drawNodeFlashes(
     // An eased bell: swells in, peaks, dies away.
     const lit = Math.sin(Math.PI * phase) ** 2
     const x = xAt(geo, p)
-    for (const side of [-1, 1] as const) {
-      const y = wallY(geo, x, side)
-      softGlow(ctx, x, y, 26 + 38 * lit, SIGNAL_RGB, 0.95 * lit)
-      ctx.fillStyle = SIGNAL_CORE
-      ctx.globalAlpha = lit
-      ctx.beginPath()
-      ctx.arc(x, y, 2.8 + 4.8 * lit, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.globalAlpha = 1
-    }
+    for (const side of [-1, 1] as const) drawFlash(ctx, x, wallY(geo, x, side), lit)
   })
 }
 
@@ -1011,7 +1055,6 @@ function drawSheath(
    *  nodes sat 23 px apart. With 12 nodes and a proper pair at each, the gap has
    *  contents, and a gap that cannot contain its own contents is the worse lie.
    *  The describer owns up to the number. */
-  const GAP = 15
   const wraps: Array<[number, number]> = []
   let from: number | null = null
   for (const part of run.parts) {
@@ -1029,6 +1072,27 @@ function drawSheath(
   }
   if (from !== null) wraps.push([from, 1])
 
+  drawSheathBands(ctx, geo, wraps)
+}
+
+/** How wide a node gap is drawn, px — see `drawSheath` for why it is 15 and
+ *  why that is an exaggeration owned up to in the describer. */
+export const SHEATH_GAP = 15
+
+/** The sleeves themselves, given the stretches they cover as fractions of the
+ *  fibre.
+ *
+ *  ⚠ EXPORTED, and separated from working out WHERE they go (user, 2026-08-30:
+ *  "myelin is styled very much differently from 'race' view"). The passive
+ *  spread bench had grown its own pale rounded bands, which is a second myelin
+ *  in the app. The spans are a property of a run; the LOOK of a sleeve is not,
+ *  and only the look needed sharing. */
+export function drawSheathBands(
+  ctx: CanvasRenderingContext2D,
+  geo: RibbonGeometry,
+  wraps: Array<[number, number]>,
+): void {
+  const GAP = SHEATH_GAP
   for (const [a, b] of wraps) {
     const x0 = xAt(geo, a) + GAP / 2
     const x1 = xAt(geo, b) - GAP / 2
@@ -1131,8 +1195,21 @@ export function doorPlaces(run: FibreRun): number[] {
   return out.sort((a, b) => a - b)
 }
 
-/** The same protein the lens and the bench draw, at the size this scale allows:
- *  same silhouette, same palette, same pore that flares. */
+/** The same protein the lens and the bench draw, at the size this scale
+ *  allows: same silhouette, same palette.
+ *
+ *  ⚠ AND IT REALLY IS THE SAME ONE (2026-08-30). The promise in this comment
+ *  used to be broken the moment the benches moved to traced drawings — this
+ *  stayed generic and the axon's doors became a different protein from the
+ *  ones the lens showed. At eight pixels the traced detail is a blur, but it
+ *  is a blur OF THE RIGHT SHAPE, which is what "level of detail dissolves,
+ *  never switches" asks for. */
+/** How tall a door is drawn on a fibre. ⚠ THE AXON VIEWS OWN THIS NUMBER, and
+ *  it is exported so no other view has to guess at it: the passive-spread bench
+ *  was drawing its holes three times this size (user, 2026-08-30: "channels in
+ *  'race' have smaller size than here"). */
+export const DOOR_HALF_HEIGHT = 4.2
+
 function miniDoor(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -1143,15 +1220,22 @@ function miniDoor(
   halfWidth = 4.6,
 ): void {
   const colour = GLOSSY_COLORS[species]
-  drawGatedChannel(ctx, {
+  void halfWidth
+  drawVoltageChannel(ctx, {
     cx,
     midY: y,
     open,
-    mid: mix(CHANNEL_MID, colour.mid, 0.38),
-    dark: mix(CHANNEL_DARK, colour.dark, 0.34),
     species: colour.mid,
-    halfWidth,
-    halfHeight: 4.2,
+    speciesDark: colour.dark,
+    halfHeight: DOOR_HALF_HEIGHT,
+    // The ball hangs; it is not animated here. This view samples sodium
+    // CONDUCTANCE, which is activation and inactivation already multiplied
+    // together — there is no separate inactivation gate in it to read a
+    // plugging ball off, and deriving one would be inventing a number.
+    plug: 0,
+    // ⚠ Only sodium has one. The delayed rectifier repolarises the spike by
+    // STAYING open; a ball on it would say the opposite.
+    ball: species === 'na',
   })
   // Which way this ion is going while the door is open. An arrow, not a
   // particle: what crosses here is a current, and a drawn ball would be a claim
@@ -1264,8 +1348,8 @@ function drawMagnifier(
     from: cx - r,
     to: cx + r,
     gaps: [
-      [naX - CHANNEL_HALF, naX + CHANNEL_HALF],
-      [kX - CHANNEL_HALF, kX + CHANNEL_HALF],
+      [naX - LENS_DOOR_HALF, naX + LENS_DOOR_HALF],
+      [kX - LENS_DOOR_HALF, kX + LENS_DOOR_HALF],
     ],
   })
   if (run.myelinated) drawLensSleeves(ctx, cx, cy, r)
@@ -1277,13 +1361,14 @@ function drawMagnifier(
     [kX, k, 'k'],
   ] as Array<[number, number, 'na' | 'k']>) {
     const colour = GLOSSY_COLORS[kind]
-    drawGatedChannel(ctx, {
+    drawVoltageChannel(ctx, {
       cx: dx0,
       midY: cy,
       open,
-      mid: mix(CHANNEL_MID, colour.mid, 0.38),
-      dark: mix(CHANNEL_DARK, colour.dark, 0.34),
       species: colour.mid,
+      speciesDark: colour.dark,
+      plug: 0,
+      ball: kind === 'na',
     })
     drawTraffic(ctx, run, u, p, dx0, cy, open, kind)
   }
@@ -1339,6 +1424,43 @@ function drawMagnifier(
  *  ions are only drawn through a pore that is actually open, so a run where
  *  nothing fires has no traffic at all rather than a trickle standing in for a
  *  spike. */
+/** The largest drive anything reaches anywhere in this run — worked out once
+ *  per run and remembered, because it is a property of the run and sweeping
+ *  the whole grid every frame would be silly. */
+const BUSIEST = new WeakMap<FibreRun, number>()
+
+export function busiestDrive(run: FibreRun): number {
+  const seen = BUSIEST.get(run)
+  if (seen !== undefined) return seen
+  const peak = (grid: number[][]) => grid.reduce((most, row) => Math.max(most, ...row), 0)
+  const found = Math.max(
+    peak(run.naOpen) * CHANNELS['voltage-na'].conductance,
+    peak(run.kOpen) * CHANNELS['voltage-k'].conductance,
+    // A floor, so a run in which nothing ever opens cannot divide by zero.
+    1e-6,
+  )
+  BUSIEST.set(run, found)
+  return found
+}
+
+/** How busy this pore is right now, 0→1 of the busiest anything gets in this
+ *  run — which is what `flowAt` wants.
+ *
+ *  ⚠ MEASURED AGAINST THE RUN, not assumed. Sodium's conductance is m³h and h
+ *  is already falling as m rises, so a spike peaks near 0.52 openness and never
+ *  reaches 1; a rule that assumed 1 gave the busiest moment of the whole app
+ *  three balls (user, twice: "1-3 ions pass through the channels, as before").
+ *  Both species are measured against the SAME busiest thing, so the
+ *  sodium–potassium contrast survives instead of each hitting its own ceiling.
+ *
+ *  ⚠ EXPORTED so a test can reach the decision itself. Four guards written for
+ *  this fed the old rule a value by hand and passed with the real call site
+ *  broken. */
+export function poreBusyness(run: FibreRun, open: number, kind: 'na' | 'k'): number {
+  const drive = open * CHANNELS[kind === 'na' ? 'voltage-na' : 'voltage-k'].conductance
+  return Math.max(0, Math.min(1, drive / busiestDrive(run)))
+}
+
 function drawTraffic(
   ctx: CanvasRenderingContext2D,
   run: FibreRun,
@@ -1359,17 +1481,21 @@ function drawTraffic(
   const to = midY + (inward ? reach : -reach)
   const done = sampleFibre(run, kind === 'na' ? 'naQ' : 'kQ', u, p)
 
-  const IN_FLIGHT = 3
-  for (let i = 0; i < IN_FLIGHT; i++) {
-    const phase = (done / Q_PER_ION + i / IN_FLIGHT) % 1
-    drawGlossyIon(
-      ctx,
-      kind,
-      cx,
-      from + (to - from) * phase,
-      3.4,
-      Math.min(1, open * 2.4),
-    )
+  // ⚠ THE CURRENT, DRAWN AS THE PATCH CLAMP DRAWS IT (user, 2026-08-30). A
+  // handful of evenly spaced balls reads as a queue of individuals however many
+  // of them there are; a dense stream that fans out and fades reads as a
+  // current. `flowAt` is that model, shared with every other view.
+  //
+  // Its clock is CHARGE, not wall time — one ion per unit of charge actually
+  // delivered — so the stream is tied to the thing it is a picture of.
+  const busy = poreBusyness(run, open, kind)
+  const spreadPx = 7
+  for (const ion of flowAt(busy, done / Q_PER_ION)) {
+    const y = from + (to - from) * ion.progress
+    ctx.save()
+    ctx.globalAlpha = flowFade(ion) * Math.min(1, open * 2.4)
+    drawGlossyIon(ctx, kind, cx + flowSpread(ion) * spreadPx, y, 3.4)
+    ctx.restore()
   }
 
   // Which way, for anyone who has paused. A moving queue shows its own direction;
@@ -1525,6 +1651,38 @@ function drawPlot(
 
 /** Millimetres of real axon — and, on the same scale, the whole axon drawn on the
  *  main stage. That tick is the honest half of this whole view. */
+/** ⚠ THE APP'S ONE DISTANCE SCALE, so a second view that needs one does not
+ *  grow a second ruler (2026-08-31). The marks and where they fall belong to
+ *  the caller — this axon's are squashed by `alongCable`, another exhibit's
+ *  may be linear — but a ruler's LOOK is one thing and stays one thing. */
+export function drawScaleRuler(
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  right: number,
+  y: number,
+  ticks: { x: number; label: string }[],
+): void {
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(left, y)
+  ctx.lineTo(right, y)
+  ctx.strokeStyle = FAINT
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  ctx.textAlign = 'center'
+  for (const t of ticks) {
+    ctx.beginPath()
+    ctx.moveTo(t.x, y - 4)
+    ctx.lineTo(t.x, y + 4)
+    ctx.strokeStyle = FAINT
+    ctx.stroke()
+    ctx.fillStyle = LABEL
+    ctx.fillText(t.label, t.x, y + 15)
+  }
+  ctx.restore()
+}
+
 function drawRuler(
   ctx: CanvasRenderingContext2D,
   geo: RibbonGeometry,
@@ -1532,24 +1690,16 @@ function drawRuler(
   bare = false,
 ): void {
   const y = geo.rulerY
-  ctx.beginPath()
-  ctx.moveTo(geo.left, y)
-  ctx.lineTo(geo.right, y)
-  ctx.strokeStyle = FAINT
-  ctx.lineWidth = 1
-  ctx.stroke()
-
-  ctx.textAlign = 'center'
-  for (const um of millimetreTicks()) {
-    const x = xAt(geo, alongCable(um))
-    ctx.beginPath()
-    ctx.moveTo(x, y - 4)
-    ctx.lineTo(x, y + 4)
-    ctx.strokeStyle = FAINT
-    ctx.stroke()
-    ctx.fillStyle = LABEL
-    ctx.fillText(`${um / 1000} mm`, x, y + 15)
-  }
+  drawScaleRuler(
+    ctx,
+    geo.left,
+    geo.right,
+    y,
+    millimetreTicks().map((um) => ({
+      x: xAt(geo, alongCable(um)),
+      label: `${um / 1000} mm`,
+    })),
+  )
 
   if (bare) return
   const drawnX = xAt(geo, alongCable(view.drawnAxonUm))

@@ -47,6 +47,39 @@ export function SpeakerIcon({ size = 14 }: { size?: number }) {
  *      voices-not-ready path defers, and by then the gesture's activation is
  *      still sticky.
  */
+/** Spellings to hand the SYNTHESISER instead of the ones on screen.
+ *
+ *  ⚠ The voice is `en-US` and this app is written in British English, and the
+ *  two disagree about `-ise` (user, 2026-08-30: "voicing says [depolarEIsed]
+ *  instead of [AI]"). An American voice given "depolarised" mangles the vowel;
+ *  given "depolarized" it says it correctly — and what the child HEARS is the
+ *  point, so the sound wins over the spelling. What is written on screen does
+ *  not change.
+ *
+ *  Keyed case-insensitively, so a heading and a caption need only one entry. */
+const SAY_AS: Record<string, string> = {
+  depolarised: 'depolarized',
+  hyperpolarised: 'hyperpolarized',
+  repolarised: 'repolarized',
+  depolarisation: 'depolarization',
+  hyperpolarisation: 'hyperpolarization',
+  repolarisation: 'repolarization',
+  // D06's cast (2026-09-03): written the way the field writes them, said the
+  // way the field says them — an en-US voice reads "Munc18" as one mangled
+  // word and "GTP" as a syllable.
+  'rab-gtp': 'rab, G T P',
+  'v-snare': 'vee snare',
+  't-snare': 'tee snare',
+  munc18: 'munk eighteen',
+  munc13: 'munk thirteen',
+  nsf: 'N S F',
+}
+
+/** The spelling to say, for a term that is written differently. */
+export function sayAs(text: string): string {
+  return SAY_AS[text.trim().toLowerCase()] ?? text
+}
+
 export function speakAloud(text: string) {
   const synth: SpeechSynthesis | undefined =
     typeof globalThis !== 'undefined'
@@ -59,7 +92,7 @@ export function speakAloud(text: string) {
     if (spoken) return
     spoken = true
     synth.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
+    const utterance = new SpeechSynthesisUtterance(sayAs(text))
     utterance.lang = 'en-US'
     utterance.rate = 0.85 // a touch slower, for young ears
     const voice = synth.getVoices().find((v) => v.lang?.startsWith('en'))

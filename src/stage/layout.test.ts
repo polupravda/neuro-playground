@@ -13,6 +13,8 @@ import {
   ARRIVE_DECADES,
   BILAYER_SCALE,
   arrivalAt,
+  arrivalSpan,
+  SYNAPSE_VIEW_SCALE,
   DENDRITE_SEGS,
   LIPID_PX,
   MEMBRANE_PX,
@@ -27,6 +29,7 @@ import {
   cameraDuration,
   isOwnView,
   pathLength,
+  MARKER_R,
   MAX_PATCH_TILT,
   patchTurnAngle,
   polylinePoint,
@@ -116,18 +119,36 @@ describe('zoom targets', () => {
     expect(new Set(ZOOM_TARGETS.map((t) => t.id)).size).toBe(ZOOM_TARGETS.length)
   })
 
-  it('puts the propagation marker ON the axon', () => {
-    // The whole reason it is a marker rather than a word in a list: "which part
-    // of a neuron is this?" is a question a ring in the right place answers and
-    // the word "axon" does not.
-    const signal = ZOOM_TARGETS.filter((t) => t.presents === 'axon')
-    expect(signal.map((t) => t.id)).toEqual(['axon-signal'])
-    let nearest = Infinity
-    for (let i = 0; i <= 200; i++) {
-      const p = polylinePoint(AXON_POLYLINE, i / 200)
-      nearest = Math.min(nearest, Math.hypot(p.x - signal[0].center.x, p.y - signal[0].center.y))
+  it('A3: puts BOTH axon markers on the axon, clear of each other', () => {
+    // The whole reason they are markers rather than words in a list: "which
+    // part of a neuron is this?" is a question a ring in the right place
+    // answers and the word "axon" does not.
+    //
+    // ⚠ There are two now (user, 2026-08-31: "add another entry point:
+    // magnifying glass on the 'big neuron'"). Passive spread sits further down
+    // the same cable than conduction, so the child gets two doors they can
+    // tell apart rather than one door with a menu behind it.
+    const onAxon = ZOOM_TARGETS.filter((t) => t.presents === 'axon')
+    expect(onAxon.map((t) => t.id)).toEqual(['axon-signal', 'axon-passive'])
+    for (const target of onAxon) {
+      let nearest = Infinity
+      for (let i = 0; i <= 200; i++) {
+        const p = polylinePoint(AXON_POLYLINE, i / 200)
+        nearest = Math.min(nearest, Math.hypot(p.x - target.center.x, p.y - target.center.y))
+      }
+      expect(nearest).toBeLessThan(1)
     }
-    expect(nearest).toBeLessThan(1)
+    // ⚠ NO TWO MARKERS MAY OVERLAP, on the axon or anywhere else — two doors
+    // drawn on top of each other are one door you cannot aim at. Measured
+    // against the marker's own radius rather than a chosen gap.
+    for (const a of ZOOM_TARGETS) {
+      for (const b of ZOOM_TARGETS) {
+        if (a === b) continue
+        expect(Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y)).toBeGreaterThan(
+          MARKER_R * 2 + 8,
+        )
+      }
+    }
   })
 
   it('magnifies the axon enough for it to be a tube, and derives how much', () => {
@@ -157,12 +178,36 @@ describe('zoom targets', () => {
     }
   })
 
+  it('N2: the synapse view is home across BOTH its places — no blink between them', () => {
+    // ⚠ arrivalAt is a single-scale band; midway between the synapse (×V) and
+    // its active zone (×4V) it read 0 and the view blinked out mid-dive.
+    const lo = SYNAPSE_VIEW_SCALE
+    const hi = SYNAPSE_VIEW_SCALE * 4
+    expect(arrivalSpan(lo, lo, hi)).toBe(1)
+    expect(arrivalSpan(lo * 2, lo, hi)).toBe(1)
+    expect(arrivalSpan(hi, lo, hi)).toBe(1)
+    expect(arrivalSpan(1, lo, hi)).toBe(0)
+    expect(arrivalSpan(hi * 100, lo, hi)).toBe(0)
+    // And the ramps outside are the app's own arrival ramp.
+    expect(arrivalSpan(lo / 2, lo, hi)).toBeCloseTo(arrivalAt(lo / 2, lo), 9)
+  })
+
   it('knows which targets put up a view of their own', () => {
     const own = ZOOM_TARGETS.filter(isOwnView).map((t) => t.id)
-    // An "own view" is one that replaces the scene rather than magnifying it. The
-    // synapse was on this list and has come off it again: its view was removed to be
-    // redesigned, and it is a marker with a promise on it once more.
-    expect(own).toEqual(['dendrite-membrane', 'axon-membrane', 'axon-signal'])
+    // An "own view" is one that replaces the scene rather than magnifying it.
+    // ⚠ The synapse came OFF this list when its molecular view was deleted for
+    // redesign, and is back on it (2026-08-31, milestone 4 step 20) now the
+    // redesign is built from the user's own bouton drawing.
+    expect(own).toEqual([
+      'dendrite-membrane',
+      'axon-membrane',
+      'axon-signal',
+      'axon-passive',
+      'outgoing-synapse',
+      // The same view, four times deeper — the active zone is a PLACE
+      // (user, 2026-09-01: "the same demo, but at the image's scale").
+      'active-zone',
+    ])
   })
 })
 

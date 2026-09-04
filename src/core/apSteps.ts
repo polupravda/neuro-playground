@@ -38,6 +38,22 @@ export type ApStepKey =
   | 'undershoot'
   | 'back'
 
+/** Short NAMES for the timeline tool's chips (user, 2026-09-01) — a chip
+ *  carries a name, not a sentence; the step's `title` goes in its tooltip.
+ *  Spelled in speakable words ("sodium", not "Na⁺") because each chip's
+ *  loudspeaker reads its label aloud. */
+export const STEP_NAMES: Record<ApStepKey, string> = {
+  ready: 'resting',
+  'fizzle-rise': 'a small lift',
+  'fizzle-back': 'leaks back',
+  'na-opens': 'sodium opens',
+  peak: 'the peak',
+  falling: 'sodium shuts',
+  'k-opens': 'potassium opens',
+  undershoot: 'the undershoot',
+  back: 'back to rest',
+}
+
 export interface ApStep {
   key: ApStepKey
   /** Where in the spike this moment is, 0→1. */
@@ -242,6 +258,60 @@ function fizzleSteps(counts: IonCounts, leaksOn: boolean, stimulus?: number): Ap
   ]
 }
 
+/** ⚠ THE BAR FOLLOWS THE INTEREST (user, 2026-09-02: "the timeline labels
+ *  overlap much") — the spike's five middle moments live inside a fifth of
+ *  the model window, so a bar linear in u stacked their five names into
+ *  ~100 px that no row count could untangle. Playback already spends most of
+ *  its time DWELLING on those moments, so the bar allocates width the same
+ *  way: each stretch between moments gets its movement time plus the arrived
+ *  moment's dwell. The dots land 12–18% apart, the flat tail compresses —
+ *  the same reallocation the synapse's legged clock does, applied to the
+ *  spike's stepped one. Piecewise linear and exactly invertible, so the
+ *  transport can convert both ways and scrubbing stays faithful. */
+export interface ApBar {
+  /** Model position 0→1 → bar position 0→1. */
+  ofU: (u: number) => number
+  /** Bar position 0→1 → model position 0→1. */
+  uOf: (bar: number) => number
+}
+
+export function apBar(steps: ApStep[], apMs: number): ApBar {
+  const us = steps.map((s) => s.at)
+  const bars = [0]
+  let total = 0
+  const widths: number[] = []
+  for (let i = 1; i < steps.length; i++) {
+    const w = (us[i] - us[i - 1]) * apMs + steps[i].dwellMs
+    widths.push(w)
+    total += w
+  }
+  for (let i = 0; i < widths.length; i++) bars.push(bars[i] + widths[i] / Math.max(1e-9, total))
+  bars[bars.length - 1] = 1
+  const ofU = (u: number): number => {
+    const x = Math.max(0, Math.min(1, u))
+    for (let i = 1; i < us.length; i++) {
+      if (x <= us[i]) {
+        const span = us[i] - us[i - 1]
+        const t = span <= 1e-12 ? 1 : (x - us[i - 1]) / span
+        return bars[i - 1] + (bars[i] - bars[i - 1]) * t
+      }
+    }
+    return 1
+  }
+  const uOf = (bar: number): number => {
+    const b = Math.max(0, Math.min(1, bar))
+    for (let i = 1; i < bars.length; i++) {
+      if (b <= bars[i]) {
+        const span = bars[i] - bars[i - 1]
+        const t = span <= 1e-12 ? 1 : (b - bars[i - 1]) / span
+        return us[i - 1] + (us[i] - us[i - 1]) * t
+      }
+    }
+    return 1
+  }
+  return { ofU, uOf }
+}
+
 /** Which moment we are in — the last one reached. */
 export function stepAt(steps: ApStep[], u: number): ApStep {
   let found = steps[0]
@@ -307,8 +377,46 @@ export function runLengthMs(apMs: number): number {
  *  pre-announces the event: at the top of the spike the potassium channel was
  *  glowing while its own caption said it was still shut. A flash may only ever
  *  report something that has already happened. */
+/** How brightly each voltage-gated door's ring is flaring at this moment of a
+ *  spike, 1 → 0 as the moment recedes.
+ *
+ *  ⚠ ON OPENING ONLY (user, 2026-08-30: "remove flash before the channel
+ *  closes"). The ring marks an EVENT worth noticing, and a door opening is
+ *  one — it is what starts a current. A door CLOSING is already visible twice
+ *  over: the flap swings back and the flow stops. Flashing that put a bright
+ *  interruption exactly where the thing to watch was the current dying away.
+ *
+ *  Exported as its own function so the decision can be tested; it used to be
+ *  four inline calls inside a React component, where nothing could reach it. */
+export function gateFlashAt(
+  u: number,
+  moments: { naOpens: number; kOpens: number },
+): Record<string, number> {
+  return {
+    'voltage-na': justChanged(u, moments.naOpens),
+    'voltage-k': justChanged(u, moments.kOpens),
+  }
+}
+
+/** How long a gate's ring stays lit after the moment it marks, as a fraction
+ *  of the run.
+ *
+ *  ⚠ SHORTENED FROM 0.05 (user, 2026-08-30: "I still can see a ring, shortly
+ *  before the channel closes. Remove.").
+ *
+ *  The ring was already firing on OPENING only — but the sodium door is open
+ *  from u = 0.032 to u = 0.085, a window of 0.053, and the flash lasted 0.05
+ *  of it. So the opening flare was still fading at 0.078, seven thousandths
+ *  before the door shut, and read as a ring belonging to the closing.
+ *
+ *  ⚠ MEASURED AGAINST THE SHORTEST THING IT MARKS, not chosen: a flash that
+ *  outlasts the state it announces stops being an event marker and becomes a
+ *  highlight on the state itself. A third of the briefest opening leaves it
+ *  unmistakably at the start. */
+export const FLASH_WINDOW = 0.018
+
 export function justChanged(u: number, at: number): number {
-  const window = 0.05
+  const window = FLASH_WINDOW
   const since = u - at
   if (since < 0 || since > window) return 0
   return 1 - since / window

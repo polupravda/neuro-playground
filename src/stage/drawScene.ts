@@ -1,3 +1,6 @@
+import { drawSceneChannel } from './sceneProtein'
+import { TRANSMITTER_INK } from './synapseScene'
+import { BOUTON_BOX, BOUTON_FOOT, boutonPath, type BoutonFit } from './boutonShape'
 import type { NeuronPartId } from '../core/neuron'
 import { SIGNAL_CORE, SIGNAL_RGB, softGlow } from './signal'
 import { THRESHOLD } from '../core/integration'
@@ -46,6 +49,7 @@ import {
   carriedDepth,
   channelIonsAt,
   proteinIn,
+  type CarriedIon,
   pumpStateAt,
   type ProteinInstance,
 } from './proteins'
@@ -59,7 +63,7 @@ import {
 import type { IonCounts } from '../state/ionStore'
 import { IONS, ION_KINDS, type IonKind } from '../core/ions'
 import { GLOSSY_COLORS, chargeWash, ionGradient, drawIonCharge, badgeMinR } from './particleStyle'
-import { mix, drawLipidAt, leafletPaint, type LipidGeom } from './bilayer'
+import { mix, paveMembrane, type LipidGeom } from './bilayer'
 
 // Everything on the canvas is painted here, on the raw 2D context, so growth,
 // glow and travelling signals can be driven per frame from refs. Hit
@@ -159,13 +163,14 @@ const PORE = 'rgba(2, 6, 23, 0.6)'
 const ATP_RGB = '134, 239, 172'
 // Red is charge, per the shared palette — so a voltage sensor's charged
 // residues are drawn in it.
-const SENSOR = 'rgba(248, 113, 113, 0.9)'
 
 // Electricity is drawn as warm light (gold is also the Na⁺ family colour, and
-// depolarization IS Na⁺ influx). Chemistry is drawn as pale discrete
-// particles. Keeping the two grammars apart is the point: the hand-off
-// between them is a transformation, not a continuation.
-const MESSENGER = '#e2e8f0'
+// depolarization IS Na⁺ influx). Chemistry is drawn as discrete particles in
+// the transmitter's own ink — THE SAME CONSTANT the synapse scene uses, not a
+// colour that happens to match (2026-09-01: transmitter went teal everywhere
+// at once). Keeping the two grammars apart is the point: the hand-off between
+// them is a transformation, not a continuation.
+const MESSENGER = TRANSMITTER_INK.mid
 
 /** Visible area in scene coordinates. */
 export interface ViewRect {
@@ -478,13 +483,6 @@ const HEAD_R = LIPID_PX / 2
  *  splay and a bigger gap at the midplane. Two drawings of one molecule.) */
 const SCENE_LIPID: LipidGeom = { headR: HEAD_R, halfMem: HALF_MEM }
 
-/** Deterministic 0–1 value per molecule: the crowd must look irregular without
- *  shimmering every frame, and the index is derived from absolute position
- *  along the membrane so it does not change as the camera moves. */
-function jitterAt(index: number, salt: number): number {
-  const h = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453
-  return h - Math.floor(h)
-}
 
 /** The charge on an ion. One line, because there is one way to draw this in
  *  the whole app now (`drawIonCharge`, 2026-08-28): a ± badge just off the
@@ -594,6 +592,50 @@ function drawProtein(
   // seam.
   if (starring) softGlow(ctx, 0, 0, half * 3.4, SPOT_RGB, 0.46)
 
+  // ⚠ THE CHANNELS ARE THE TRACED PROTEINS HERE TOO (user, 2026-08-30:
+  // "'Resting membrane potential', 'trace one signal' still preserves old
+  // channel visualisation"). This scene was the last place drawing a channel
+  // as a generic pinched barrel — and it is the scene the whole app opens on,
+  // so it was the one view teaching that every door is the same object with a
+  // different tint, while every drawer said otherwise.
+  //
+  // FITTED BY HEIGHT, and the membrane gap follows the drawing rather than the
+  // other way round (`channelHalf` in `proteins.ts`). Fitting them all to one
+  // width was tried and measured first: the ligand-gated channel is much
+  // narrower for its height than the leak, so a shared width made it stand 61%
+  // taller than its neighbours. Every one of these straddles the same wall,
+  // which is what is actually true of them; their widths differ, which is also
+  // true.
+  //
+  // THE PUMP KEEPS ITS BARREL. It is not a channel: it has a domed cytoplasmic
+  // head, it is only ever open on one side, and it spends energy. Dressing it
+  // in a channel's silhouette would be the aquaporin's mistake again.
+  if (channel) {
+    drawSceneChannel(ctx, {
+      channel,
+      open: gate === 'open',
+      // ⚠ THE PURE ION COLOUR, not this scene's pre-muted one (user,
+      // 2026-08-30: "K⁺ channel does not look purple enough. Fix, check other
+      // channels").
+      //
+      // `channelTint` mutes toward the species by 0.38 — and the traced
+      // drawing then mutes AGAIN by 0.55, because tinting a protein with what
+      // it passes is its own job. Two mixes in series washed every channel
+      // back to bronze: potassium came out #9d8b88, a brownish grey, where the
+      // gating bench shows #a18bb9. Sodium and chloride were olive.
+      //
+      // Handing over the ion's own colour lets the drawing do the single mix
+      // it was built for, and the scene then matches the benches exactly.
+      species: drained ? tint.mid : GLOSSY_COLORS[channel.passes[0]].mid,
+      speciesDark: drained ? tint.dark : GLOSSY_COLORS[channel.passes[0]].dark,
+      transmitter: s.gateEnv.transmitter,
+      messenger: MESSENGER,
+    })
+    drawCargo(ctx, protein, s, gate, pump)
+    ctx.restore()
+    return
+  }
+
   const grad = ctx.createLinearGradient(-half, 0, half, 0)
   grad.addColorStop(0, tint.dark)
   grad.addColorStop(0.38, tint.mid)
@@ -671,53 +713,74 @@ function drawProtein(
     )
   }
 
-  // What opens a channel is written on its body, so the rule is visible rather
-  // than only stated: a voltage sensor's charges, or a cup for a messenger.
-  if (channel?.gating === 'voltage') {
-    ctx.save()
-    ctx.strokeStyle = SENSOR
-    ctx.lineWidth = half * 0.07
-    ctx.lineCap = 'round'
-    for (const depth of [-HALF_MEM * 0.4, 0, HALF_MEM * 0.4]) {
-      const arm = half * 0.11
-      const x = half * 0.62
-      ctx.beginPath()
-      ctx.moveTo(x - arm, depth)
-      ctx.lineTo(x + arm, depth)
-      ctx.moveTo(x, depth - arm)
-      ctx.lineTo(x, depth + arm)
-      ctx.stroke()
-    }
-    ctx.restore()
-  }
-  if (channel?.gating === 'ligand') {
-    // The binding cup, on the outward face — and the messenger sitting in it.
-    const cupY = top - half * 0.1
-    ctx.fillStyle = gate === 'open' ? tint.mid : tint.dark
-    ctx.beginPath()
-    ctx.arc(0, cupY, half * 0.42, Math.PI, Math.PI * 2)
-    ctx.closePath()
-    ctx.fill()
-    if (s.gateEnv.transmitter) {
-      ctx.fillStyle = MESSENGER
-      ctx.beginPath()
-      ctx.arc(0, cupY - half * 0.14, half * 0.3, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
+  // ⚠ THE SENSOR MARKS AND THE BINDING CUP USED TO BE DRAWN HERE, and they
+  // are gone (2026-08-30). They were this scene's private way of writing what
+  // opens a channel onto its body — three little plus signs, and a cup with a
+  // dot in it. The traced proteins carry both properly: the voltage-gated one
+  // has a real S4 sensor that MOVES, and the ligand-gated one has a socket cut
+  // into a subunit that slides. Two drawings of one idea is how a visual
+  // language stops being one, and the private pair was the worse of them.
 
-  // Whatever the protein is carrying right now.
-  const cargo = isPump
-    ? (pump?.carried ?? [])
-    : channel && gate === 'open'
-      ? channelIonsAt(channel, protein.phase, s.timeMs, s.counts, s.vm)
-      : []
-  for (const ion of cargo) {
+  drawCargo(ctx, protein, s, gate, pump)
+  ctx.restore()
+}
+
+/** WHAT THIS PROTEIN IS CARRYING RIGHT NOW.
+ *
+ *  ⚠ CHANNELS CARRY NOTHING FOR THE MOMENT (user, 2026-08-30: "remove the 1-3
+ *  balls animation. Let channels open and close with no flow") — step one of
+ *  debugging the action-potential view together.
+ *
+ *  ⚠ AND THIS IS WHERE THE BUG ACTUALLY WAS. Three rounds of work went into
+ *  the axon lens's `drawTraffic`, and `drawRibbon` only runs at the
+ *  `axon-signal` camera. The action-potential row goes to `axon-membrane`,
+ *  which is drawn by `drawScene` — so none of that work was ever on the screen
+ *  being looked at. The "1-3 balls" were `channelIonsAt`, called from here.
+ *
+ *  ⚠ EXPORTED so a test can reach the decision itself rather than something
+ *  next to it, which is the trap this file's history is made of.
+ *
+ *  The pump keeps its cargo: it was not what was reported, and it is the one
+ *  thing here that visibly SPENDS something. */
+export function cargoOf(
+  protein: ProteinInstance,
+  gate: 'open' | 'closed',
+  pump: ReturnType<typeof pumpStateAt> | null,
+  flow?: { timeMs: number; counts: IonCounts; vm: number },
+): CarriedIon[] {
+  if (protein.kind === 'pump') return pump?.carried ?? []
+  // A hole does no pushing: a shut door carries nothing, and an open one
+  // carries whatever the gradient and the voltage are actually driving.
+  if (!protein.channel || gate !== 'open' || !flow) return []
+  return channelIonsAt(protein.channel, protein.phase, flow.timeMs, flow.counts, flow.vm)
+}
+
+/** Draws whatever `cargoOf` says it has — shared, because a channel and a pump
+ *  differ in everything except this. */
+function drawCargo(
+  ctx: CanvasRenderingContext2D,
+  protein: ProteinInstance,
+  s: SceneState,
+  // Kept in the signature: the next step of this debug puts a flow back, and
+  // whether the door is open is what it will be gated on.
+  gate: 'open' | 'closed',
+  pump: ReturnType<typeof pumpStateAt> | null,
+): void {
+  for (const ion of cargoOf(protein, gate, pump, {
+    timeMs: s.timeMs,
+    counts: s.counts,
+    vm: s.vm,
+  })) {
     const radius = ionRadius(ion.kind)
     ctx.save()
     ctx.globalAlpha = ion.alpha
     // Straight down the middle of the pore — see CarriedIon.
-    ctx.translate(0, carriedDepth(ion.u, ion.kind, protein.kind))
+    // Along the pore, and — once clear of the protein — a little across it, so
+    // the current fans out the way the patch clamp's does.
+    ctx.translate(
+      (ion.across ?? 0) * ionRadius(ion.kind) * 6,
+      carriedDepth(ion.u, ion.kind, protein.kind),
+    )
     ctx.fillStyle = ionGradient(ctx, ion.kind, radius)
     ctx.beginPath()
     ctx.arc(0, 0, radius * 1.5, 0, Math.PI * 2)
@@ -725,7 +788,6 @@ function drawProtein(
     chargeMark(ctx, 0, 0, radius, IONS[ion.kind].charge > 0, s.cameraScale)
     ctx.restore()
   }
-  ctx.restore()
 }
 
 function drawProteins(ctx: CanvasRenderingContext2D, s: SceneState): void {
@@ -910,38 +972,14 @@ function drawBilayer(
   // Just a whisper of tint on the hydrophobic middle.
   fillBand(ctx, samples, HALF_MEM - LIPID_PX, OILY_CORE)
 
-  const outer = leafletPaint(ctx, SCENE_LIPID, -1)
-  const inner = leafletPaint(ctx, SCENE_LIPID, 1)
-  const span = samples.length
-  samples.forEach((w, i) => {
-    // A protein displaces the lipids around it. Drawing them straight through
-    // would make it look pasted on top of the membrane rather than built into
-    // it.
-    if (s.proteins.some((p) => Math.hypot(p.at.x - w.at.x, p.at.y - w.at.y) < p.half)) {
-      return
-    }
-    // Taper at both ends of the drawn run. The run is capped in length, so
-    // without this the molecular wall STOPS, mid-membrane, at a hard edge — and
-    // that edge is on screen at ordinary bilayer magnification, not only when
-    // zoomed out. Fading the last stretch turns a cut into detail running out.
-    const edge = Math.min(i, span - 1 - i) / Math.max(1, span * 0.14)
-    const fade = Math.min(1, edge)
-    if (fade <= 0.02) return
-    const k = first + i
-    const along = (jitterAt(k, 1) - 0.5) * LIPID_PX * LIPID_JITTER
-    const across = (jitterAt(k, 2) - 0.5) * MEMBRANE_PX * LIPID_JITTER * 0.3
-    ctx.save()
-    ctx.globalAlpha *= fade
-    ctx.translate(w.at.x, w.at.y)
-    ctx.rotate(Math.atan2(w.tangent.y, w.tangent.x))
-    // After rotating, local +y must point at the cytoplasm for the leaflet
-    // paints to land on the right sides.
-    const localY = { x: -w.tangent.y, y: w.tangent.x }
-    if (w.inward.x * localY.x + w.inward.y * localY.y < 0) ctx.scale(1, -1)
-    ctx.translate(along, across)
-    drawLipidAt(ctx, -1, SCENE_LIPID, outer)
-    drawLipidAt(ctx, 1, SCENE_LIPID, inner)
-    ctx.restore()
+  // ⚠ THE SHARED PAVER (`bilayer.paveMembrane`), not a loop of its own. It was
+  // this function's private loop until the synapse needed the same membrane
+  // along a different wall (2026-08-31) — and one structure, one code path.
+  paveMembrane(ctx, samples, {
+    geom: SCENE_LIPID,
+    first,
+    jitter: LIPID_JITTER,
+    displacedBy: s.proteins,
   })
 }
 
@@ -1165,6 +1203,83 @@ function partnerSoma(ctx: CanvasRenderingContext2D, c: Pt, r: number, hot: boole
   ctx.stroke()
 }
 
+/** ⚠ HOW FAR THE OUTGOING SYNAPSE HAS TURNED INTO ITS OWN ANATOMY at this
+ *  zoom (user, 2026-09-01: "improve the zoomed-in big image with the demo
+ *  synapse"). The wide view's stand-ins — a blob for the bouton, a bare line
+ *  for the target's dendrite — read fine at ×1 and were nonsense at ×100. On
+ *  the way down to the demo's own scale, the stand-ins dissolve OUT (×8→×16)
+ *  and the demo's shapes — the user's traced bouton, the spine-tipped
+ *  dendrite — dissolve IN (×16→×40). The ramps do not overlap: level of
+ *  detail dissolves, and the two representations are never both on screen. */
+export function outgoingDetailAt(zoom: number): { standIn: number; anatomy: number } {
+  const d = Math.log10(Math.max(1e-9, zoom))
+  const gone = Math.min(1, Math.max(0, (d - Math.log10(8)) / 0.3))
+  const here = Math.min(1, Math.max(0, (d - Math.log10(16)) / 0.4))
+  return { standIn: 1 - gone, anatomy: here }
+}
+
+/** The demo synapse's own anatomy, seated in the scene at the outgoing
+ *  synapse — the traced bouton over a spine-tipped dendrite running to the
+ *  target's soma, oriented so the landing quarter-turn brings it into exact
+ *  register with the view that then fades in. */
+function outgoingAnatomy(ctx: CanvasRenderingContext2D, alpha: number): void {
+  const b = OUTGOING.bouton
+  const tip = OUTGOING.tip
+  const stub = OUTPUT.dendrites[1]
+  // The demo frame, seated in the scene: this frame's +y points along the
+  // dendrite toward the target's soma — the direction the landing turn maps
+  // to "down".
+  const ang = Math.atan2(stub.from.y - tip.y, stub.from.x - tip.x)
+  const mid = { x: (b.x + tip.x) / 2, y: (b.y + tip.y) / 2 }
+  ctx.save()
+  ctx.globalAlpha *= alpha
+  ctx.translate(mid.x, mid.y)
+  ctx.rotate(ang - Math.PI / 2)
+  const k = (BOUTON_R * 2.6) / BOUTON_BOX.w
+  const cleftHalf = 1.4
+  const fit: BoutonFit = {
+    k,
+    ox: -(BOUTON_BOX.x + BOUTON_BOX.w / 2) * k,
+    oy: -cleftHalf - BOUTON_FOOT.y * k,
+  }
+  // The bouton: the user's own outline, foot one half-cleft above the middle.
+  boutonPath(ctx, fit)
+  ctx.fillStyle = 'rgba(148, 163, 184, 0.14)'
+  ctx.fill()
+  ctx.strokeStyle = '#b8c4d4'
+  ctx.lineWidth = 1.2
+  ctx.stroke()
+  // Its docked vesicles, along the foot.
+  ctx.fillStyle = VESICLE
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath()
+    ctx.arc((i - 2) * BOUTON_R * 0.42, -cleftHalf - 3, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  // The target's dendrite tip: spine head apposed across the cleft, neck,
+  // and the trunk widening away toward its soma — the demo's own shape.
+  const wh = BOUTON_R * 1.05
+  const neck = wh * 0.22
+  const trunkHalf = wh * 0.55
+  const L = Math.hypot(stub.from.x - tip.x, stub.from.y - tip.y)
+  const headTop = cleftHalf
+  const headBot = cleftHalf + wh * 0.62
+  ctx.beginPath()
+  ctx.moveTo(-trunkHalf, L)
+  ctx.bezierCurveTo(-neck * 1.05, L * 0.5, -neck, headBot + wh * 0.4, -neck, headBot)
+  ctx.bezierCurveTo(-neck, headTop + wh * 0.45, -wh, headTop + wh * 0.45, -wh, headTop)
+  ctx.lineTo(wh, headTop)
+  ctx.bezierCurveTo(wh, headTop + wh * 0.45, neck, headTop + wh * 0.45, neck, headBot)
+  ctx.bezierCurveTo(neck, headBot + wh * 0.4, neck * 1.05, L * 0.5, trunkHalf, L)
+  ctx.closePath()
+  ctx.fillStyle = 'rgba(91, 104, 121, 0.22)'
+  ctx.fill()
+  ctx.strokeStyle = PARTNER
+  ctx.lineWidth = 1.2
+  ctx.stroke()
+  ctx.restore()
+}
+
 /** A bouton with its vesicles: used for both incoming and outgoing synapses. */
 function bouton(
   ctx: CanvasRenderingContext2D,
@@ -1335,7 +1450,10 @@ function drawTerminals(
   ctx.globalAlpha = alpha
   ctx.lineCap = 'round'
   const arrival = s.chain.terminalAP
-  for (const t of TERMINALS) {
+  const m0 = ctx.getTransform()
+  const detail = outgoingDetailAt(Math.hypot(m0.a, m0.b))
+  const outgoingIndex = OUTPUT.dendrites[1].fromTerminal
+  for (const [ti, t] of TERMINALS.entries()) {
     if (!spanInView(s.view, AXON_END, t.end, BOUTON_R * 3)) continue
     line(ctx, AXON_END, t.end, 3.5, hot ? MEMBRANE_HOT : MEMBRANE)
     // The spike arriving in the arbor: the branches carry it and the boutons take
@@ -1348,15 +1466,23 @@ function drawTerminals(
       ctx.restore()
       softGlow(ctx, t.end.x, t.end.y, BOUTON_R * 3.4, SIGNAL_RGB, arrival * 0.7)
     }
-    bouton(
-      ctx,
-      t.end,
-      t.dir,
-      BOUTON_R,
-      hot,
-      s.chain.terminalDrift,
-      s.chain.terminalRelease,
-    )
+    // The outgoing bouton's blob stand-in has dissolved by the time the
+    // demo's own anatomy arrives — see `outgoingDetailAt`.
+    const standIn = ti === outgoingIndex ? detail.standIn : 1
+    if (standIn > 0.01) {
+      ctx.save()
+      ctx.globalAlpha *= standIn
+      bouton(
+        ctx,
+        t.end,
+        t.dir,
+        BOUTON_R,
+        hot,
+        s.chain.terminalDrift,
+        s.chain.terminalRelease,
+      )
+      ctx.restore()
+    }
   }
   ctx.restore()
 }
@@ -1408,7 +1534,19 @@ function drawOutput(ctx: CanvasRenderingContext2D, s: SceneState): void {
   ctx.save()
   ctx.globalAlpha = s.selected === null ? 0.75 : 0.32
   ctx.lineCap = 'round'
-  for (const d of OUTPUT.dendrites) line(ctx, d.from, d.to, 2.8, PARTNER)
+  const mOut = ctx.getTransform()
+  const detail = outgoingDetailAt(Math.hypot(mOut.a, mOut.b))
+  for (const [di, d] of OUTPUT.dendrites.entries()) {
+    // The synapsing stub's bare-line stand-in gives way to the demo's own
+    // spine-tipped dendrite as the camera plunges.
+    const standIn = di === 1 ? detail.standIn : 1
+    if (standIn <= 0.01) continue
+    ctx.save()
+    ctx.globalAlpha *= standIn
+    line(ctx, d.from, d.to, 2.8, PARTNER)
+    ctx.restore()
+  }
+  if (detail.anatomy > 0.01) outgoingAnatomy(ctx, detail.anatomy)
   strokePath(ctx, OUTPUT.axon, 2.6, PARTNER)
   partnerSoma(ctx, OUTPUT.soma, OUTPUT.somaR, chain.targetFlash > 0)
 

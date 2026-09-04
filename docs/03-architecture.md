@@ -419,6 +419,528 @@ Shared vocabulary — every new feature must stay inside it:
   pictures into one.** Two doors that open alike can still be two different
   doors, and a test asserts the silhouettes are not interchangeable
   (2026-08-30).
+- **⚠ WHEN TWO DOORS MUST LOOK DIFFERENT, CHANGE THE EXEMPLAR, NOT THE RULE.**
+  The user asked for the ligand- and voltage-gated doors to be told apart by
+  colour (2026-08-30) — which collided head-on with the colour rule below,
+  their own. Both were sodium, so both were yellow, and the messenger arriving
+  to open the ligand one was a sodium ion too: three things on one panel, one
+  colour. The fix was not to bend the rule but to notice that **"ligand-gated"
+  is a family, not a channel**, and its members pass different ions. The panel
+  became a GABA-A receptor, which really does pass chloride, so it is green
+  *because of what goes through it*. Four doors, four colours, rule intact.
+  Generally: a picture that has to say something new is usually asking for a
+  better-chosen subject, not a broken convention. And **an exemplar carries its
+  numbers with it** — the Hill figures moved from a nicotinic receptor's to a
+  GABA-A receptor's in the same edit, because a swapped exemplar with the old
+  constants quotes one channel under another's name.
+- **⚠ A CAUSE THAT ACTS ON NOTHING VISIBLE INVITES THE WRONG ANSWER.** The
+  voltage panel drew the charge flipping and the flap swinging, and a child
+  watching asked what pulls the ball into the hole (user, 2026-08-30). Nothing
+  does — the inactivation ball is hydrophobic, and its seat is buried until the
+  gate opens — but the picture could not say so, because **the one part the
+  charge actually acts on was missing**. Adding the S4 sensor was not
+  decoration: without it the flap moved for no reason, and an unexplained
+  movement gets explained by whatever else is moving. Three consequences worth
+  keeping: draw the part the cause acts ON, not just the cause and the
+  consequence; **put a visible pause between the links of a chain**, or two
+  steps read as one event; and **draw the absence** — the seat appearing is
+  what makes "it had nowhere to go" an observation rather than a caption.
+- **⚠ DRAW THE EVENT, NOT A SYMBOL FOR IT — AND CHECK THE APP HASN'T ALREADY
+  DRAWN IT.** The voltage panel's cause was a lightning-bolt zig-zag: a *sign
+  meaning* electricity, laid on the canvas, where the app already had one way
+  of saying "the signal is here" — the yellow bloom the axon views use
+  (`SIGNAL_RGB` with its near-white core). Two private idioms for one idea is
+  how a single visual language stops being one. **Before inventing a way to
+  show something, search for the way this app already shows it** (user,
+  2026-08-30: "display signal as flash, not a flash icon"). A cause that
+  arrives from off-frame should also *enter* from off-frame — a bloom centred
+  beyond the panel's edge says "this came from somewhere else"; the same light
+  generated inside the frame says the button made it.
+- **⚠ EVERY PIECE OF ONE PROTEIN WEARS THE PROTEIN'S OUTLINE.** The
+  inactivation ball was the only part of the voltage-gated channel drawn
+  without the species rim its body carries, and it read as a separate object
+  that had drifted up against the pore rather than as something hanging off its
+  own tail (2026-08-30).
+- **⚠ ONE SILHOUETTE FOR EVERY CHANNEL IS A CLAIM THAT THEY ARE ONE OBJECT.**
+  A single lobed drawing stood in for the leak, both voltage-gated doors, the
+  ligand-gated receptor and the aquaporin, with colour and a caption to tell
+  them apart — which taught that a channel is one thing with different labels,
+  the misconception the traced drawings exist to dismantle. Two consequences:
+  **an option that can only take one value is an invitation to animate
+  something that does not animate** (the aquaporin was drawn permanently
+  `open: 0.45` — a door held ajar, when it has no door), and **once the last
+  caller leaves a generic drawing, delete it**. Kept "just in case", it is what
+  the next caller reaches for, and then there are two visual languages again.
+  Its tests go with it: a suite defending a shape nothing renders reads as
+  coverage and is worse than none.
+- **⚠ A SHARED SILHOUETTE DOES NOT MEAN SHARED PARTS.** Not every voltage-gated
+  channel inactivates — the axon's delayed rectifier repolarises the spike by
+  *staying* open, and the patch clamp's own model is two-state with no
+  inactivation in it at all. Drawing the ball-and-chain on those would put a
+  mechanism on screen that the record directly underneath visibly never
+  performs. **Check the drawing against the model rendered beside it**, not
+  just against the family name (2026-08-30).
+- **⚠ WHEN A CONTROL HAS NO CAUSE, IT IS NOT A GATE.** The balance bench's door
+  was toggled by hand with nothing arriving to open it, which breaks the app's
+  own rule that no button opens a channel directly. What the toggle really
+  varies is whether the membrane is **permeable** to that ion — so the honest
+  drawing is a leak channel that is *there or not there*, and the wall is cut
+  only where something is standing in it. Ask what the control actually
+  changes before choosing which protein to draw.
+- **⚠ A PART DRAWN STILL, THEN MOVING, LOOKS CAUSED — BY WHATEVER ELSE IS ON
+  SCREEN.** The inactivation ball sat motionless and then swung into the pore,
+  and a child asked twice what pulled it. Nothing does; but the only cause
+  drawn on that panel was the charge, so the charge is what the picture
+  appeared to say. The fix is not a label, it is **motion that was there all
+  along**: the ball now jostles on its tether from the first frame and goes
+  still the moment it binds, so "it was trying the whole time and there was
+  nowhere to hold on" is something watched rather than claimed. Generally,
+  **when the true answer is "nothing caused this", the absence has to be
+  animated** — stillness reads as waiting for a cause (2026-08-30).
+- **⚠ PAUSES ARE MEASURED IN MILLISECONDS, NOT IN FRACTIONS OF A RUN.** A chain
+  of five events needs a real gap between each cause and its consequence, and a
+  gap defined as a fraction stops being visible the moment the run is
+  retimed — which is how these gaps vanished twice. The corollary: **a cause
+  and its own arrival share ONE ramp.** The flash IS the depolarisation
+  arriving; a pause between them would invent a delay that does not exist.
+  Pause between links, never inside one.
+- **⚠ WHEN THE TEMPLATE FIGHTS THE MEANING, REPLACE THE SENTENCE.** "Opens
+  when …" produced "Opens when never — it has no gate, so it is always open",
+  which has to be unpicked backwards before it says anything. A phrase written
+  to slot into a template is not the same as a phrase that reads; give the odd
+  one out its own whole line rather than contorting it to fit.
+- **⚠ SIZE MEANS SOMETHING ONLY WHERE SIZE IS THE SUBJECT.** Ion keys are
+  drawn all the same size on purpose — they are specimens, and one bigger key
+  would say one species mattered more. The selectivity filter is the exception,
+  because its entire answer is that a BARE sodium ion is smaller than a bare
+  potassium ion and still cannot get through; a button that drew them the same
+  size contradicted the picture it opened. Note which radius: bare and hydrated
+  give OPPOSITE orders, and muddling them inverts the lesson (2026-08-30).
+- **⚠ A CONVENTION CAN BE RIGHT AND STILL INVISIBLE — CHECK THE STRENGTH, NOT
+  JUST THE HUE.** The patch clamp was accused of not colouring a positive
+  inside red. It always had: the ramp is red-for-positive everywhere in the
+  app. But its alpha is proportional to distance from zero, and that view's
+  steps are −72, 0 and +40 mV — so the blue came out two-thirds louder than the
+  red and the red read as nothing. **Turn the whole ramp up; never flatten the
+  proportion**, because the difference in strength is itself true. When someone
+  says a colour rule "isn't working", check whether it is absent or merely
+  quiet (2026-08-30).
+- **⚠ ANATOMICAL LAYERING LOSES TO LEGIBILITY ON THE PART THE EXHIBIT IS
+  ABOUT.** The voltage-gated flap was painted under the body, which is where it
+  sits — and the protein's dark middle then covered its end, so shut, the door
+  appeared to stop halfway and vanish. The tidier z-order hid the one thing the
+  panel exists to show (2026-08-30).
+- **⚠ DRAW THE THING, NOT AN ANNOTATION OF THE THING.** The ball's landing site
+  was a yellow dashed ring *around* where the socket is; it is now a dark
+  recess that opens in the mouth, which IS the socket. The test for the
+  difference: an annotation is something you would have to explain in a key, and
+  the canvas carries no explanation. Corollary from the same round — **when a
+  mechanism already speaks, delete the outline that repeats it**: the extra ring
+  drawn as the ball seated said in outline what the ball says by going still.
+- **⚠ ANYTHING LAID ABOVE A ROW OF DRAWINGS MUST BE A FIXED SIZE, OR IT IS NOT
+  A ROW.** Shortening one panel's caption lifted its whole picture: the four
+  membranes stopped agreeing because the only variable-height thing above them
+  had changed. **Size such a block for the WORST case, not today's text** — the
+  panels narrow as the window does, and a height that fits exactly the longest
+  current sentence clips it on a smaller screen, trading a moving drawing for a
+  truncated caption. Related, and already learned once: *anything added above a
+  canvas must be subtracted from its height* (2026-08-30).
+- **⚠ MOUNT ORDER IS Z-ORDER AMONG EQUALS.** Every drawer in this app is
+  `fixed z-50`, so the one written later in `App.tsx` paints on top. That makes
+  the list an ordering rather than a bag: **a drawer reachable FROM another must
+  be mounted after it**, or it opens behind the drawer that opened it and reads
+  as a dead button — with nothing in the code to explain why. The chain is
+  written down where the mounting happens (2026-08-30).
+- **⚠ A MAGNIFIER NAMES WHAT IS BEHIND IT, SO IT GOES ON THE ONE THING IT SHOWS.**
+  The structure exhibit takes apart a single fixed channel; putting a magnifier
+  on all four gating panels would have been three claims that were not true.
+  It goes on the panel whose door that exhibit actually is. The corollary is the
+  useful half: when a view needs a second, discovery-side entry point, the place
+  to find it is wherever the app already draws the same object.
+- **⚠ FIT A DRAWING BY THE DIMENSION THAT IS TRUE OF ALL OF THEM, AND LET THE
+  LAYOUT FOLLOW.** Fitting the scene's channels to one shared width was tried
+  and measured first: the ligand-gated one is much narrower for its height than
+  the leak, so a common width made it stand 61% taller than its neighbours — a
+  protein sticking out of a membrane because of an arithmetic convenience. What
+  is true of all of them is that they **straddle the same wall**, so they are
+  fitted by height, and the membrane gap asks the drawing how wide it came out.
+  The general form: when a drawing and a layout number disagree about a size,
+  **the drawing wins and the number is derived from it** — a layout figure and a
+  picture that are two different widths is a hole or an overlap, every time
+  (2026-08-30).
+- **⚠ AN EMPTY WALL DOES NOT READ AS "NOT PERMEABLE"; IT READS AS BROKEN.** The
+  equilibrium bench drew its channel only while the door was open, which is
+  true to the physics — the variable really is permeability — and wrong on the
+  screen: a chamber with nothing in its wall looks like one that has lost its
+  channel. **Absence is not a legible state for a thing that was there a moment
+  ago.** Let the object stay and change what it DOES (2026-08-30).
+- **⚠ A MENU NAMES PLACES, NOT GESTURES — SO TWO ROWS WITH ONE DESTINATION ARE
+  ONE ROW.** 'Axonal conduction' and 'Myelin & saltatory conduction' differed
+  only in that one started the race on arrival. The same fault as "Change one
+  thing" before them, and the same fix: merge, and keep the arrival that asks
+  the question best.
+- **⚠ A DIFFERENCE OF KIND CANNOT BE CARRIED BY A DIFFERENCE OF SHADE.** The
+  gating bench's neurotransmitter was given a spare orange belonging to no
+  species, meaning "not one of the four" — and was read as the chloride the
+  channel passes. A single glossy ball IS what this app means by "ion", whatever
+  colour it is painted, so a new colour just made a fifth ion. It is drawn from
+  bonded ATOMS now, in the element colours the water molecules use. **When two
+  things are different KINDS of thing, change the grammar, not the palette**
+  (2026-08-30).
+- **⚠ BEFORE BUILDING A VIEW, ASK WHICH EXISTING ONE IT WOULD DUPLICATE.** A
+  proposal for a resting-potential exhibit — bare membrane, ion soup, charge
+  gathering at the faces — was, once corrected, exactly the capacitor bench the
+  app already had. The useful question is not "is this a good picture" but
+  "**what does the app not yet answer**". Here: ⚖️ had one ion's equilibrium and
+  ⚡ had the charge at the faces, and nothing showed the resting potential as a
+  weighted compromise between two ions. That gap was the exhibit.
+- **⚠ A BUTTON CHANGES THE WALL, NEVER THE READING.** The resting bench's three
+  settings add or remove DOORS; the voltage is then read off the doors through
+  the same equation the spike uses. Offered as "set it to hyperpolarised /
+  resting / depolarised" it would have been a remote control for a number, which
+  this app has ruled out twice before — and here it is also the whole lesson,
+  because the doors ARE the answer.
+- **⚠ A PAUSE IS ONLY HONEST WHERE SOMETHING IS BEING WAITED FOR.** Three
+  gated doors shared one opening clock, and its deliberate pause — built so the
+  voltage-gated chain would read as a chain — made the stretch-gated door look
+  as though the finger had missed. That door waits for nothing: the sheet
+  bending IS the opening. **Timing is part of the mechanism, so it cannot be
+  shared between mechanisms that differ** (2026-08-30).
+- **⚠ A NUMBER ON THE BOARD WITH NOTHING TO EXPLAIN IT IS A NUMBER FROM
+  NOWHERE.** Chloride held 29% of the resting vote with no mark on the scale
+  and no door in the wall. The fix was not a caption: its Nernst voltage went on
+  the scale, and the exhibit was arranged so the child can make chloride the
+  LOUDEST voice by removing its competition. **Let them cause the thing you want
+  them to notice** — that is the difference between an explanation and an
+  exhibit (2026-08-30).
+- **⚠ RELATIVE WORDS NEED THEIR ANCHOR PRINTED WITH THEM.** "Hyperpolarised"
+  and "depolarised" are defined against a cell's own resting potential and
+  describe a cell moved off it. A membrane the child has BUILT with different
+  doors is not a depolarised neuron — it is a different membrane resting
+  somewhere else. The words stay (they are the right words, and the ones a
+  lecture uses) but every reading says what it is compared with, and the thing
+  it is compared with is drawn on the scale (2026-08-30).
+- **⚠ A PRESET DOES THE INTERESTING PART ON THE CHILD'S BEHALF.** The resting
+  bench began with three buttons that set up known-interesting walls, and they
+  went: where the *making* is the lesson, a button that makes it for you is the
+  lesson removed. Keep the reset — every transport that can reach an end needs
+  a control that says start over — and nothing else.
+- **⚠ A DRAWING AUTHORED IN PIXELS CANNOT BE SHRUNK INTO A WORLD — IT HAS TO BE
+  SCALED INTO ONE.** The traced proteins carry pixel-sized floors so nothing
+  vanishes at bench size: line widths near 1.1, a charge badge at
+  `Math.max(2.4, …)`. The neuron scene's whole membrane is **0.022 world units**
+  across, so a world-sized reach turned every one of those floors into the
+  biggest thing on the canvas — the ink reached 60× the membrane and the view
+  went to a flat wash (2026-08-30). Draw such a picture at its own size inside a
+  context scaled by one factor, the way a magnified frame is drawn.
+  **A minimum expressed in absolute units is a unit dependency in disguise**;
+  it is the first thing to check whenever a drawing moves between two spaces.
+- **⚠ A TEST THAT DOES NOT GO THROUGH THE CALL SITE DOES NOT GUARD THE CALL
+  SITE.** Two regression tests for the above were written and both were worse
+  than none. One called the traced drawing directly and **passed with the bug
+  restored** — the fault was in what the caller handed it, not in the drawing.
+  One bounded *everything* the scene drew, and failed identically with and
+  without the fix, because at high magnification a full-bleed path legitimately
+  maps hundreds of thousands of pixels out. The fix was to give the scene
+  exactly ONE way to draw a channel (`drawSceneChannel`) and measure that. When
+  a bug lives in an interface, **make the interface a function and test the
+  function**; and measure the one thing that must be bounded, not everything on
+  the canvas.
+- **⚠ NOTHING SPEAKS UNLESS IT IS ASKED TO.** The resting bench said its
+  reading aloud whenever the reading changed — which was every door the child
+  dropped, so it talked over them at the moment they were looking hardest.
+  Voice is a control, not a reaction: **a speaker glyph the child can press,
+  next to the word it says**, and never on a state change (2026-08-30).
+- **⚠ THE VOICE AND THE PAGE MAY NEED DIFFERENT SPELLINGS.** The synthesiser is
+  `en-US` and this app is written in British English; given "depolarised" it
+  mangles the vowel, given "depolarized" it says it correctly. `sayAs` hands
+  the synthesiser its own spelling and leaves the page alone — **what the child
+  hears is the point, so the sound wins over the spelling**.
+- **⚠ A QUANTITY IN THE EQUATION NEEDS SOMETHING ON THE BOARD.** Chloride held
+  a third of the resting vote with no chloride channel anywhere in the picture.
+  It is true — every membrane leaks a little of everything, through doors too
+  many to draw — but truth that the picture cannot show is a number from
+  nowhere. Two fixes, and both were needed: **draw the invisible part** (the
+  paler half of each bar is leak with no door), and **let the child make it
+  visible** (a chloride door in the tray, so its share can be earned in front of
+  them). (2026-08-30)
+- **⚠ A MENU ROW NAMES THE QUESTION, NOT ONE OF ITS ANSWERS.** "Resting membrane
+  potential" was the title of a bench that now builds hyperpolarised and
+  depolarised walls too. Renamed to the question it asks.
+- **⚠ A SHARED SIZE CONSTANT OUTLIVES THE ONE DRAWING IT DESCRIBED.**
+  `CHANNEL_HALF = 21` was the half-width of the single generic channel, and
+  every bilayer in the app cut its gap to it. When that drawing was replaced by
+  four traced proteins of four different widths, the constant did not error — it
+  quietly went on cutting holes eight pixels too wide either side, everywhere it
+  was still used. **Deleting it with no replacement is the fix**; a view derives
+  its gap from the drawing that stands in it, and a test asserts no two of those
+  drawings are the same width, so a single number can never fit again
+  (2026-08-30).
+- **⚠ A CONTROL BELONGS BESIDE THE THING IT ACTS ON.** The resting bench's reset
+  was the last survivor of a row under the canvas — a whole strip of height
+  spent on one button, marooned from everything it changes. It moved onto the
+  canvas next to the reading it undoes.
+- **⚠ THE PICTURE IS THE QUANTITY; DO NOT PRINT IT AGAIN.** A share bar's LENGTH
+  is its weight in the equation — that is the whole reason it is a bar — so the
+  percentage written on top said the same thing a second time, in a form the
+  child has to do arithmetic with. Keep the name (a colour needs one), drop the
+  number. Same family as: if the canvas already says it, the column must not
+  repeat it (2026-08-30).
+- **⚠ TWO PICTURES OF ONE QUANTITY IS THE CANVAS REPEATING ITSELF.** The
+  resting bench drew each ion's weight in the equation as a bar — and the doors
+  in the wall directly above it are that same weight, in the same colours,
+  already. The rule against the column repeating the canvas applies just as much
+  *within* the canvas. Before adding a second reading of something, check
+  whether the first one is already on screen (2026-08-30).
+- **⚠ A MEASUREMENT FILTERED IN ONE AXIS MEASURES THE WHOLE OTHER AXIS.** A test
+  meant to check where a small object sat filtered path points by x alone — and
+  caught the membrane, which runs the full width of the canvas, so it measured
+  from the wall down and passed whatever the object did. **Window both axes when
+  measuring one thing on a busy canvas**, and prefer an edge (the topmost ink)
+  to a span, which any large neighbour will dominate (2026-08-30).
+- **⚠ A CAUTIOUS DRAWING CAN BE THE WRONG ONE.** Ions crossed an open channel
+  one at a time, which looks like modesty and is not: a single open sodium
+  channel carries **7.5 million ions a second**, so a conducting pore never
+  holds one ion. Drawing one was three orders of magnitude the wrong way and
+  taught that a current is a trickle of individuals. **Check the order of
+  magnitude before choosing how much to show** — and when the honest number is
+  undrawable, cap it, say so, and let the cap scale with the model so a fast
+  channel still visibly outruns a slow one (2026-08-30).
+- **⚠ WHEN A DRAWING CHANGES SHAPE, ITS TESTS MAY BE MEASURING THE OLD SHAPE.**
+  The throughput test counted 0 → something transitions, which a continuous
+  stream never makes; the claim was right and the measurement had quietly
+  stopped applying. Throughput is occupancy × speed, so measure both.
+- **⚠ KNOW WHAT `strictCanvas` RECORDS BEFORE MEASURING WITH IT.** An `arc` is
+  recorded by its CENTRE, not its extent, so "topmost ink" cannot tell a circle
+  drawn on a line from one drawn below it — a test built on that failed
+  identically in both states. Points are also recorded in DEVICE coordinates,
+  so a scene drawn inside a scaled context is in a different space from the
+  layout numbers describing it. And a window drawn round one small object will
+  catch its neighbours: on this canvas a nine-point speaker glyph outvoted the
+  two-point sample it sat beneath. **Probe what is in the window before
+  asserting on it** (2026-08-30).
+- **⚠ A CONTROL THAT DOES A DIFFERENT KIND OF THING MUST NOT SIT IN THE SAME
+  SLOT.** "How it is built" opened another drawer from the place the other three
+  gating panels keep the CAUSE that opens their door — the wrong promise, in a
+  row of three buttons keeping it. Position is a claim about what a control
+  does. It moved onto the canvas as a **magnifier**, which is this app's grammar
+  for "there is more to see here"; the slot keeps its height as a spacer,
+  because the four canvases must still start at the same y (2026-08-30).
+- **⚠ ONE CONTROL, ONE APPEARANCE — AND THE DIFFERENCES GO IN `title`.** The app
+  had grown five resets, each invented where it was needed. A control that does
+  the same thing in every exhibit has to look and read the same in every
+  exhibit, or the child learns each one separately. The face says "↺ Reset"
+  everywhere and the sentence explaining what "back" means here belongs in the
+  hover. **Guarded structurally**, because the failure is somebody writing a
+  sixth: the glyph may appear in exactly one file, and describers interpolate
+  the label (2026-08-30).
+- **⚠ COPYING A DRAWING'S NUMBERS IS NOT COPYING ITS LOOK, IF THE TWO ARE AT
+  DIFFERENT SCALES.** The permeability tray's `roundRect(…, 6)` and
+  `lineWidth = 1` are drawn inside a ×4 context, so on screen they are 24 px and
+  4 px — and a 24 px radius on a 26 px box is clamped by canvas to half the
+  height, making a pill with a thick rim. Copied literally into a bench that
+  works in CSS pixels they gave a gently-rounded rectangle with a hairline, and
+  the buckets were reported wrong twice. **Compare what is SEEN**, scale applied
+  — and note that canvas silently clamps a corner radius to half the shorter
+  side, so a radius can mean "pill" in one context and "slightly rounded" in
+  another (2026-08-30).
+- **⚠ A TEST ON SIZE IS NOT A TEST ON APPEARANCE.** The guard for those buckets
+  compared width and height, and passed both times they looked wrong. If the
+  complaint is "it looks different", the test has to pin the things that make it
+  look different — radius, stroke, fill — not the bounding box.
+- **⚠ A HANDFUL OF EVENLY SPACED BALLS IS A QUEUE, NOT A CURRENT — AT ANY
+  COUNT.** Three rounds were spent tuning how many ions crossed a channel, and
+  none of them fixed the complaint, because the fault was the DRAWING and not
+  the number: evenly spaced identical balls read as countable individuals. What
+  reads as a current is what the patch clamp had been doing all along — a dense
+  stream that fans out and fades as it leaves the pore. **When tuning a
+  parameter three times does not fix a look, the parameter is not the problem**
+  (2026-08-30).
+- **⚠ FIND THE FUNCTION THAT DRAWS THE USER'S SCREEN BEFORE CHANGING ANYTHING.**
+  Three consecutive rounds of work on the ion current went into the axon lens's
+  `drawTraffic` — and `drawRibbon` only runs at the `axon-signal` camera, while
+  the action-potential row goes to `axon-membrane`, drawn by `drawScene`. None
+  of it was ever on the screen being reported, and every test written for it was
+  green the whole time.
+  **"Test through the call site" does not save you here** — that rule was
+  already written down and was followed; the call site was simply in the wrong
+  file. The question that comes first is **"what route does the user take to
+  this picture, and which function is at the end of it?"** Trace it from the
+  menu row or the zoom target to the draw call, and confirm it before editing.
+  A second symptom the user reports — here, "a short flash after the balls" —
+  is usually the fastest way to identify the real drawing (2026-08-30).
+- **⚠ TINT ONCE. TWO MIXES IN SERIES WASH A COLOUR OUT.** The neuron scene
+  muted a channel toward its ion by 0.38 and the traced drawing muted it again
+  by 0.55 — because tinting a protein with what it passes is the DRAWING's job,
+  and the caller had done it too. Potassium came out `#9d8b88`, a brownish grey,
+  where the bench shows `#a18bb9`. **A caller hands over the pure thing and lets
+  the drawing do its own single mix**; when two layers each "soften" a colour,
+  the result is neither of their intentions (2026-08-30).
+- **⚠ THE SAME PROTEIN MUST LOOK THE SAME IN EVERY VIEW, AND THAT IS TESTABLE
+  NOW.** `strictCanvas` records every colour painted (`styles`). The guard for
+  the above compares the scene's OUTPUT with the bench's rather than their
+  inputs — which is the only comparison that catches a wash applied on the way
+  in.
+- **⚠ A FLASH MARKS AN EVENT THAT IS NOT OTHERWISE VISIBLE.** The gate ring
+  fired both when a door opened and when it shut. Shutting is already visible
+  twice over — the flap swings back, the current stops — so the flash there was
+  a bright interruption over the very thing worth watching. Ask what else on
+  screen already says it before adding an emphasis (2026-08-30).
+- **⚠ A RULE'S REASON IS NARROWER THAN A RULE ENFORCED STRUCTURALLY.** "A carried
+  ion has no sideways component" was guarded by forbidding the field to exist —
+  but the reason given for it is that a PORE is barely wider than one ion, which
+  says nothing about an ion out in the crowd. When a rule blocks something its
+  own stated reason permits, **test the reason, not the shape of the data**.
+- **⚠ A FLASH MUST BE BRIEFER THAN THE STATE IT ANNOUNCES.** The gate ring was
+  already fixed to fire on opening only — and still read as belonging to the
+  CLOSING, because the sodium door is open for 0.053 of a run and the flash
+  lasted 0.05 of it. An event marker that outlasts its event becomes a highlight
+  on the state instead. **Measure the window against the briefest thing it has
+  to mark**, and check where it is still lit rather than only where it starts
+  (2026-08-30).
+- **⚠ A TEST'S MAGIC OFFSET ROTS WHEN THE CONSTANT IT WAS CHOSEN FOR MOVES.**
+  Two tests probed the flash at +0.02 and +0.03, fine for a window of 0.05 and
+  meaningless at 0.018 — they failed for a reason unrelated to what they check.
+  Where a test needs a point "inside the window", **derive it from the window**.
+- **⚠ A MENU NAMES THE THING, NOT A DESCRIPTION OF IT.** "How far a signal
+  reaches" sat among *Equilibrium potential*, *Patch clamp recording* and
+  *Membrane charge & capacitance*. A list that mixes named concepts with
+  descriptions of them teaches that some of these have names and some do not —
+  and the child is being given the vocabulary on purpose (2026-08-30).
+- **⚠ A COMPARISON BEHIND A TOGGLE IS A COMPARISON YOU HAVE TO REMEMBER.** D05's
+  myelin switch was replaced by two pipes drawn at once, bare above and wrapped
+  below, sharing the same holes. When the whole point of an exhibit is *what
+  changes between two cases*, put both cases on screen; a switch makes the child
+  hold one of them in their head (2026-08-30).
+- **⚠ REUSE THE DRAWING, NOT JUST THE IDEA — AND MAKE IT TAKE A FUNCTION.**
+  D05 was first drawn as its own straight tube and read as schematic beside the
+  axon views' wobbling, rounded, playful one. It now calls `drawTube` itself.
+  What made that possible is that `drawTube` takes a HEAT function rather than
+  owning its own data: the race feeds it a spike's voltage, D05 feeds it a
+  decay. **A drawing parameterised by what to colour with is reusable; one that
+  fetches its own is not.**
+- **⚠ `elapsed ÷ current_period` REWRITES HISTORY.** An animation's phase was
+  `ms / period`, i.e. `ms × rate` — which assumes the rate has always been what
+  it is now. Every time the rate moved, the whole accumulated phase moved with
+  it, and the error grew with the clock: at a two-minute clock a **0.1 mV**
+  change in driving force jumped every ion a third of the way down the pore in
+  one frame. The honest phase is ∫rate·dt, and a pure function of (state, clock)
+  has no history to integrate — so **put the rate somewhere that needs no
+  memory**. Here that is DENSITY: current is density × speed, and a fixed
+  journey time with a varying count says the same thing without a clock that
+  lies (2026-08-30).
+- **⚠ A RATE OF ZERO MUST EMPTY, NOT FREEZE.** The same model sent the period to
+  infinity as the driving force vanished, leaving ions stranded mid-pore for
+  ever. A current of zero is an empty pore, not a stopped one — check what a
+  model draws at the limit, not only in the middle of its range.
+- **⚠ ONE NUMBER, OWNED BY ONE PLACE, BEATS ANY TEST OF AGREEMENT.** The
+  passive-spread bench drew its doors three times the size the axon views draw
+  theirs. The fix that lasts is not a test that the two agree — it is that there
+  is only one of the number, exported from whichever view owns it. **Then the
+  disagreement is unrepresentable**, and the only thing left to guard is
+  somebody declaring a second constant, which is a structural check
+  (2026-08-30).
+- **⚠ A BOUND DERIVED FROM THE THING UNDER TEST IS NOT A BOUND.** The first
+  guard for that size bounded the drawn ink by `DOOR_HALF_HEIGHT × 2.4` — so
+  tripling `DOOR_HALF_HEIGHT` tripled the bound and the guard passed. Compare
+  against a number the change cannot move.
+- **⚠ WHEN SPLITTING A FILE PROGRAMMATICALLY, NAME ALL THREE PARTS.** A slice
+  written as `head + new + middle` — with the tail silently dropped — deleted
+  494 lines of a working module. It was recoverable only because the file was
+  tracked. The safe shape is `head + new + tail`, every part named and the
+  result's length checked; and **`tsc` immediately after any structural edit**
+  is what turns a silent amputation into a ten-second one (2026-08-30).
+- **⚠ AN AFFORDANCE IS A CLAIM THAT THE STATE EXISTS.** D05 let a child build a
+  fibre with no leak channels — and the model underneath never had one: a wall
+  with no holes drawn still carried the membrane's own finite resistance, which
+  IS the leak. A control that offers an impossible state teaches that it is
+  possible, however carefully the words hedge. **Check what the extremes of a
+  control mean in the model before shipping the control** (2026-08-30).
+- **⚠ "UNDER" IS A DRAW ORDER, NOT AN OPACITY.** Channels meant to be beneath a
+  myelin sleeve were drawn AFTER it at 28% — on top of the sheath — and read as
+  ghosts hovering over it, which is exactly what they were. Painting them first
+  and letting the sleeve occlude them gives real covering: no alpha trick,
+  nothing floating, and the anatomy intact. **When something should be behind
+  something else, put it behind it** (2026-08-31).
+- **⚠ INSULATION COVERS; IT DOES NOT DELETE.** Myelin was drawn as though it
+  removed channels. It does not — it wraps over the membrane and leaves the
+  nodes bare, and the covered channels are still there. Drawing them faintly
+  under the sleeve says that; drawing nothing says a sleeve is a different
+  membrane. A related truth worth keeping: **a node leaks HARDER than a bare
+  fibre's hole at the same distance**, because more signal survives to reach it.
+  Myelin wins by covering most of them, not by making each leak less — and a
+  test that assumed otherwise had to be corrected.
+- **⚠ MEASURE THE PAYOFF WHERE THE PAYOFF IS.** Two attempts to test "the
+  wrapped fibre loses less" summed spark brightness, which measures what is
+  LEFT rather than what has leaked, and reported the opposite. The honest
+  measure was how much ARRIVES at the far end.
+- **⚠ A TOLERANCE DRIFTS AWAY FROM THE DRAWING IT IS ABOUT.** "Is this hole
+  near a node" used a tolerance of 0.056 of the fibre while the gap the sheath
+  actually cuts is 0.0156 — so four holes counted as exposed and, measured, not
+  one was inside a gap. **Derive the two from each other instead of comparing
+  them**: a node IS one of the holes, and the sleeves are cut around them, so a
+  gap cannot miss a hole it was cut around. Where a "near enough" test exists,
+  ask what number the DRAWING uses (2026-08-31).
+- **⚠ A CONSTANT COMPUTED FROM THIS WINDOW CANNOT BE ASKED ABOUT ANY OTHER
+  ONE.** A canvas sized to fill its drawer pushed the only control out of an
+  `overflow-hidden` grid. Two guards passed with the bug in place, because at
+  the developer's window height the too-tall canvas happened to fit. **Make a
+  layout decision a function of the viewport and test it across a range** —
+  600 px to 1600 px catches what one measurement never will (2026-08-31).
+- **⚠ A QUANTITY THAT SPANS TWO ORDERS OF MAGNITUDE CANNOT BE DRAWN
+  LITERALLY.** Flash brightness followed the surviving voltage, which is right —
+  and left the bare fibre invisible past its first hole, because by mid-fibre
+  only 1% of the push is left. A power stretches the range onto the screen
+  **without touching the order**: every hole is still dimmer than the one
+  before. Quote the exponent in the honesty note; an exaggeration the user asked
+  for is still an exaggeration to declare (2026-08-31).
+- **⚠ BORROW A LAYOUT ONLY WHERE ITS ANCHOR MAKES SENSE.** `raceLayout` builds
+  up from the ruler on the canvas floor — right for every axon view, which all
+  put their ruler in the same place, and wrong for a bench with no ruler, where
+  it left 331 px above the block and 121 below. Reuse the DRAWING and keep the
+  placement local when the reason for the original placement does not apply.
+- **⚠ SIZE THE CANVAS TO THE PICTURE, NOT TO THE DRAWER.** Filling the available
+  height left two 54 px pipes in 250 px of emptiness. A bigger margin and a
+  bigger void are not the same thing.
+- **⚠ ONE MARK, ONE MEANING — AND "IT IS THE APP'S OWN DRAWING" IS NOT A
+  DEFENCE.** Reusing the axon views' node flash for a leak looked like good
+  citizenship and was the opposite: that burst is this app's single mark for
+  *the signal is here*, and the race uses it to say the signal has been
+  REBUILT. On a leak it meant the reverse, and at a node it meant both at once.
+  **Before borrowing a mark, ask what it already means**, not just whether it
+  exists. The right reuse was the ion current from the membrane views — charge
+  leaving through a hole is the same event as charge crossing one — and aiming
+  it outward says the thing a stationary burst cannot: it is going away
+  (2026-08-31).
+- **⚠ A BAN ON A SYMBOL IS NOT A BAN ON THE SUBJECT.** The first guard forbade
+  the signal's colours anywhere in that file, which outlawed the one honest use:
+  the push going in at the left end IS the signal. Forbid the wrong PAIRING, not
+  the vocabulary.
+- **⚠ FIND WHICH PART OF A MARK CARRIED THE WRONG MEANING.** A leak drawn with
+  the axon views' node burst was rejected for "symbolising signal" — and the
+  next correction asked for the leak to be visibly made OF the signal. Those
+  look contradictory until you separate the mark's parts: the colour was never
+  the problem, the STILLNESS was. A bright thing sitting on a wall is the race's
+  "rebuilt here"; bright things *moving away* are "draining away". Fix the part
+  that lied (2026-08-31).
+- **⚠ A CAUSE AND ITS EFFECT MUST BE ONE FACT DRAWN TWICE.** The travelling
+  signal and the leaking holes were computed from the same number but looked
+  like separate events — different colour, different direction, no visible
+  link — so a child could not see why one caused the other. Making the escaping
+  bits the same light as the blob they come out of, and letting the blob shrink
+  as they go, turns two pictures into one sentence.
+- **⚠ AN IDLE MARKER IN THE SIGNAL'S COLOUR IS A LIE ABOUT WHERE THE SIGNAL IS.**
+  Each fibre wore a standing glow at its inlet whether or not anything was
+  running — the same fault, in the same colour, that had just been removed from
+  the leaks one step earlier. If a colour means "here it is", nothing may wear
+  it while it is not here. A control or an inlet can be marked by its SHAPE
+  (2026-08-31).
+- **⚠ A SIGNAL MUST NOT WEAR THE COLOUR OF WHAT IT ACTS ON.** The user asked
+  for a yellow flash; sodium is yellow and the door it opens is a sodium door.
+  Drawn white-hot at the core and yellow at the rim, which is both what was
+  asked for and legible. Same fault, same fix, one panel over: a messenger is
+  **not an ion** and must not be painted like one — GABA got orange, a colour
+  belonging to no species in this app, and a lumpy outline with no charge badge.
 - **⚠ Colour means SPECIES, never category.** The gating bench first gave each
   family its own colour so four doors could be told apart — which broke this
   app's own standing rule that every channel is tinted with the ion it passes,
@@ -1107,6 +1629,306 @@ thing during the chain. One of those three was the misconception the milestone e
 to dismantle: *an axon lighting as a unit is precisely what saltatory conduction is
 not.*
 
+### A drawer hides the column, so a drawer says where it is (2026-08-31)
+
+⚠ **And the first question to ask is whether it should be a drawer at all.**
+D05 grew an on-canvas miniature, an on-canvas reset chip and a control row of
+its own — three re-inventions of chrome the app already has — and every one of
+them was a symptom of the exhibit being in the wrong kind of container. Moving
+it to a place deleted all three. **When a drawer starts rebuilding the app's
+furniture, that is evidence about the container, not a list of things to
+build.** What follows still holds for the drawers that really are drawers.
+
+
+The miniature is permanent *in the column* — and a drawer covers the column. So
+the exhibits that fill the screen are exactly the ones with nothing on them
+saying which part of which cell they are about. D05 was the worst case: a whole
+view about a stretch of axon that never showed the axon it was a stretch of.
+
+**A full-screen exhibit that is about a place draws the miniature itself,
+top-left.** Not a new drawing of a cell — `drawNeuronInset`, from
+`NEURON_MAP_BOX`, the same geometry the big canvas uses. A second hand-drawn
+neuron is a picture that can quietly stop being a picture of *this* neuron.
+
+**And it stays at rest.** Two reasons, either sufficient: a miniature must not
+inherit a demo's pacing, and `drawNeuronInset` lights a whole region at once —
+which for the axon is the one thing this app's miniatures may never show.
+
+### One parameter, one claim (2026-08-31)
+
+`drawNeuronInset`'s `ringAt` meant two things at once: *you are here* **and**
+*a pipette is clamped here*. Fine while one bench drew the cell; wrong the moment
+a second exhibit wanted to say where it was looking without claiming apparatus
+its picture does not have. The fix is a flag, not a copy — **a second copy of a
+drawing is a second copy of every bug in it.**
+
+## Put things ON the shape, not on a line through it (2026-09-01)
+
+A traced silhouette is a curve, and anything living on it has to ASK IT where it
+is. The synapse laid its active zone — five vesicles, four calcium doors, the
+cleft's ceiling, the tear — along a straight line at the bouton's lowest point,
+and measured, the outer vesicles were **47 and 88 px outside the cell**.
+
+- **Flatten the traced path and query it** (`svgPath.flattenPath` →
+  `boutonShape.boutonFloorAt`). A traced shape you can only draw is a shape you
+  will end up guessing about.
+- **Apposed membranes follow each other.** The postsynaptic face is defined as
+  *the presynaptic wall plus one cleft*, so the gap is the same width all the way
+  across by construction. It was an ellipse near the foot's height, which is how
+  a 26 px cleft became a lens.
+- **The guard is "everything", not "the middle one".** The centre of a curved row
+  is always right; it is the ends that are wrong.
+
+### An opening in a shape is ON the outline too — both ends of it (2026-09-01)
+
+Round two of the same fault, one level up. A fused vesicle was drawn as a full
+circle with its outline clipped by a **horizontal band** at the wall's height,
+over a tear whose width was a chosen number — so on the sloped parts of the
+foot, the cut across the vesicle and the membrane it was merging into
+disagreed, and the user's verdict was exact: *"the cut on the vesicles does not
+repeat the curve of the presynaptic bouton... it looks unrelated."*
+
+- **A joint between two drawings is ONE geometry.** The omega's arc now ends at
+  the two points where the circle crosses the traced outline (`pocketAt`,
+  bracketed and bisected against the curve), and the tear in the wall runs
+  exactly between those same two points — carried on the tear object itself
+  (`xL`/`xR`), so the torn wall and the arc's feet *cannot* disagree. Two
+  shapes that must meet and are solved separately will meet only in the flat
+  case.
+- **Clearance is against the curve, not the point below.** A docked circle
+  placed `r + membrane` above the wall *at its own x* was already through the
+  outline SIDEWAYS on the sloped slots — found because the omega rework made
+  the curve the reference and reported a 10 px "tear" at the instant of fusion.
+  `dockedY` raises the centre until the whole circle clears the outline.
+
+## Cause on screen no later than effect (2026-09-01)
+
+The model dumps a vesicle's whole dose into the cleft AT the instant of fusion
+(`core/cleft.ts` — the crossing is sub-microsecond). The drawing gave the merge
+its own leisurely `FUSE_MS = 9` — longer than the entire fusion leg — so on the
+legged clock the cloud appeared, peaked and faded **while the vesicles were
+still sinking**: the effect ran seconds ahead of its cause, and the two read as
+unrelated events.
+
+- **An animation drawn under a model instant must fit inside what that instant
+  causes.** The mouth opens in `PORE_OPEN_MS` (√-eased, so it is visibly open
+  by the first drawn moment after fusion), the cargo drains on the transmitter's
+  own stay in the gap, and the slow part — the pocket flattening into the wall —
+  comes *after* the payload, where slowness costs nothing.
+- **The housekeeping ends.** Every transient the drawing invents needs its own
+  end state on the wall: the pocket flattens (`FLATTEN_FROM_MS` +
+  `FLATTEN_MS`), the tear heals, and the run's last frame shows a whole
+  membrane — a terminal torn open for the rest of the window was the other lie.
+- **The guard walks the user's clock.** The test walks `synapseClock` and
+  asserts a moment exists where the cloud is out AND the mouth is fully open,
+  and that the wall is torn within a blink of the cloud's first pixel.
+
+## Loose matter has identity (2026-09-01)
+
+The user's ruling, after three rounds of piecemeal fixes to teleporting
+particles: *"all ions and all neurotransmitter balls have identity. They live
+in the soup, visible from the very beginning. Each has its own travel
+trajectory. None fades out, none materializes from nowhere, none teleports."*
+
+- **A population is a fixed-size cast, not an effect.** Cycling drips,
+  concentration-faded clouds and threshold-popping crowds all mint and destroy
+  particles. A cast (`stage/synapseCast.ts`) returns the same members in the
+  same order at every moment; each member's position is one continuous
+  piecewise trajectory, a pure function of the run position. The model still
+  owns every WHEN (fusions, bound/open crossings, integrated current,
+  clearance); the cast owns only the WHERE between those moments.
+- **Clearance is departure, never a fade.** Removed transmitter leaves the gap
+  at an end and rests in the bath; cleared calcium is grabbed by the buffers
+  and drifts deeper into the terminal (`BUFFER_RATIO` is the model's own
+  fact). Counts at a place still track the model — by travel.
+- **Conservation becomes a testable fact.** The cast's length never changes,
+  and the drawn ink at rest equals the drawn ink mid-release.
+- **The teleport guard samples SCREEN time.** Walk `synapseClock`, evaluate
+  every cast at every step, and bound each ball's per-step movement. It caught
+  two real faults on its first run: a puff outrunning the screen step in a
+  fast leg, and a path plunging 100 px where the bulb's flank turns steep.
+- **A path through the gap follows the gap.** A straight line between two
+  points of a thin CURVED band cuts through its walls near the ends (measured:
+  13 px inside the bouton). Parametrise travel as (x, fraction-between-walls)
+  and ask the membranes for y at every step — *put things ON the shape*,
+  applied to motion. And keep gap-dwellers inside the apposed region: past it
+  the band flares and even a faithful path plunges.
+
+## A layout is SOLVED from a budget, not chosen (2026-08-31)
+
+"Make the active area twice as large" had no answer while the frame was divided
+by hand: the neck took a share, the bulb took a share, the spine head took a
+share, and whatever one gained another lost. The fix is to have the caller
+declare what it needs below the subject — fixed pixels, and pixels that scale
+with the drawing — and solve for the scale.
+
+Two things follow, and both are rules:
+
+- **What a request actually reached is measured and reported, never asserted.**
+  A literal 2× on both structures does not fit 660 px; the answer is "×1.96 on
+  the active zone, ×1.74 on the head, and here is why", not a silent 1.2×.
+- **Size a part off the STRUCTURE it belongs to, not off the canvas.** The
+  active zone was `max(40, width * 0.085)` — a fraction of the window — which is
+  precisely why giving the terminal more room left the active zone exactly the
+  same size. It is a patch of the terminal's own membrane; its size is the
+  terminal's business.
+
+## Where the outside is, say so with the same ink (2026-08-31)
+
+A vesicle's lumen is **topologically outside the cell**. That is the whole
+reason exocytosis works: nothing is carried through a wall, a pocket of outside
+that was folded in is unfolded again. So the lumen is painted with the bath's
+own constant — not a colour picked to match it, which is two things that can
+stop agreeing.
+
+For that to be a fact rather than something you check by eye, the bath had to
+become **opaque**: a translucent wash over the page meant what you saw was a
+blend of two layers, and no test could ask the question.
+
+This replaced an earlier ruling ("a vesicle is a bilayer ring, never a hollow
+circle"). What that rule protected — *the material is the point, two bilayers
+can join and become one* — is carried better by the two rules the same round
+added: **exocytosis tears the wall** (a real gap, clipped out, never a vesicle
+drawn over an intact line), and **a vesicle loses its outline where it overlaps
+the membrane**. An outline that stops where the walls meet says *same material*
+more directly than a ring ever did. The molecular ring survives where it is
+resolvable, in D06.
+
+## Ask the DECISION, not the ink (2026-08-31)
+
+Four guards written for the synapse and the SNARE drawer passed with the code
+deliberately broken. Every one failed the same way: it counted marks on a canvas
+and hoped they belonged to the thing it was about.
+
+- "the transmitter appears already spread" counted vertices in a horizontal
+  band — and was measuring the **bouton's control points**, 442 of them, at
+  every moment of the run *including moments when the gap was empty*;
+- "a vesicle is a ring of membrane, never a hollow circle" counted arcs and
+  strokes in the frame — and the **terminal's wall alone** cleared the
+  threshold;
+- "the door is drawn on the machinery" compared a hit box with the function it
+  came from, which proves nothing about where the ink went;
+- "the spine meets the terminal" asked only that it be below the foot and above
+  the shaft, which stayed true with the spine pulled three radii away.
+
+**The fix is the same every time: make the decision a named, exported function
+and test that.** `transmitterCloud`, `vesicleRing`, `snareLens` exist as
+functions because a test needed to reach the real call site — the app's oldest
+lesson here, restated. Where the claim really is about the picture ("the ink
+goes where the door says"), then scan the frame — but scan it *for that spot*,
+not for a count.
+
+And the corollary, which caught two more: **a guard you have not broken is a
+guess.** Three of the four passed their first break attempt.
+
+## Level of detail cuts BOTH ways (2026-08-31)
+
+The rule has always been "molecules dissolve as you pull back". The synapse
+scene is the first view where it points the other way and the answer was to draw
+*less* detail than the app owns: the bouton is ~1 µm drawn ~440 px, so its
+membrane is 5 nm ≈ 2 px and a phospholipid head is a third of a pixel. Paving it
+with molecules would be drawing something nobody can resolve.
+
+So the same membrane is a **two-leaflet band** on the synapse scene and a
+**paved bilayer** in D06, where one 40 nm vesicle fills the frame. That is not
+two drawings of a membrane — the paver is one shared function
+(`bilayer.paveMembrane`, extracted from the whole-neuron scene for exactly this)
+and the band is what it looks like when its molecules are smaller than a pixel.
+
+## Two doors at one place need two icons, not one menu (2026-08-31)
+
+Two exhibits now live on the axon. The rule *a marker's job is to say what is on
+screen* makes a shared marker with a chooser behind it the wrong answer: it puts
+a page between the child and the place. So each gets its own marker, **spaced by
+at least a marker's diameter** — measured against `MARKER_R`, not a chosen gap —
+and the app's own 🔎-in-a-dashed-ring is what both wear. A door you cannot aim at
+is not a second door.
+
+## When the payload is 5% of the run, the clock is the bug (2026-09-01)
+
+"No neurotransmitters are visibly released" was a true report about a correct
+model. Measured: transmitter is in the cleft for **0.87 ms of a 60 ms window —
+4.6% of the run**. A linear clock shows that as a blink however slowly the whole
+thing plays, and slowing the whole thing slows the empty 95% with it.
+
+The rule already existed (*a run's clock follows the interest*) and this is the
+sharpest case of it yet: **before reaching for a slower animation, measure what
+fraction of the run the subject is actually on screen.** If it is a few per
+cent, the fix is legs, not speed. Slow the leg, never the item — the map is
+linear inside each leg, so nothing ever moves at a pace the model did not give
+it, and a test walks the clock to prove it.
+
+## A fade must be a property of the surface, not of the ink (2026-08-31)
+
+Canvas `globalAlpha` is **set, not multiplied.** A drawing that assigns its own
+alpha wipes whatever a caller put there — and `drawScene` assigns it in eighteen
+places, one for every part of the cell that fades on its own.
+
+So `layer.opacity()` did nothing for the scene: Konva applies a node's opacity by
+setting `globalAlpha` before calling its `sceneFunc`, and the first assignment
+inside threw it away. The whole-cell axon went on standing at full strength
+behind the two views that replace it, at any camera distance. **A ghost that no
+test could see, because no test could ask "how bright was the ink".**
+
+Two rules come out of it:
+
+- **Composite the LAYER, not its contents.** The scene now fades by setting the
+  CSS opacity of its own canvas element, so nothing a drawing does to
+  `globalAlpha` can escape it — and it is the honest semantic: *the scene gives
+  way* is one thing happening to one picture. An invisible layer also stops
+  listening, so a faded-out cell is not still clickable underneath.
+- **Inside a drawing, `globalAlpha` is multiplied, never assigned.** A view that
+  takes a `fade` has to honour it all the way down. `strictCanvas` records the
+  alpha in force at every ink-laying call (`alphas`), so this is now a testable
+  question rather than a discipline: *did anything paint brighter than the fade
+  it was handed?*
+
+And a third, about the stand-in itself: its `save`/`restore` tracked the
+transform and nothing else, so a colour or alpha set inside a save block was
+still readable afterwards. **It was more forgiving than a browser, which is the
+direction that hides faults.** It restores the drawing state now, and two tests
+that had been reading colours off the context afterwards were rewritten to read
+`styles` — the colours actually laid down.
+
+## The menu lists what is planned, marked as planned (2026-08-31)
+
+⚠ **This reverses an earlier rule of `core/contents.ts`**, which said the menu
+lists only what exists, "because a menu of greyed-out promises teaches that the
+app is mostly empty, and it would be a second place where a claim about what the
+app contains could rot". The user asked for the overview and that is theirs to
+decide; the reasoning is answered rather than discarded:
+
+- A planned row is visibly a different kind of thing — dim, tagged `planned`,
+  and **inert by construction**: its `to` is `null`, so there is nothing for a
+  stray click to do. A greyed-out button that still navigates is the worst of
+  both.
+- A planned row claims what the **spec** contains, not what the app contains.
+  `FRONTIER` is still the single source of *how far this app goes*, and a Part
+  with nothing built still says so, above its planned rows rather than instead
+  of them.
+- Tests keep the two apart: nothing may be listed as planned that is also
+  reachable, planned ⇔ no destination, every planned row carries its spec ID,
+  and `inCourseOrder()` — which other code audits doors against — still returns
+  only rows a child can reach.
+
+They are held to the same rules as a built row: an icon for the kid, a name for
+the adult, a question either can be asked. And they **interleave by lecture**
+rather than sitting in a block at the bottom, so a Part reads as one list of what
+it will contain.
+
+## A view about distance carries the axon views' ruler (2026-08-31)
+
+Every axon view puts a scale on its floor. D05 — the one exhibit whose entire
+subject is *how far* — had none, so λ was a dashed line at a place with no name,
+and the user read that as λ being in the wrong place. It was not: measured, the
+bare fibre holds exactly 1/e of its push at the mark. **A correct marker on an
+unlabelled axis is still unreadable**, which is the same failure as *a right
+model can still be an unreadable view*.
+
+`drawScaleRuler` is now shared out of `axonRibbon`: the caller owns the marks and
+where they fall (this axon's are squashed by `alongCable`; D05's are linear), the
+ruler owns how a ruler looks.
+
 ## Clocks belong to events, not to renders
 
 Every animation clock must be owned by the thing it is timing.
@@ -1125,6 +1947,17 @@ Every animation clock must be owned by the thing it is timing.
   The map runs at its own speed and pauses in exactly one place — the ring — which is
   honest about a different thing: *the pause is not the signal waiting, it is us
   waiting, at the spot we chose to look at.*
+- **On a legged clock, a flourish's duration is a SCREEN fact — size it in screen
+  ms, never model ms.** The synapse's arrival afterglow was set to "10 model ms"
+  (2026-09-02); the legged clock crawls through the early legs, so those 10 ms hung
+  on screen for ~13 real seconds — while the postsynaptic flash's *same* 10 model
+  ms, playing in a fast leg, lasted ~2 s. Anything whose length is chosen for the
+  eye (a fade, a pulse, an afterglow) must be defined on the screen clock — via the
+  clock's inverse (`screenOfModel`), so it stays a pure function of position and
+  scrubbing replays it. Model-ms durations are only for things the model itself
+  dates. And when guarding such a budget, **pin the absolute number**: a guard that
+  samples at fractions of the constant passes at any length (measured — 13 s
+  slipped through one).
 
 ## A run's clock follows the interest, not the model's even time
 
@@ -1255,6 +2088,16 @@ Two rules from this:
 
 > **After writing a regression test, break the code again and watch it fail.** A test
 > that passes on the bug is worse than no test, because it is believed.
+>
+> This is not a formality, and it caught one the same day it was reread
+> (2026-08-30). The bilayer had a bare hole beside two channels because the gap
+> was cut to their fully-OPEN width. The first test looked at the picture —
+> were there lipid vertices in the band that used to be bare? — and **passed
+> with the bug put back**, because the band was wide enough to catch the first
+> molecule beyond the too-wide gap. The fault was in *which number gets cut*, so
+> the number was exported (`wallGapAt`) and pinned directly. Corollary:
+> **when a bug is a wrong value, test the value.** A test that only looks at the
+> downstream picture is measuring through too much machinery to be sharp.
 
 And one about what the stand-in has to *record*, not just reject:
 
@@ -1266,6 +2109,28 @@ And one about what the stand-in has to *record*, not just reject:
 > vertex (`points`). **In DEVICE coordinates**, because a part that moves by
 > having the whole context translated under it looks perfectly still in its own
 > local frame (2026-08-30).
+>
+> It also records every string the canvas WRITES (`texts`). This app has more
+> rules about what a canvas may say than about almost anything else — it
+> carries names and readings on a scale and no explanation, and if the canvas
+> says it the column must not repeat it — and none of them could be tested,
+> because a list of method names does not include the words (2026-08-30).
+
+> **⚠ AND A TEST ON THE SHARED RULE DOES NOT REACH A COPY THAT IGNORES IT.**
+> When "ions crossing a channel" existed twice and only one copy was fixed, the
+> user reported the demo "looks exactly as before" — and the new tests were all
+> green, because they measured the rule rather than the callers. Where the
+> failure is structural (somebody writing the number down again), **the guard
+> has to be structural too**: no file outside the owner may set that value to a
+> literal, and the other caller must be seen asking (2026-08-30).
+>
+> **⚠ AND THAT STILL WAS NOT ENOUGH — FOUR GUARDS IN A ROW MISSED THE SAME BUG.**
+> Each fed the shared rule a value by hand and asserted on the answer. The rule
+> was never wrong; what the CALLER handed it was, and no test went through a
+> caller. The habit that works: **when a decision lives at a call site, make the
+> call site a named function and test that function** — `drawSceneChannel`,
+> `ionsInPore`. If a test can be written without touching the code path the user
+> is looking at, it is not a guard for what the user is looking at (2026-08-30).
 
 And one about duplication: `mix` existed **twice**, privately, in two drawing
 modules. One copy was fixed. A second copy of a fixed bug is a bug that comes back,
@@ -1383,9 +2248,24 @@ possible home:
 
 - **A part of the neuron is a place**, reached by zooming to where it is on the
   cell — never a page, never a menu entry that swaps what the canvas claims to be.
-- **An abstract concept is a drawer** — comparisons, graphs of speed or
-  quantity, structure exhibits, lab benches — and it is **triggered from the
-  view it extends**, not from a global menu. The bilayer-structure drawer opens
+- **A drawer knows which view it extends.** Every drawer used to hang off the
+  membrane patch, so "all the drawers" and "this patch's drawers" were the same
+  set and the patch's shelf could simply list them all. D06 extends the
+  **synapse**, so a `home` on the exhibit says which view's chrome it belongs
+  to, and the shelf claims only its own (2026-08-31). A shelf that advertises a
+  door onto a view the child is not looking at is a dead button.
+- **An abstract concept is a drawer** — graphs of speed or quantity, structure
+  exhibits, lab benches — and it is **triggered from the view it extends**, not
+  from a global menu.
+
+  ⚠ **"Comparisons" used to be on that list and has come off it (2026-08-31).**
+  The rule was already out of step with the app: *Axonal conduction & myelin*
+  compares a bare fibre with a wrapped one and has always been a place, because
+  what it compares are two stretches of cable. *Passive spread* was built as a
+  drawer on the strength of the written word and was moved out again on the
+  user's instruction. **What decides is what the exhibit is OF, not how many of
+  them it shows.** Two of a thing that is a place is still a place; a comparison
+  of quantities with nowhere to stand — speeds, populations — is still a drawer. The bilayer-structure drawer opens
   from the membrane view; the SNARE drawer from the synapse view. A drawer
   button is chrome of the view whose subject it deepens, so the child's mental
   map stays spatial even for non-spatial content.

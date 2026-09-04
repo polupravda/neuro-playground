@@ -7,7 +7,9 @@ import {
   AXON_END,
   AXON_FLAT,
   AXON_VIEW_SCALE,
+  SYNAPSE_VIEW_SCALE,
   arrivalAt,
+  arrivalSpan,
   AXON_W,
   DRAWN_AXON_UM,
   BOUTON_R,
@@ -42,6 +44,25 @@ import { AXON_DIAMETER_UM } from '../core/membrane'
 import { IDLE, chainStateAt, runDuration } from './chain'
 import { patchDoors } from './patchDoors'
 import { goTo } from '../state/contentsNav'
+import { useLeakyStore } from '../state/leakyStore'
+import { useSynapseStore } from '../state/synapseStore'
+import {
+  drawSynapse,
+  synapseLabels,
+  synapseGeometry,
+  synapseClock,
+  synapseEvents,
+  screenOfModel,
+  SYNAPSE_SCREEN_MS,
+  SYNAPSE_END_HOLD_MS,
+} from './synapseScene'
+import { useSnareStore } from '../state/snareStore'
+import { synapseRun } from '../core/synapse'
+import { cleftRun } from '../core/cleft'
+import { drawLeaky, leakyLabels } from './leakyScene'
+import { speakAloud } from '../ui/SpeakButton'
+import { RACE_MS } from '../core/leaky'
+import { ResetButton } from '../ui/ResetButton'
 import { useNeuronStore } from '../state/neuronStore'
 import { inColour, useIonStore } from '../state/ionStore'
 import { useApStore } from '../state/apStore'
@@ -68,7 +89,8 @@ import {
   toggleSpotlight,
 } from '../state/experiment'
 import { AP_REAL_MS } from '../core/actionPotential'
-import { advance, apSteps, gateMoments, justChanged, stepAt } from '../core/apSteps'
+import { STEP_NAMES, advance, apBar, apSteps, gateFlashAt, gateMoments, stepAt } from '../core/apSteps'
+import { TransportBar } from '../ui/Timeline'
 import { useMembraneStore } from '../state/membraneStore'
 import { ionCloud } from './ions'
 import { membraneProteins } from './proteins'
@@ -171,8 +193,14 @@ function interpolate(from: Camera, to: Camera, t: number): Camera {
 export function NeuronStage() {
   const layerRef = useRef<Konva.Layer>(null)
   const axonLayerRef = useRef<Konva.Layer>(null)
+  const passiveLayerRef = useRef<Konva.Layer>(null)
+  const synapseLayerRef = useRef<Konva.Layer>(null)
   /** How far the propagation view has taken over from the scene, 0→1. */
   const axonFadeRef = useRef(0)
+  // D05's own view, gated exactly like the axon's — see the note on its layer.
+  const passiveFadeRef = useRef(0)
+  // S12's own view, gated the same way — see the note on its layer.
+  const synapseFadeRef = useRef(0)
   // What each view of its own is ACTUALLY showing at this instant: how much the
   // camera wants it, times how near the camera has got to its magnification.
   //
@@ -182,6 +210,8 @@ export function NeuronStage() {
   // in was still invisible, so flying out of a membrane patch went briefly to
   // nothing instead of showing the membrane shrink.
   const axonShownRef = useRef(0)
+  const passiveShownRef = useRef(0)
+  const synapseShownRef = useRef(0)
   const selected = useNeuronStore((s) => s.selected)
   const run = useNeuronStore((s) => s.run)
   const zoom = useNeuronStore((s) => s.zoom)
@@ -191,6 +221,11 @@ export function NeuronStage() {
   const setPhase = useNeuronStore((s) => s.setPhase)
   const zoomTo = useNeuronStore((s) => s.zoomTo)
   const zoomOut = useNeuronStore((s) => s.zoomOut)
+  const leakyStartedMs = useLeakyStore((s) => s.startedMs)
+  const synU = useSynapseStore((s) => s.u)
+  const synPlaying = useSynapseStore((s) => s.playing)
+  const leakyRace = useLeakyStore((s) => s.race)
+  const leakyReset = useLeakyStore((s) => s.reset)
 
   const apU = useApStore((s) => s.u)
   const apPlaying = useApStore((s) => s.playing)
@@ -215,6 +250,15 @@ export function NeuronStage() {
   // own, untransformed, because a ruler in millimetres and a graph of voltage
   // against distance are instruments rather than scene geometry.
   const atAxon = zoom === 'axon-signal'
+  /** ⚠ D05 IS A PLACE (user, 2026-08-31: "let's follow 'Axonal conduction and
+   *  myelin' pattern"). Same machinery as the axon view above it, one target
+   *  further down the same cable. */
+  const atPassive = zoom === 'axon-passive'
+  /** S12 leg 1 — the synapse, arrival to binding. A place like the axon views,
+   *  with its own layer and its own arrival gate. */
+  // The synapse view serves TWO places: the whole synapse and its active
+  // zone, four times deeper — the same run, watched closer.
+  const atSynapse = zoom === 'outgoing-synapse' || zoom === 'active-zone'
   const axonU = useAxonStore((s) => s.u)
   const axonLead = useAxonStore((s) => s.lead)
   const axonPlaying = useAxonStore((s) => s.playing)
@@ -286,6 +330,21 @@ export function NeuronStage() {
   // The staged moments, and how long playback holds on each. Measured off the
   // model, so a caption cannot promise something the drawing is not doing.
   const steps = useMemo(() => apSteps(counts, leaksOn, push), [counts, leaksOn, push])
+  // The timeline tool's event dots (user, 2026-09-01), placed through the
+  // spike's own dwell-weighted bar (user, 2026-09-02: "the labels overlap
+  // much") — the clustered middle moments get the width playback actually
+  // spends on them, so their names have room.
+  const apTimelineBar = useMemo(() => apBar(steps, AP_MS), [steps])
+  const apPoints = useMemo(
+    () =>
+      steps.map((s) => ({
+        id: s.key,
+        label: STEP_NAMES[s.key],
+        u: apTimelineBar.ofU(s.at),
+        note: s.title,
+      })),
+    [steps, apTimelineBar],
+  )
   const stepsRef = useRef(steps)
   stepsRef.current = steps
   // The instants the gates change, for the flash. A function of the gradients
@@ -358,6 +417,51 @@ export function NeuronStage() {
   const axonRef = useRef({ cable, raceRuns, u: axonU, patch: axonPatch, at: atAxon })
   axonRef.current = { cable, raceRuns, u: axonU, patch: axonPatch, at: atAxon }
 
+  // ⚠ THE RACE'S CLOCK IS ITS OWN EVENT'S, not this component's. Only when the
+  // race started goes through the store; where it has got to is read off the
+  // frame's own clock, so a re-render cannot restart it.
+  const passiveRef = useRef({ at: atPassive, startedMs: leakyStartedMs })
+  passiveRef.current = { at: atPassive, startedMs: leakyStartedMs }
+
+  // ⚠ THE MODELS ARE MEMOISED BY THEIR INPUTS, not recomputed per frame — both
+  // `synapseRun` and `cleftRun` cache on the counts they were given, so this is
+  // a lookup once the gradients stop changing.
+  const synRun = useMemo(() => synapseRun(counts, leaksOn), [counts, leaksOn])
+  const synCleft = useMemo(() => cleftRun(synRun), [synRun])
+  // The timeline tool's event dots for S12 (user, 2026-09-01): the run's own
+  // dated moments, mapped through the legged clock's INVERSE so each dot sits
+  // where the scrubber will actually be when its event happens on screen.
+  const synPoints = useMemo(
+    () =>
+      synapseEvents(synRun, synCleft).map((e) => ({
+        id: e.id,
+        label: e.label,
+        u: screenOfModel(e.ms / synRun.windowMs),
+        note: e.note,
+      })),
+    [synRun, synCleft],
+  )
+  const synapseRef = useRef({ at: atSynapse, run: synRun, cleft: synCleft, u: synU, playing: synPlaying })
+  synapseRef.current = { at: atSynapse, run: synRun, cleft: synCleft, u: synU, playing: synPlaying }
+  /** Stage-clock stamp of the moment the run PLAYED to its end — the
+   *  auto-reset's timer, never set by scrubbing. */
+  const synEndAtRef = useRef<number | null>(null)
+  /** Where the active zone sits in the synapse view's own frame — the anchor
+   *  the deeper place dives toward. Computed once: geometry is static. */
+  const zoneAnchorRef = useRef((() => {
+    const g0 = synapseGeometry()
+    // Slightly BELOW the foot (user, 2026-09-01: "camera should go down so
+    // the postsynaptic channels are fully in view").
+    return { x: g0.foot.x, y: g0.foot.y + 8 }
+  })())
+  /** How much of the synapse view's chrome (labels, lenses, captions) is
+   *  shown — it dissolves on the dive to the active zone. */
+  const synapseChromeRef = useRef(1)
+  /** The ambient thermal clock, advanced on the stage's own frame time —
+   *  thermal motion never pauses, whatever the run's legs are doing. Scaled so
+   *  the wobble's sines turn at a gentle real-time pace. */
+  const jiggleRef = useRef(0)
+
   // Warmed while the camera is still somewhere else. The integration is nothing
   // once and free forever, but a tenth of a second spent inside a render is a
   // stutter in the middle of a camera flight, which is exactly when it would be
@@ -383,6 +487,19 @@ export function NeuronStage() {
   useEffect(() => {
     if (!atAxon) useAxonStore.getState().stop()
   }, [atAxon])
+
+  // ⚠ LEAVING A PLACE PUTS ITS RUN AWAY. A race left running behind a camera
+  // that has flown somewhere else is a clock belonging to nothing.
+  useEffect(() => {
+    if (!atPassive) useLeakyStore.getState().reset()
+  }, [atPassive])
+
+  useEffect(() => {
+    if (!atSynapse) useSynapseStore.getState().reset()
+  }, [atSynapse])
+
+  const synRunning = synU !== null
+  const synShownU = synU ?? 0
 
   // One animation loop for the whole stage.
   useEffect(() => {
@@ -476,16 +593,10 @@ export function NeuronStage() {
       const held = dwellRef.current > 0
       flashRef.current =
         ap && !held
-          ? {
-              'voltage-na': Math.max(
-                justChanged(ap.u, momentsRef.current.naOpens),
-                justChanged(ap.u, momentsRef.current.naShuts),
-              ),
-              'voltage-k': Math.max(
-                justChanged(ap.u, momentsRef.current.kOpens),
-                justChanged(ap.u, momentsRef.current.kShuts),
-              ),
-            }
+          ? // ⚠ ON OPENING ONLY (user, 2026-08-30: "remove flash before the
+            // channel closes"). The decision moved into `gateFlashAt` so it
+            // can be tested — inline in a component, nothing could reach it.
+            gateFlashAt(ap.u, momentsRef.current)
           : null
 
       // Which channels are open, then where the voltage is heading. Channel
@@ -599,6 +710,42 @@ export function NeuronStage() {
         }
       }
 
+      // The synapse's run walks forward on the frame's own clock. ⚠ SLOWED,
+      // and declared: `SYNAPSE_MS` of model time is stretched over
+      // `SYNAPSE_SCREEN_MS` on screen, because the whole event — arrival,
+      // calcium, fusion, binding — is over in sixty milliseconds and nothing in
+      // it can be watched at life speed.
+      jiggleRef.current = frame.time * 0.0035
+      {
+        const syn = synapseRef.current
+        if (syn.at && syn.playing && syn.u !== null) {
+          const next = syn.u + frame.timeDiff / SYNAPSE_SCREEN_MS
+          // Hold AT the end first — clearing the instant the run finished
+          // would wipe the last thing it teaches off the screen — and stamp
+          // WHEN it ended, on the stage's own clock, so the reset below can
+          // wait out the hold.
+          if (next >= 1) {
+            useSynapseStore.setState({ u: 1, playing: false })
+            synEndAtRef.current = frame.time
+          } else useSynapseStore.setState({ u: next })
+        }
+        // ⚠ THE RUN PUTS ITSELF BACK TO REST (user, 2026-09-01: "remove reset
+        // button — after the animation is over, the state should be reset to
+        // new"). Only a run that PLAYED to its end resets itself: the stamp is
+        // set in the branch above, never by scrubbing, so a user parked at
+        // u = 1 by the slider is not yanked back to rest under their thumb.
+        if (syn.u !== 1) synEndAtRef.current = null
+        else if (
+          syn.at &&
+          !syn.playing &&
+          synEndAtRef.current !== null &&
+          frame.time - synEndAtRef.current > SYNAPSE_END_HOLD_MS
+        ) {
+          synEndAtRef.current = null
+          useSynapseStore.getState().reset()
+        }
+      }
+
       // Two things have to be true before the propagation view is drawn: the
       // camera has to be going there, and it has to have most of the way
       // arrived. The first is eased so leaving fades out instead of popping.
@@ -606,6 +753,10 @@ export function NeuronStage() {
       const ease =
         frame.timeDiff > 0 ? 1 - Math.exp(-frame.timeDiff / 240) : 1
       axonFadeRef.current += (wantAxon - axonFadeRef.current) * ease
+      const wantPassive = passiveRef.current.at ? 1 : 0
+      passiveFadeRef.current += (wantPassive - passiveFadeRef.current) * ease
+      const wantSynapse = synapseRef.current.at ? 1 : 0
+      synapseFadeRef.current += (wantSynapse - synapseFadeRef.current) * ease
 
       const cam = cameraRef.current
       if (cam.startedAt === null) cam.startedAt = now
@@ -620,7 +771,57 @@ export function NeuronStage() {
       // On the way out of a patch this is what keeps the bilayer on screen,
       // shrinking, until the axon's two walls have appeared under it.
       axonShownRef.current = axonFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
-      layer.opacity(1 - axonShownRef.current)
+      // Both axon views arrive at the SAME magnification, so they share the
+      // arrival ramp and differ only in which one the camera is going to. The
+      // scene gives way to whichever is further in — never to their sum, which
+      // would fade the cell out twice on a flight between the two.
+      passiveShownRef.current =
+        passiveFadeRef.current * arrivalAt(current.scale, AXON_VIEW_SCALE)
+      // ⚠ A SPAN, not a band: the synapse view is home from its own scale down
+      // to the active zone's (×4 deeper); a single-scale band blinked the view
+      // out midway through the dive between the two places.
+      synapseShownRef.current =
+        synapseFadeRef.current *
+        arrivalSpan(current.scale, SYNAPSE_VIEW_SCALE, SYNAPSE_VIEW_SCALE * 4)
+      // The dive INTO the view: past the synapse's own magnification the
+      // layer itself scales about the active zone, so the camera keeps going
+      // into the same picture rather than swapping it.
+      {
+        const extra = Math.min(4, Math.max(1, current.scale / SYNAPSE_VIEW_SCALE))
+        const az = zoneAnchorRef.current
+        const sl = synapseLayerRef.current
+        if (sl) {
+          sl.scale({ x: extra, y: extra })
+          sl.position({ x: az.x * (1 - extra), y: az.y * (1 - extra) })
+        }
+        synapseChromeRef.current = Math.max(0, Math.min(1, 1 - (extra - 1) / 0.6))
+      }
+      // ⚠ CSS OPACITY ON THE LAYER'S OWN CANVAS, not `layer.opacity()` (user,
+      // 2026-08-31: "I can see a ghost axon behind the visualisation, on both
+      // 'passive spread' and 'Axonal conduction and myelin'").
+      //
+      // Konva applies a node's opacity by SETTING `globalAlpha` on the context
+      // before calling its `sceneFunc`. `drawScene` then assigns `globalAlpha`
+      // itself in eighteen places — every part of the cell that has a fade of
+      // its own — and an assignment overwrites rather than multiplies. So the
+      // moment the drawing set an alpha, the layer's fade was gone and those
+      // parts painted at full strength however far out the camera had flown:
+      // a whole-cell axon standing behind the view that replaced it.
+      //
+      // Compositing the layer's CANVAS ELEMENT instead makes the fade a
+      // property of the surface rather than of the ink, so nothing the drawing
+      // does to `globalAlpha` can escape it. It is also the honest semantic:
+      // "the scene gives way" is one thing happening to one picture, not a
+      // thousand alphas that must each remember to be multiplied.
+      const hidden = Math.max(
+        axonShownRef.current,
+        passiveShownRef.current,
+        synapseShownRef.current,
+      )
+      layer.getNativeCanvasElement().style.opacity = String(1 - hidden)
+      // And an invisible cell must not still be clickable underneath the view
+      // that replaced it.
+      layer.listening(hidden < 0.5)
       layer.scale({ x: current.scale, y: current.scale })
       layer.rotation((current.angle * 180) / Math.PI)
       // Konva applies scale, then rotation, then position — so the offset that
@@ -633,7 +834,12 @@ export function NeuronStage() {
         x: STAGE_W / 2 - (cos * sx - sin * sy),
         y: STAGE_H / 2 + current.drop - (sin * sx + cos * sy),
       })
-    }, [layer, axonLayerRef.current].filter(Boolean) as Konva.Layer[])
+    }, [
+      layer,
+      axonLayerRef.current,
+      passiveLayerRef.current,
+      synapseLayerRef.current,
+    ].filter(Boolean) as Konva.Layer[])
     anim.start()
     return () => {
       anim.stop()
@@ -748,103 +954,110 @@ export function NeuronStage() {
           — gates, aura, charge marks, the trace marker — follows to that moment.
           Dragging while at rest is allowed and lands you inside the spike, paused:
           the position is the only state there is. */}
+      {/* ⚠ THE TIMELINE TOOL (user, 2026-09-01) replaced the bare range
+          slider: the same drag, plus the run's own moments as named, spoken,
+          pressable places on the bar. Pressing one REWINDS — the run glides
+          through the intermediate states, never teleports — and a run that was
+          playing keeps playing from where it lands. ⚠ THE BAR OWNS THE WHOLE
+          CONTAINER (user, 2026-09-02: "extract the button out of the
+          container" — the ⚡→▶ swap was resizing the row and shifting the
+          bar): the action button floats on its own plate under the bar's
+          left end, mirroring the 🔆 plate on the right, so nothing in the
+          row ever changes width. */}
+      {/* N22's paired-pulse control USED TO BE HERE, and it is worth saying
+          why it went. It was a toggle and a slider reading "6.0 ms", and it
+          asked a child to hold two runs in mind and compare them from memory:
+          press, watch, change a number they cannot feel the size of, press
+          again, remember what was different. Nothing on the patch showed the
+          two pushes together, because the patch only ever draws one instant.
+          The refractory period is a fact about a SEQUENCE, and a view of one
+          moment is the wrong instrument for it however good the model behind
+          it is. It lives on the spike-train bench now, where both pushes and
+          both answers are on one axis at the same time. */}
+      {/* ⚠ ONE FLOWING COLUMN (user, 2026-09-02: "no need to reserve space
+          for additional rows of labels" — the bar's height is dynamic again,
+          so the plates FLOW below it with a fixed margin instead of sitting
+          at a hardcoded offset; the gap stays identical in every view by
+          construction). The wrapper ignores the pointer so the canvas under
+          its empty middle stays reachable. */}
       {atMembrane && showSpike && (
-        <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/60 bg-slate-950/90 px-3 py-2 shadow-lg backdrop-blur">
-          {/* One push, named in the biology's own terms. The weak one that used
-              to sit beside it has moved to the bench: on this patch a push that
-              does nothing leaves every instrument — doors, crowds, spotlight —
-              with nothing to say, and a child cannot tell "not enough" from
-              "broken". On a graph a flat line is an answer.
-
-              The amplitude is still FIXED, so whether it fires is the mechanism's
-              to decide: flatten sodium's gradient and this button does nothing at
-              all, which is the lesson rather than a bug. */}
-          {!spiking && (
-            <button
-              type="button"
-              onClick={() => fireActionPotential()}
-              title={STIMULI.spike.note}
-              className="flex h-[46px] min-w-[122px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 shadow-md transition hover:bg-amber-500/45"
-            >
-              <span aria-hidden style={{ fontSize: STIMULI.spike.bolt, lineHeight: 1 }}>
-                ⚡
-              </span>
-              <span className="text-[13px] font-semibold">{STIMULI.spike.label}</span>
-            </button>
-          )}
-          {spiking && (
-            <button
-              type="button"
-              onClick={apPlaying ? pauseAp : resumeAp}
-              // A word beside the icon: ⏸ alone is guesswork at this age.
-              className="h-[46px] w-[122px] shrink-0 whitespace-nowrap rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 transition hover:bg-amber-500/30"
-            >
-              {apPlaying ? '⏸ Pause' : '▶ Play'}
-            </button>
-          )}
-          {/* N22's paired-pulse control USED TO BE HERE, and it is worth saying
-              why it went. It was a toggle and a slider reading "6.0 ms", and it
-              asked a child to hold two runs in mind and compare them from memory:
-              press, watch, change a number they cannot feel the size of, press
-              again, remember what was different. Nothing on the patch showed the
-              two pushes together, because the patch only ever draws one instant.
-              The refractory period is a fact about a SEQUENCE, and a view of one
-              moment is the wrong instrument for it however good the model behind
-              it is. It lives on the spike-train bench now, where both pushes and
-              both answers are on one axis at the same time. */}
-          <input
-            type="range"
-            min={0}
-            max={1000}
-            value={Math.round((apU ?? 0) * 1000)}
-            onChange={(e) => scrubAp(Number(e.target.value) / 1000)}
-            aria-label="Position through the action potential"
-            className="w-44 cursor-pointer"
-            style={{ accentColor: '#fcd34d' }}
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-10">
+          <TransportBar
+            className="pointer-events-auto"
+            points={apPoints}
+            value={apTimelineBar.ofU(apU ?? 0)}
+            playing={apPlaying}
+            onScrub={(b) => scrubAp(apTimelineBar.uOf(b))}
+            onResume={resumeAp}
+            ariaLabel="Position through the action potential"
+            timer={`${((apU ?? 0) * AP_REAL_MS).toFixed(1)} ms`}
           />
-          <span className="w-14 shrink-0 text-right text-[11px] tabular-nums text-slate-400">
-            {((apU ?? 0) * AP_REAL_MS).toFixed(1)} ms
-          </span>
-          {/* One switch for the whole emphasis: which proteins are carrying the
-              current, and which ions are in colour. On, the picture answers "what
-              is doing this?"; off, it is the membrane as it always is. */}
-          <button
-            type="button"
-            onClick={toggleSpotlight}
-            aria-pressed={spotlightOn}
-            title={
-              spotlightOn
-                ? 'Showing everything at full strength again'
-                : 'Bring forward whatever is carrying the current'
-            }
-            className={`shrink-0 rounded-lg px-2 py-1 text-[11px] transition ${
-              spotlightOn
-                ? 'bg-amber-500/20 text-amber-100 hover:bg-amber-500/35'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-            }`}
-          >
-            🔆 focus
-          </button>
-        </div>
-      )}
-      {/* What to look at, in words, one moment at a time. Watched as a single
-          smooth sweep the important part — that potassium answers LATE — went
-          past too fast to catch, so playback stops on each moment and says which
-          one it is. Only while something is happening: at rest the view stays
-          clear, and the button above is the invitation.
-
-          It clears the transport above it rather than tucking under it: that row
-          starts at 12 px and its 46 px buttons and padding carry it to about 74,
-          so anything above 74 is sitting on top of the thing it is describing. */}
-      {atMembrane && showSpike && spiking && beat && (
-        <div className="pointer-events-none absolute left-1/2 top-[86px] z-10 w-[min(560px,86%)] -translate-x-1/2 rounded-xl border border-slate-600/70 bg-slate-950/92 px-4 py-2.5 text-center shadow-xl backdrop-blur">
-          <p className="text-[15px] font-semibold leading-tight text-slate-100">
-            <span className="text-amber-300">
-              {beatNumber}/{beatCount}
-            </span>{' '}
-            {beat.title}
-          </p>
-          <p className="mt-1 text-[12px] leading-snug text-slate-400">👀 {beat.watch}</p>
+          <div className="mt-2 flex items-start justify-between">
+            {/* One push, named in the biology's own terms. The amplitude is
+                FIXED, so whether it fires is the mechanism's to decide:
+                flatten sodium's gradient and this button does nothing at all,
+                which is the lesson rather than a bug. */}
+            {!spiking && (
+              <button
+                type="button"
+                onClick={() => fireActionPotential()}
+                title={STIMULI.spike.note}
+                className="pointer-events-auto flex h-[38px] min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 shadow-lg backdrop-blur transition hover:bg-amber-500/45"
+              >
+                <span aria-hidden style={{ fontSize: STIMULI.spike.bolt, lineHeight: 1 }}>
+                  ⚡
+                </span>
+                <span className="text-[13px] font-semibold">{STIMULI.spike.label}</span>
+              </button>
+            )}
+            {spiking && (
+              <button
+                type="button"
+                onClick={apPlaying ? pauseAp : resumeAp}
+                // A word beside the icon: ⏸ alone is guesswork at this age.
+                className="pointer-events-auto h-[38px] w-[128px] whitespace-nowrap rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 shadow-lg backdrop-blur transition hover:bg-amber-500/30"
+              >
+                {apPlaying ? '⏸ Pause' : '▶ Play'}
+              </button>
+            )}
+            {/* ⚠ NOT IN THE TIMELINE ROW (user, 2026-09-02): the emphasis
+                switch lives on its own plate under the bar's right end. */}
+            <div className="pointer-events-auto rounded-lg border border-slate-700 bg-slate-950/85 p-0.5 shadow-lg backdrop-blur">
+              <button
+                type="button"
+                onClick={toggleSpotlight}
+                aria-pressed={spotlightOn}
+                title={
+                  spotlightOn
+                    ? 'Showing everything at full strength again'
+                    : 'Bring forward whatever is carrying the current'
+                }
+                className={`rounded-md px-2 py-1 text-[11px] transition ${
+                  spotlightOn
+                    ? 'bg-amber-500/20 text-amber-100 hover:bg-amber-500/35'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                🔆 focus
+              </button>
+            </div>
+          </div>
+          {/* What to look at, in words, one moment at a time. Watched as a
+              single smooth sweep the important part — that potassium answers
+              LATE — went past too fast to catch, so playback stops on each
+              moment and says which one it is. In the flow, below the plates,
+              so it can never sit on the thing it describes. */}
+          {spiking && beat && (
+            <div className="pointer-events-none mx-auto mt-2 w-[min(560px,86%)] rounded-xl border border-slate-600/70 bg-slate-950/92 px-4 py-2.5 text-center shadow-xl backdrop-blur">
+              <p className="text-[15px] font-semibold leading-tight text-slate-100">
+                <span className="text-amber-300">
+                  {beatNumber}/{beatCount}
+                </span>{' '}
+                {beat.title}
+              </p>
+              <p className="mt-1 text-[12px] leading-snug text-slate-400">👀 {beat.watch}</p>
+            </div>
+          )}
         </div>
       )}
       {/* The propagation view's own controls — the same grammar as the spike's,
@@ -937,6 +1150,149 @@ export function NeuronStage() {
           <span className="w-14 shrink-0 text-right text-[11px] tabular-nums text-slate-400">
             {((axonU ?? 0) * (cable.t[cable.t.length - 1] ?? VIEW_MS)).toFixed(1)} ms
           </span>
+        </div>
+      )}
+      {/* ⚠ ON THE CANVAS, IN THE AXON VIEW'S OWN PILL (user, 2026-08-31:
+          "buttons should be placed on the canvas… look at what the buttons
+          look like on it"). Same corner, same plate, same 38 px chips — a
+          control that does the same kind of thing in two views has to look
+          like the same control, or the child learns the affordance twice. */}
+      {/* ⚠ THE DOOR INTO D06, as the membrane patch's own shelf pattern
+          (user, 2026-09-01: "replace the magnifying glass with a shortcut
+          button, as seen on 'The AP' — both views, bottom left"). */}
+      {atSynapse && (
+        <div className="absolute bottom-3 left-3 z-10 rounded-xl border border-slate-700 bg-slate-950/85 p-1.5 shadow-lg backdrop-blur">
+          <button
+            type="button"
+            onClick={() => useSnareStore.getState().openBench()}
+            title="How a bubble of chemical gets out of the cell, and what pulls it in."
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
+          >
+            <span aria-hidden className="text-base leading-none">
+              🫧
+            </span>
+            <span className="whitespace-nowrap">Vesicles & the SNARE machinery</span>
+          </button>
+        </div>
+      )}
+      {/* ⚠ THE TIMELINE TOOL here too (user, 2026-09-01): the run's dated
+          moments — arrival, calcium, fusion, binding, opening, the nudge,
+          clearing — as named, spoken, pressable dots. A press rewinds, the
+          thumb drags. ⚠ THE BAR OWNS THE WHOLE CONTAINER (user, 2026-09-02:
+          "extract the button out of the container" — the ⚡→▶ swap was
+          resizing the row and shifting the bar): the action button floats on
+          its own plate under the bar's left end, mirroring the scale switch
+          on the right, so the row's layout never changes. */}
+      {/* ⚠ ONE FLOWING COLUMN here too (user, 2026-09-02): the bar's height
+          is dynamic, so the ⚡/▶ plate and the scale switch flow below it
+          with a fixed margin — the same gap as every other view, by
+          construction. The wrapper ignores the pointer so the canvas under
+          its empty middle stays reachable. */}
+      {atSynapse && (
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-10">
+          <TransportBar
+            className="pointer-events-auto"
+            points={synPoints}
+            value={synShownU}
+            playing={synPlaying}
+            onScrub={(v) => useSynapseStore.getState().scrubTo(v)}
+            onResume={() => useSynapseStore.getState().resume()}
+            ariaLabel="Position through the run"
+            timer={`${(synapseClock(synShownU) * synRun.windowMs).toFixed(1)} ms`}
+          />
+          <div className="mt-2 flex items-start justify-between">
+            {/* One push, named in the biology's own terms — what this one
+                fires is the spike ARRIVING at the terminal: the cause of
+                everything else in the picture.
+                ⚠ NO RESET BUTTON (user, 2026-09-01). A run that plays to its
+                end puts itself back to rest after a short hold, so the
+                transport can never strand at an end — the start-over control
+                the pacing rule demands is the ⚡ button this hands back. */}
+            {!synRunning && (
+              <button
+                type="button"
+                onClick={() => useSynapseStore.getState().fire()}
+                title="Send an action potential down the axon into this terminal"
+                className="pointer-events-auto flex h-[38px] min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 shadow-lg backdrop-blur transition hover:bg-amber-500/45"
+              >
+                <span aria-hidden style={{ fontSize: STIMULI.spike.bolt, lineHeight: 1 }}>
+                  ⚡
+                </span>
+                <span className="text-[13px] font-semibold">{STIMULI.spike.label}</span>
+              </button>
+            )}
+            {synRunning && (
+              <button
+                type="button"
+                onClick={() =>
+                  synPlaying
+                    ? useSynapseStore.getState().pause()
+                    : useSynapseStore.getState().resume()
+                }
+                className="pointer-events-auto h-[38px] w-[128px] rounded-lg border border-amber-400/50 bg-amber-500/15 text-[13px] font-semibold text-amber-100 shadow-lg backdrop-blur transition hover:bg-amber-500/30"
+              >
+                {synPlaying ? '⏸ Pause' : '▶ Play'}
+              </button>
+            )}
+            {/* ⚠ THE SCALE SWITCH on its own top-right plate (user,
+                2026-09-01: "top right corner"; 2026-09-02: no extra buttons
+                in the timeline element) — the axon views' own two-way
+                pattern: both framings named, the one you are in lit. */}
+            <div
+              role="radiogroup"
+              aria-label="Scale"
+              className="pointer-events-auto flex h-[38px] items-center gap-1 rounded-lg border border-slate-700 bg-slate-950/85 p-0.5 shadow-lg backdrop-blur"
+            >
+              {[
+                { id: 'outgoing-synapse', icon: '🕸', label: 'whole synapse' },
+                { id: 'active-zone', icon: '🔍', label: 'active zone' },
+              ].map((option) => {
+                const on = zoom === option.id
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => zoomTo(option.id)}
+                    className={`h-full rounded-md px-2.5 text-[12px] font-semibold transition ${
+                      on
+                        ? 'bg-amber-500/25 text-amber-100'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    {option.icon} {option.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {atPassive && (
+        <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-amber-400/60 bg-slate-950/90 px-3 py-2 shadow-lg backdrop-blur">
+          <button
+            type="button"
+            // ⚠ THE STAGE'S OWN CLOCK, not `performance.now()`. Konva's
+            // `frame.time` is milliseconds since the ANIMATION started, so a
+            // race stamped with the wall clock starts hundreds of thousands of
+            // milliseconds in the future and the run position comes out
+            // negative. A clock belongs to the event it is timing, and both
+            // ends of this one have to be read off the same clock.
+            onClick={() => leakyRace(animRef.current.timeMs)}
+            title="Send the same push down both stretches and watch how far each one gets"
+            className="flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-amber-50 transition hover:bg-amber-500/45"
+          >
+            <span aria-hidden className="text-base leading-none">
+              🏁
+            </span>
+            <span className="text-[13px] font-semibold">Race</span>
+          </button>
+          <ResetButton
+            onClick={leakyReset}
+            title="Put both stretches back to rest, with no push in either"
+            height={38}
+          />
         </div>
       )}
       <Stage width={STAGE_W} height={STAGE_H}>
@@ -1158,6 +1514,105 @@ export function NeuronStage() {
               )
             }}
           />
+        </Layer>
+
+        {/* D05, PASSIVE SPREAD — a place, on a layer of its own.
+
+            Its own layer and not the axon's, for the reason written on that
+            one: Konva clears a layer before drawing its children, so two views
+            sharing a layer must each keep to their own patch of canvas. These
+            two never appear together — the camera is at one axon target or the
+            other — but "never together" is a claim about today's navigation,
+            and a layer apiece is a claim about the drawing.
+
+            Untransformed, like the axon view, because the ruler underneath it
+            reads in millimetres and an instrument has to be square to the
+            screen. */}
+        <Layer ref={passiveLayerRef} listening={atPassive}>
+          <Shape
+            listening={false}
+            sceneFunc={(ctx) => {
+              const fade = passiveShownRef.current
+              if (fade <= 0.002) return
+              const began = passiveRef.current.startedMs
+              const now = animRef.current.timeMs
+              drawLeaky(
+                nativeCtx(ctx),
+                // Clamped at the caller, both ends — the model carries
+                // fractional time and is not asked to defend itself against a
+                // position outside its own run.
+                began === null ? null : clamp01((now - began) / RACE_MS),
+                now,
+                fade,
+              )
+            }}
+          />
+          {/* ⚠ F04's speaker still has to be tappable. It was a canvas the
+              drawer put a pointer handler on; out here the drawing is a Konva
+              shape, so the hit box is a shape too — built from the SAME
+              `leakyLabels()` the drawing used, never a second set of numbers. */}
+          {leakyLabels().map((l) => (
+            <Rect
+              key={l.term}
+              x={l.x}
+              y={l.y}
+              width={l.w}
+              height={l.h}
+              fill={HIT}
+              onClick={() => speakAloud(l.term)}
+              onTap={() => speakAloud(l.term)}
+              onMouseEnter={(e) => cursor(e, 'pointer')}
+              onMouseLeave={(e) => cursor(e, 'default')}
+            />
+          ))}
+        </Layer>
+
+        {/* S12 LEG 1 — THE SYNAPSE, on a layer of its own.
+
+            Same reasoning as the two axon views above: untransformed, because
+            what is drawn here is partly instrument, and a layer apiece because
+            Konva clears a layer before drawing its children.
+
+            The camera really flies to this terminal — and it TURNS a quarter of
+            the way in, because this synapse lies along the x axis on the cell
+            while the drawing puts the cleft across the middle. The rotation is
+            the camera's, not a lie in the picture. */}
+        <Layer ref={synapseLayerRef} listening={atSynapse}>
+          <Shape
+            listening={false}
+            sceneFunc={(ctx) => {
+              const state = synapseRef.current
+              const fade = synapseShownRef.current
+              if (fade <= 0.002) return
+              drawSynapse(nativeCtx(ctx), {
+                run: state.run,
+                cleft: state.cleft,
+                // ⚠ THE SCREEN'S POSITION IS NOT THE MODEL'S. The scrubber and
+                // the clock walk evenly; the run does not — see `synapseClock`.
+                u: state.u === null ? null : synapseClock(state.u),
+                fade,
+                // The ambient thermal clock: real screen time, so the soup and
+                // the casts jiggle at rest, through the beats, and at one pace.
+                jiggle: jiggleRef.current,
+                // Labels and lenses dissolve on the dive to the active zone.
+                chrome: synapseChromeRef.current,
+              })
+            }}
+          />
+          {synapseLabels(synapseGeometry()).map((l) => (
+            <Rect
+              key={l.term}
+              x={l.x}
+              y={l.y}
+              width={l.w}
+              height={l.h}
+              fill={HIT}
+              onClick={() => speakAloud(l.term)}
+              onTap={() => speakAloud(l.term)}
+              onMouseEnter={(e) => cursor(e, 'pointer')}
+              onMouseLeave={(e) => cursor(e, 'default')}
+            />
+          ))}
         </Layer>
       </Stage>
     </div>

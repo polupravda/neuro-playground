@@ -1,3 +1,4 @@
+import { ResetButton } from './ResetButton'
 import { useEffect, useRef, useState } from 'react'
 import { useCapacitorStore } from '../state/capacitorStore'
 import { SideDrawer } from './SideDrawer'
@@ -125,14 +126,7 @@ export function CapacitorBench() {
               {fmtMv(shown)}
               {settling && <span className="ml-2 text-xs font-normal text-amber-300">catching up…</span>}
             </span>
-            <button
-              type="button"
-              onClick={reset}
-              title="Back to the cell's own resting voltage"
-              className="rounded-xl border border-amber-500/60 bg-amber-500/15 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/25"
-            >
-              ↺ Back to rest
-            </button>
+            <ResetButton onClick={reset} title="Back to the cell's own resting voltage" />
           </div>
 
           {/* The patch alone, full width. The abstract counter panel that

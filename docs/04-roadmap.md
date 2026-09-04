@@ -752,8 +752,8 @@ drawing board (postsynaptic spine, astrocyte process, receptor positions).
 | --- | --- | --- | --- |
 | 18 | S01–S03 | Presynaptic terminal, Ca²⁺ channels, vesicle fusion — **model kept with its 33 tests**; view deleted for redesign (record below). | model done; view superseded by step 20 |
 | 19 | S04–S05 | Cleft concentration and AMPA-type binding — **model kept**; view deleted for redesign. | model done; view superseded by step 20 |
-| 20 | S12 (S01–S04) | Leg 1, arrival → binding: AP reaches the bouton, active-zone Ca²⁺ doors open, the four-site sensor fills, fusion, the cleft fills as a concentration, two glutamates bind per receptor. Ends at binding. | todo |
-| 21 | D06 | Drawer, vesicle life cycle & SNARE: dock → prime → zipper → fuse → retrieve → refill. The vesicle is a ring of the scene's own bilayer; the sensor is the scene's own sensor. | todo |
+| 20 | S12 (S01–S04) | Leg 1, arrival → binding: AP reaches the bouton, active-zone Ca²⁺ doors open, the four-site sensor fills, fusion, the cleft fills as a concentration, two glutamates bind per receptor. Ends at binding. | awaiting manual test (2026-08-31) |
+| 21 | D06 | Drawer, vesicle life cycle & SNARE: dock → prime → zipper → fuse → retrieve → refill. The vesicle is a ring of the scene's own bilayer; the sensor is the scene's own sensor. | awaiting manual test (2026-08-31) |
 | 22 | S13 (S05–S06 excitatory) | Leg 2, receptors → hillock: AMPA opens (EPSP), depolarization pops NMDA's Mg²⁺ plug, Ca²⁺ enters the spine, the EPSP is handed to the whole-cell view where summation fires the hillock. ⚠ never one synapse = one AP. | todo |
 | 23 | D07 | Drawer, AMPA & NMDA structure: clamshell binding, gates, the Mg²⁺ plug; receptors arrive by lateral diffusion and PSD capture, ⚠ not attraction through space. Ghost schematic + locator. | todo |
 | 24 | S14 (S10) | Leg 3, clearance & recycling: astrocytic + presynaptic transporters empty the cleft ⚠ (astrocytes do most of it, or declare), endocytosis, V-ATPase re-acidification, VGLUT refill. | todo |
@@ -771,10 +771,11 @@ capacitor → channel structure → how we measure → gating → the cable.
 | 27 | D02 | Permeability bench: containers to fire at a bare wall — O₂/CO₂ through, water a trickle, ions and glucose never; toggleable aquaporin; measured coefficients in the info block. Charge, not size. | done (2026-08-28, through rounds 27a–27c) |
 | 28 | D12 | Membrane charge: the step-8 charge skin quantified — Q = C·V on the scene's own 20 µm soma (12.6 pF) gives 5.6 million charges at −72 mV against 353 billion K⁺ inside, 1 in 63,000. Derived and pinned, never asserted; plus the charging delay. | done (2026-08-28, through rounds 28a–28f) |
 | 29 | D03 | Channel structure: side & top views, four subunits, S4 sensor charges (the schematic's red marks, explained), selectivity filter — ⚠ K⁺'s filter excludes the *smaller* Na⁺ by paying for K⁺'s water shell exactly. | done (2026-08-28) |
-| 30 | D15 | Inside the selectivity filter: two lanes, one clock, the energy ledger drawn at true proportion, the shortfall derived from the selectivity. | awaiting manual test (2026-08-28) |
-| 31 | D13 | Patch clamp — how we know: a pipette seals on, one channel's current is square picoamp steps (seeded flicker); whole-cell is the sum of thousands. Methods exhibit: measure-never-assert, made visible. | awaiting manual test (2026-08-28) |
-| 32 | D04 | Gating families & open-probability bench: ⚠ voltage-/ligand-/mechanically-gated, three lanes with three independent dials; Pₒ MEASURED off each record as a filling bar, and the curve those readings land on. | awaiting manual test (2026-08-28) |
+| 30 | D15 | Inside the selectivity filter: two lanes, one clock, the energy ledger drawn at true proportion, the shortfall derived from the selectivity. | done (2026-08-30) |
+| 31 | D13 | Patch clamp — how we know: a pipette seals on, one channel's current is square picoamp steps (seeded flicker); whole-cell is the sum of thousands. Methods exhibit: measure-never-assert, made visible. | done (2026-08-30) |
+| 32 | D04 | Gating families & open-probability bench: ⚠ voltage-/ligand-/mechanically-gated, three lanes with three independent dials; Pₒ MEASURED off each record as a filling bar, and the curve those readings land on. | done (2026-08-30) |
 | 33 | D05 | Leaky pipe: axial vs membrane resistance, length constant, what myelin does to the ratio. Draws `core/cable.ts`. | todo |
+| 34 | D05 | **The leaky pipe** — how far a signal reaches. λ = √(d·Rm/4·Ra) drawn from `core/cable.ts`; the axon IS the hose; the child changes the WALL (leak doors, myelin) and λ answers. | awaiting manual test (2026-08-30) |
 | 32b | D14 | Membrane constructor: drag channels and pumps from a tray into a bare bilayer; the built membrane's voltage is derived, not scripted. Spec row added 2026-08-27; scope to be planned when its turn comes. | todo (documented only) |
 
 ## Milestone 6 — Inhibition & integration (M03, S06–S07, D09–D10)
@@ -7297,3 +7298,3243 @@ notch and a straight foot.
   a lucky x.
 
 850 tests green (50 files), typecheck and build clean.
+
+### Step 33l — four colours honestly, and the chain that opens a spike door
+
+A corrections round on **Ion channel types**, two items of which contradicted
+standing rules and were put back to the user before anything was written.
+
+**⚠ Conflict 1 — colour.** The user asked for the ligand- and voltage-gated
+doors to be different colours. The standing rule, from the user's own
+2026-08-28 correction, is *colour means SPECIES, never category* — and both
+were sodium, so both were yellow. The messenger arriving to open the ligand one
+was **also** a sodium ion, so three things on that panel were one yellow.
+Resolved without bending the rule: **the ligand panel's EXEMPLAR changed.**
+"Ligand-gated" is a family, not a channel, and its members pass different ions.
+It is now a **GABA-A receptor**, which really does pass chloride — so it is
+green *because of what goes through it*, exactly like the other three. The four
+doors are now purple (K⁺), yellow (Na⁺), green (Cl⁻) and pink (Ca²⁺): all
+different, no rule bent. The calibrated Hill figures moved with the exemplar
+(50 µM nicotinic → 10 µM GABA-A); swapping the receptor without swapping its
+numbers would have left the app quoting one receptor under another's name.
+
+**⚠ Conflict 2 — the ball.** The user asked to validate whether the ball and
+plug react to the charge change, having earlier asked for "the ball gets pulled
+into the channel by the opposite charge". They do not. The inactivation ball is
+Nav's hydrophobic IFM motif; it carries no useful charge and its receptor site
+is buried until the gate opens. Inactivation borrows its entire voltage
+dependence from activation. Put to the user, who chose the real mechanism — so
+the panel now draws the **missing middle step**, which is also the only
+charge-driven one:
+
+> charge flips → the **S4 sensor**, covered in plus charges, is *repelled*
+> outward → the sensor drags the gate open → **only now** does a seat exist →
+> the ball drops into it
+
+The sensor is not in the traced drawing and was added deliberately: leaving it
+out was not neutrality, it left the flap swinging for no visible reason and
+invited the wrong answer. `gateOpennessAt` was pushed later so a visible pause
+separates sensor from gate — overlapping, they read as one event. `seatOpenAt`
+draws the landing site appearing, so *why the ball waits* is on the screen.
+
+- **The flash is white-hot at its core, yellow at its rim.** Pure yellow, as
+  asked, is sodium's colour on a sodium door.
+- **The messenger is no longer drawn as an ion**, because it is not one — GABA
+  is a small organic molecule. Its own colour (orange, belonging to no species
+  in this app), a lumpy three-lobed outline, and no charge badge.
+- **The hole in the wall is gone.** The two separating channels cut their
+  *fully-open* width out of the bilayer and then sat shut inside it. They now
+  cut the **shut** width and shove the neighbouring lipids aside as they widen,
+  with the shove spread over three molecule spacings — measured, because a
+  one-spacing reach moves the first molecule 2 px and its neighbour not at all,
+  piling two heads together.
+- **Every word is off the canvas.** The `open`/`shut` caption went (the picture
+  already says it) and the three spoken labels moved into the heading, where a
+  `SpeakButton` now sits in front of each panel's title.
+- **⚠ A test that passed on the bug.** The first hole test only asked whether
+  any lipid vertex fell in the band that used to be bare — and passed with the
+  bug restored, because the band caught the first molecule beyond the too-wide
+  gap. The fault was in *which number gets cut*, so `wallGapAt` was exported and
+  the number pinned. Reverted the fix again and watched it fail properly.
+
+858 tests green (50 files), typecheck and build clean.
+
+### Step 33m — one channel language, everywhere
+
+The traced drawings had reached the gating bench and nowhere else, so the app
+was showing two visual languages for one object. This finished the sweep.
+
+**The flash is a flash, not a picture of one.** The voltage panel's cause was a
+lightning-bolt zig-zag — a *symbol* for electricity drawn on the canvas. The
+app already has exactly one way of saying "the signal is here": the yellow
+bloom the axon views use (`SIGNAL_RGB`, near-white core). It now uses that,
+arriving at the **top of the panel** and washing down onto the wall, so the
+signal reads as having come from somewhere else rather than being made here by
+the button. *Noted for the user: a real depolarisation arrives sideways along
+the wall from the neighbouring patch, not from the extracellular side — the top
+entry is the requested symbolic reading.*
+
+**The plug wears the body's outline.** It was the only piece of that protein
+drawn without the species rim, which made it read as a separate object that had
+drifted up against the pore.
+
+**Every generic channel replaced, and four judgement calls put to the user
+first** — three of which were mistakes to convert as asked:
+
+| site | was | now |
+| --- | --- | --- |
+| permeability bench | generic shape, `open: 0.45` | **its own aquaporin** |
+| channel view inset | generic shape | traced leak, K⁺ purple |
+| patch clamp | generic shape | traced voltage-gated, purple, **no ball** |
+| whole axon (8 px) | generic shape | traced, Na⁺ with ball, K⁺ without |
+| axon close-up | generic shape | traced, same rule |
+| balance bench | generic gated door | traced **leak**, present only when open |
+
+- **⚠ The aquaporin was not an ion channel and was being drawn as one**, held
+  permanently half-open. It now has its own protein: an **hourglass with a
+  waist**, no gate, and the two half-helices that meet at the constriction. The
+  pinch *is* the selectivity — it is why water crosses in single file and why a
+  hydrated sodium ion cannot follow. A parallel-sided pore deleted the
+  mechanism.
+- **⚠ Not every voltage-gated channel inactivates.** The patch clamp's own
+  model is two-state with no inactivation anywhere in it, and an axonal delayed
+  rectifier repolarises the spike precisely by *staying* open. A ball on those
+  would be a mechanism the record directly underneath visibly never performs.
+  `ball` is now an option on the traced drawing, and the seat goes with it.
+- **⚠ The balance bench's door had no cause**, and the app's own rule is that
+  no button opens a channel directly. What its toggle actually varies is
+  whether the membrane is *permeable* to that ion — so it is a leak channel,
+  drawn only when the ion has one, and the wall is cut only where something is
+  standing in it. **Its button still reads "open the door" / "close the door"
+  and probably wants to say "add a channel" / "take it out"** — left for the
+  user to decide.
+- **The generic drawing is deleted.** Once every caller had moved, it was left
+  with no user but its own test — and a shared drawing that accepts anything is
+  what the next caller reaches for. Its three tests went with it rather than
+  standing guard over a shape nothing renders.
+
+864 tests green (51 files), typecheck and build clean.
+
+### Step 33n — a run slow enough to have a chain in it
+
+The voltage panel had still not answered the child's question, asked twice:
+*what makes the ball swing?*
+
+**The honest answer, and the two halves of it.** The **flap** — the "leg" on the
+right of the body — *is* the charge's doing: the ⊕-marked sensor is shoved
+outward by the positive inside and drags it open. The **ball** is not. It is
+the IFM motif, three greasy amino acids with no useful charge, and it can only
+stick once the flap opens and uncovers a pocket shaped to hold it.
+
+- **⚠ The ball now JOSTLES on its tether from the very first frame**, before
+  the flash, before anything — and goes still the moment it seats. Drawn still,
+  its sudden move looked *caused*, and the only cause on the panel is the
+  charge, so the charge is what a child concluded. Jostling, the picture
+  answers the question itself: it was bumping around the whole time and there
+  was nowhere to hold on. No charge label on it — that would have made ⊕ mean
+  two different things on one panel.
+- **The flap wears the body's yellow outline** (this is what the previous round
+  got wrong — it was put on the ball). It had been stroked deep-dark as a piece
+  drawn *behind* the protein, which made the one part that actually swings the
+  hardest thing on the panel to see moving.
+- **`POKE_MS` 3.6 s → 6 s, with measured pauses.** Flash and depolarisation
+  share one ramp — the flash *is* the depolarisation arriving, and a gap
+  between them would invent a delay. Every other link gets a real gap, pinned
+  in **milliseconds** rather than fractions: a fraction of a run whose length
+  changes is not a pause anybody can see. The ligand messenger now travels for
+  the whole of its arrival instead of covering the distance in the first third
+  and hovering by the socket.
+- **The flash is round, like a torch shone on the door.** A band across the top
+  lit everything equally and so pointed at nothing.
+- **⚠ The ± marks are on the voltage panel only**, reversing an earlier
+  decision of mine. The reason for that decision is still true — every membrane
+  is charged — so the point it gives up is now made in words: the info block
+  says outright that all four walls are charged and only one door cares. Both
+  halves are tested.
+- **The leak's line was a sentence you had to unpick backwards** ("Opens when
+  never — it has no gate, so it is always open"). `opensLine` now replaces the
+  whole sentence where the template fights the meaning, instead of contorting a
+  phrase to slot into it.
+- **The selectivity filter's buttons draw sodium smaller than potassium**,
+  scaled by real **bare** radii — the one exhibit where ion size *is* the
+  subject, and its whole answer is that bare sodium is the smaller one and
+  still cannot get through. Everywhere else a key stays a same-size specimen,
+  because hydrated the order reverses and the two must never be muddled.
+
+872 tests green (51 files), typecheck and build clean.
+
+### Step 33o — red where the charge is positive, and a flap you can see
+
+**1. The patch clamp's red.** The user expected red for a positive inside and
+was only seeing blue for a negative one. **The expectation is right and the app
+already agreed with it** — `chargeRamp` has been red-for-positive since it was
+written, and the neuron scene and the spike graph both read off it. What was
+wrong was the STRENGTH. This clamp's steps are −72, 0 and +40 mV, and the
+wash's alpha is proportional to how far from zero the membrane is, so at rest
+it came out at 0.39 and at the top step at 0.24 — the blue was two-thirds
+louder than the red, and the red barely registered. The whole ramp is turned up
+(`WASH_PEAK = 0.78`); the **proportion between them is kept**, because red at
++40 mV genuinely is a smaller push than blue at rest and the picture should go
+on saying so. Zero still shows nothing at all: the membrane has no polarity
+there, and a colour would be a claim the physics does not make.
+
+**2. The flap is painted over the body.** It used to go down first, so the
+protein's dark middle was painted across the end of it: shut, the flap appeared
+to stop halfway and vanish into the shadow. Behind the body was the
+anatomically tidier choice and the less legible one, and hiding the door is the
+worst thing this panel can do.
+
+**3. The two outlines, judged under the user's "unless it's required" clause.**
+
+- **The ball's yellow rim is gone.** That outline was meant for the flap; put on
+  both, two things shouted at once. The ball has a quiet dark rim now.
+- **The ring that appeared when the ball seated is gone.** It said in outline
+  what the ball now says by going still — which is the mechanism rather than an
+  annotation of it.
+- **The seat itself is KEPT, but redrawn.** It is the whole answer to why the
+  ball waits, so removing it would remove the mechanic. A yellow dashed halo was
+  drawing an *annotation of* the socket; it is now a dark recess opening in the
+  mouth, which is the socket. Nothing on the channel is dashed any more, and a
+  test asserts `setLineDash` is never reached.
+
+The paint order is pinned by fingerprinting each traced path's segment count in
+the drawing calls — reordering the flap fails it immediately.
+
+877 tests green (52 files), typecheck and build clean.
+
+### Step 33p — four walls at one height, and a way into the structure
+
+**1. The membranes line up again.** Rewriting the leak's sentence shorter lifted
+its whole picture: the description line was the one thing above the canvases
+whose height depended on what it said, so a caption was moving a membrane. It is
+a fixed block now — sized for **three** lines rather than the two these
+sentences take on a wide screen, because the panels narrow with the window and a
+height that fits exactly today's longest sentence clips it on a smaller display,
+which trades a moving membrane for a truncated one. `PANEL_HEAD` pays for the
+extra height so nothing overflows.
+
+**2. The ligand collar waits a beat.** Drawn the instant the ion arrived, it was
+part of the *arriving* — one event, so the landing and the catching read as the
+same thing. It now comes in on its own clock about half a second later, and
+**lands with the door opening**, which is what says the binding is what did it.
+Thicker and pure white: at this size a hairline round a small shape is a smudge.
+
+**3. The structure drawer has a discovery entry.** A 🔍 button on the **leak
+panel** opens it — and it is on that panel for a reason. The structure exhibit
+takes apart one fixed channel: a potassium channel with a selectivity filter and
+no gate. That is precisely the door the leak panel draws, and a magnifier's job
+is to say what is on the other side of it, so four of them all opening the same
+potassium channel would have been three lies. It also fills the slot that read
+"No button — it has no gate to open", which the panel's own line now says better.
+
+- **⚠ MOUNT ORDER IS Z-ORDER.** Every drawer is `fixed z-50`, so among equals
+  the one written later in `App.tsx` paints on top. `ChannelBench` was mounted
+  *before* `GatingBench`, so the new button would have opened it **behind** the
+  drawer that opened it — a dead button, with nothing in the code to say why.
+  The list is an ordering, not a bag; it is now types → structure → filter, and
+  says so.
+
+880 tests green (52 files), typecheck and build clean.
+
+### Step 33q — the last generic channel, and one row where there were two
+
+**1. The neuron scene's proteins are traced now.** This was the last place in
+the app drawing a channel as a generic pinched barrel — and it is the view the
+app opens on, so it was the one place teaching that every door is the same
+object with a different tint while every drawer said otherwise. It reaches
+'Resting membrane potential' and 'Trace one signal' because both are `drawScene`
+at a camera.
+
+- **The pump keeps its barrel.** It is not a channel: domed cytoplasmic head,
+  only ever open on one side, spends energy. Same reasoning that kept the
+  aquaporin out of the sweep.
+- **⚠ FITTED BY HEIGHT, and the membrane gap follows the drawing.** Fitting them
+  all to one width was tried and *measured* first: the ligand-gated channel is
+  much narrower for its height than the leak, so a shared width made it stand
+  **61% taller** than its neighbours — a protein sticking out of a membrane
+  because of an arithmetic convenience. Every one of these straddles the same
+  wall, which is what is actually true of them; their widths differ, which is
+  also true. `channelHalf` now asks the drawing, so the gap and the picture in
+  it are one number.
+- **The scene's private sensor marks and binding cup are gone.** Three little
+  plus signs and a cup with a dot were this view's own way of writing what opens
+  a channel; the traced proteins carry both properly — a sensor that *moves* and
+  a socket cut into a subunit that slides.
+- `widthNm` no longer sets anything and now says so where it is declared.
+- The sliver guard in `proteins.test.ts` was pinned at exactly one membrane
+  thickness and is now 0.7 of one, with the **measured** table beside it
+  (leak 1.02, voltage 0.95, pump 1.20, ligand 0.75). The ligand-gated channel is
+  genuinely the slimmest in the drawing it was traced from, and the drawing is
+  the better source.
+
+**2. Two menu rows merged into one.** 'Axonal conduction' and 'Myelin &
+saltatory conduction' landed on the same camera with the same drawer; all that
+separated them was that one started the race on arrival. That is not two places,
+and a menu names places — the same reasoning that removed "Change one thing".
+The merged row keeps the race, because the race *is* the comparison.
+
+**3. ⚠ The equilibrium bench's channels are back, always drawn.** A previous
+round drew the channel only while the door was open, reasoning that what the
+bench varies is *permeability*. True of the physics and wrong on the screen: a
+chamber with nothing in its wall reads as one that has lost its channel, not as
+one that never had a way through. The wall is cut and the protein stands in it
+whatever the door is doing; what open and shut change is the traffic.
+
+883 tests green (52 files), typecheck and build clean.
+
+### Step 33r — the messenger is a molecule, and RMP gets a view of its own
+
+**1. The brown thing was the messenger, not the channel.** The ligand channel's
+body is green (`#6eb976`); what was being read as a brown chloride ion was the
+neurotransmitter, which a previous round painted a spare orange on the reasoning
+that a colour belonging to no species says "not one of the four". **Too subtle to
+survive contact.** A single glossy ball IS what this app means by "ion", whatever
+colour it wears — so a spare colour just made a fifth ion, and it was taken for
+the chloride the channel passes.
+
+It is drawn from bonded **atoms** now, in the element colours the water molecules
+in the permeability bench already use — a difference of KIND rather than of
+shade. Ions here are lone spheres wearing a ± badge; nothing else in the app is a
+cluster of bonded atoms. The `TRANSMITTER` colour is deleted.
+
+**2. D16 — where the resting potential comes from.** 'Resting membrane potential'
+and 'The action potential' both landed on a bare membrane patch, so RMP had no
+view of its own.
+
+**⚠ The proposed mechanic was declined, and why.** "Membrane, ion soup, no
+channels, switcher makes ions get attracted/repelled" is wrong twice if the ions
+cross — ions cannot cross a bare bilayer at all, and the resting potential is not
+electrostatic attraction across a wall. If they only gather at the two faces it
+is correct, but that is D12 "Membrane charge & capacitance" already.
+
+What the app genuinely lacked: ⚖️ shows one ion's equilibrium, ⚡ shows the charge
+at the faces, and **nothing showed the resting potential as a weighted
+compromise**. So D16 is the tug-of-war:
+
+> Every ion has a voltage it would be content at. The membrane settles at the
+> average of those, **weighted by how easily each one can actually cross**. The
+> doors are the votes.
+
+- The user's three buttons survive **as causes, not settings**: each changes the
+  DOORS in the wall, and the voltage is read off them. No button sets a voltage.
+- **The corroboration this rests on**: one potassium door against the app's own
+  declared background leak, on its own declared concentrations, through the same
+  chord-conductance function the action potential uses, comes out at **−72.1 mV**
+  — the resting voltage the rest of the app already commits to. Measured, not
+  arranged, and pinned by a test against `REST_MV`.
+- The needle **eases** toward its answer with the membrane's own time constant
+  rather than jumping, because that is what a capacitor does.
+- The honesty note says plainly that **the pump is not in this equation** — it
+  built the crowds Nernst reads, and switching it off moves nothing until the
+  crowds themselves run down.
+
+902 tests green (54 files), typecheck and build clean.
+
+### Step 33s — build the wall, read the answer
+
+**1. The stretch-gated door opens with the push.** It was sharing
+`gateOpennessAt` with the other two, which holds a deliberate pause before the
+door moves — right for them, because they wait on something (a sensor, a
+messenger finishing its landing), and wrong here: **this door waits for
+nothing**, the bending of the sheet *is* the opening. `stretchOpenAt` now starts
+while the finger is still coming down, so push and open overlap into one
+movement. **⚠ Nothing guarded this** — deliberately reintroducing the pause left
+all 39 tests green — and while writing the guard, a sloppy restore silently
+dropped the fix and the new test caught it within the minute.
+
+**2. The ball wears the species outline again**, now that the flap is painted
+over the body and clearly the thing that swings. The extra ring that used to
+appear as it seated does not come back: the ball says that by going still.
+
+**3. ⚠ A plugged pore carries nothing.** Traffic was drawn on openness alone, so
+ions streamed past a ball sitting in the mouth. Not cosmetic — stopping the
+current is the entire function of inactivation, and drawing it still flowing
+said the ball does nothing.
+
+**4. Menu order is types → structure → filter**, which is also the order the app
+drills in: the types bench's magnifier opens the structure, and the structure's
+opens the filter.
+
+**5. D16 rebuilt as a construction bench.** The headline over the canvas is gone
+(the reading printed large on the picture says what it is better than a title
+repeating the menu row), and the three preset buttons are gone with it — **a
+button that sets up a wall for you does the interesting part on the child's
+behalf**, and here that part is the lesson. Drag doors from the tray into the
+membrane, drag them out again. This is D14's own grammar, specified 2026-08-27.
+
+- **⚠ Chloride now earns its share.** It had 29% of the vote and nothing on the
+  board to explain it. Its Nernst voltage is a mark on the scale between the
+  other two, and — the real answer — pull every potassium door out and
+  chloride's share jumps to **82%**, holding the membrane at −41 mV. What
+  chloride was quietly doing all along becomes something the child can cause.
+- **⚠ The state words are anchored to a real neuron.** "Hyperpolarised" and
+  "depolarised" are defined relative to a cell's own resting potential and
+  describe a cell *moved off* it — so used bare they would teach that a wall you
+  built is a broken cell, when you have actually changed what rest means. The
+  words stay; what they are measured against is always printed with them, and a
+  real cell is marked on the scale.
+- **A test claim that was simply false**, caught by writing it: "stripping the
+  potassium doors moves the answer toward E_Cl". It does not — a real wall
+  already sits within 8 mV of chloride's −64, and the stripped one lands 23 mV
+  away at −41. The true and better statement is that chloride is what holds the
+  membrane anywhere near negative once potassium loses its voice.
+
+909 tests green (54 files), typecheck and build clean.
+
+### Step 33t — ⚠ the axon membrane view, broken and fixed
+
+The user reported the axon-membrane view — the one the action potential is
+demonstrated in — as **completely broken**: no membrane, no channels, a flat
+yellow wash. Their guess ("a yellow channel got very big and covered
+everything") was right, and the arithmetic says exactly why.
+
+**The traced proteins are authored in pixels; the scene is not.** Every bench
+draws a channel in a space where one unit is about one screen pixel: line widths
+near 1.1, and a charge badge with a floor of `Math.max(2.4, …)` so it never
+disappears. Step 33q handed those drawings a `halfHeight` in the scene's WORLD
+units, where **the entire membrane is 0.022 units across**. The floors stopped
+being floors and became the largest things on the canvas. Measured before
+touching anything: **the ink reached 1.33 world units — 60× the width of the
+membrane**, and one sensor badge covered the view.
+
+**The fix**: the protein is drawn at bench size inside a context scaled by
+`DRAW_UNIT = PROTEIN_OUT / HALF_MEM`, exactly as a magnified frame would be. The
+traced modules need to know nothing about it and every constant inside them
+keeps the proportion it was chosen for.
+
+**⚠ Two attempts at the regression test were worse than none, and both were
+caught by breaking the code again.**
+
+1. The first called the traced drawing **directly** and **passed with the bug
+   put back** — because the fault was never in the drawing, it was in what the
+   scene handed it.
+2. The second bounded **all** of the scene's ink at a real camera. That fails
+   honestly: at membrane magnification a full-bleed path really does map
+   688,994 px out, and that is not a bug. It reported the same number with and
+   without the fix, which is what gave it away.
+
+So the scene's channel drawing was lifted into `sceneProtein.ts` with one
+exported function, `drawSceneChannel` — **the scene now has no other way to draw
+a channel**, so a test can reach the actual call site. The measurement that means
+something is the ink of ONE channel against the membrane it must sit in. Broke it
+a third time to watch it fail properly: 1.328 against a bound of 0.044.
+
+916 tests green (55 files), typecheck and build clean.
+
+### Step 33u — the resting bench, corrected
+
+1. **It no longer talks on its own.** The reading spoke every time it changed —
+   which is every door dropped, so the bench talked over the child at the moment
+   they were looking hardest. The word is now a **prominent label on the canvas
+   with its own speaker glyph**, and that button is the only way it is ever said.
+
+2. **The trays are the permeability bench's trays**: a flat rounded box with the
+   door drawn ON it rather than perched above its rim, and the name spoken from
+   underneath — the tray and the name deliberately not sharing a hit area, so a
+   child never hears a word when they meant to pick something up.
+
+3. **Renamed to "What sets the membrane voltage".** The row named one state and
+   the exhibit behind it now covers all three: build a wall of sodium doors and
+   there is nothing resting about the answer.
+
+4. **The duplicated reading under the canvas is gone** — the canvas says it, and
+   the app has a rule against the column repeating what the canvas already says.
+   Only the reset is left.
+
+5. **⚠ "Depolarised" was being mispronounced**, and the cause is that the voice
+   is `en-US` while the app is written in British English. `sayAs` hands the
+   synthesiser an American spelling for the `-ise` family; nothing on screen
+   changes, because what the child HEARS is the point.
+
+6. **⚠ Why Cl⁻ was in the equation with no chloride channel**, answered twice
+   over. It is real: every membrane is slightly permeable to everything through
+   doors too many and too varied to draw, and for chloride that background is
+   large — 0.45 of a door's worth against sodium's 0.1, which is most of
+   chloride's 29% at rest. So (a) the **paler part of each bar** is now leak with
+   no door drawn, with a legend saying so, and (b) there is a **chloride door in
+   the tray**, so the child can give it a way through of its own and watch the
+   solid part of its bar grow while the pale part shrinks.
+
+**⚠ And a test that passed on the bug, for the third time in this app.** The
+pronunciation guard tested `sayAs` directly, so it passed happily with
+`speakAloud` no longer calling it. Rewritten to stub the synthesiser and go
+through `speakAloud` — the function the buttons actually call — then broken
+again to watch it fail.
+
+925 tests green (56 files), typecheck and build clean.
+
+### Step 33v — the gaps, and the resting bench's furniture
+
+**1. ⚠ `CHANNEL_HALF = 21` is deleted, and with it a gap in every bench.** It
+was the half-width of the ONE generic channel drawing, and every view cut its
+hole in the bilayer to it. That drawing is gone and each channel is now its own
+traced protein — the leak is **13.1** half-wide against that 21 — so the
+constant went on cutting holes eight pixels too wide *either side* wherever it
+was still used, which the user saw as "visual gaps between channels and lipids"
+in the equilibrium bench. The axon lens had the same gap for the same reason.
+
+There is **no replacement constant**, on purpose: a shared width is exactly the
+mistake. Each view derives its gap from its own drawing, and one new test file
+(`wallGaps.test.ts`) guards *all* of them at once — including a test that no two
+traced proteins are the same width, which is why a single number can never fit
+again.
+
+**2. The resting bench's furniture.**
+
+- The **↺ back to a real cell** button is on the canvas beside the reading it
+  undoes. Under the canvas it was the only thing left in a row of its own — a
+  control marooned away from everything it acts on, spending a whole strip of
+  height.
+- The **trays are centred**. They used to start at a fixed left margin with a
+  sentence filling the space beside them; with the sentence gone the row hung
+  off one side of a wide canvas.
+- **"drag a door into the wall" is gone.** A tray with a door on it beside a
+  wall with doors in it is a sentence already, and the canvas carries no
+  explanation. The hover `title` still says it.
+- **The percentages are gone from the share bar.** The bar's LENGTH is the
+  weight in the equation — that is the whole reason it is a bar — and a number
+  printed on top says the same thing again in a form needing arithmetic. The
+  symbol stays, because a colour needs a name.
+
+**3. `strictCanvas` now records the text a canvas WRITES.** This app has more
+rules about what a canvas may say than about almost anything else, and none of
+them could be tested: a list of method names does not include the words. The
+removals above are now pinned by asserting the canvas writes no "drag" and no
+"%".
+
+932 tests green (57 files), typecheck and build clean.
+
+### Step 33w — the resting bench, furniture and space
+
+**1. ⚠ The share bar is removed entirely.** Last round "remove percentage
+indicator" was read as *the numbers*; it meant the graph. The user is right and
+the reason is one the app already has a rule for: **the doors in the wall ARE
+each ion's weight in the equation, in the same colours** — a bar of the same
+lengths underneath was the canvas repeating itself, which is the same fault as
+the column repeating the canvas.
+
+*Named, because it was an answer to an earlier question:* the paler half of each
+bar was the explanation for "why is chloride in the sum with no chloride
+channel". That answer now lives only in words — "Right now" and the honesty note
+— and in the chloride tray, which lets a child give it a door and watch it
+matter. If the question comes back, this is where the picture of it used to be.
+
+**2. The canvas fills the drawer.** Nothing sits under it any more, so
+everything left belongs to the picture, and the wall re-centres into the third
+of the height the bar used to take.
+
+**3. The buckets.**
+- **Centred** on the canvas.
+- Each door **perched on its bucket's rim**, overlapping the top border, so the
+  bucket reads as holding a supply with the next one ready to be picked off.
+  *⚠ The permeability bench does the opposite deliberately (2026-08-28) — sample
+  overlapping the middle, because there a sample on the edge read as a separate
+  object nearby. These hold something you drag OFF rather than something you
+  fire, so the two benches now differ on purpose.*
+- Each **spoken name centred under its own bucket**. A spoken label's ink runs
+  from 18 px left of its anchor — the speaker glyph — to the end of the word, so
+  anchoring at the tray's centre put the pair noticeably right of it.
+
+**⚠ Two guards written this round did not bite, and both were caught by breaking
+the code.** The rim test first asked only that the door's ink *cross* the rim —
+which a door sitting squarely inside also does, grazing it from below. Rewritten
+to measure the door's top edge, it then caught the membrane's own lipids, which
+run the full width of the canvas: it was measuring from the wall down and
+passing whatever the tray did. It needed a window in **y** as well as x.
+
+936 tests green (57 files), typecheck and build clean.
+
+### Step 33x — a current, not a trickle; and one tray for two benches
+
+**1. ⚠ Ions now cross as a CURRENT, and the answer to the user's question is
+that a stream is not merely permissible — one ball was the misleading picture.**
+
+A single open sodium channel carries about 1.2 pA. That is **7.5 million ions a
+second** — some 7,500 during one millisecond of opening. There is no moment when
+a conducting pore contains one ion. The old drawing was not a cautious
+simplification; it was three orders of magnitude the wrong way, and it taught
+that a current is a trickle of individuals.
+
+- The queue's **length follows conductance and driving force**, exactly as the
+  rate already did — so the spike's channel visibly streams where a resting leak
+  dribbles, which the code comment has promised since it was written and could
+  not deliver with one ball.
+- **The leak still dribbles**, and empties between crossings. A stream everywhere
+  would lose the difference the exhibit is for.
+- `STREAM_MAX = 5` is a **cap, not a measurement** — the pore is barely wider
+  than an ion so they queue along it, and a longer queue is a solid bar rather
+  than a countable stream. Declared as an understatement rather than hidden;
+  there is no honest number of balls.
+- **The old test counted 0 → something transitions**, which a continuous stream
+  never makes. Its claim was right and its measurement was not: throughput is
+  occupancy × speed, so both halves are now measured — the second by comparing
+  the sorted queue positions between two close frames, since the whole train
+  translates together.
+
+**2 & 3. One tray, two benches.** The resting bench's buckets are now the
+permeability bench's to the pixel — 112 × 26, 6 px radius, the same slate box
+and rim — and spread the same way, evenly across the width with each centred in
+its own slot. And the permeability bench's molecules moved onto their rims.
+
+**⚠ That reverses a 2026-08-28 decision** recorded in `permeaScene`, which said a
+sample balanced on the edge reads as a separate object that happens to be
+nearby. What settles it the other way is the resting bench, whose buckets you
+*drag things off*: there, sitting on the rim is what says "there are more of
+these, take one". The two benches were drawn differently for a round, the user
+saw both, and chose this one for both.
+
+**⚠ Three bad measurements in one test, each caught by breaking the code.** The
+new tray guard first asserted `c.y < c.y + c.h / 2` — true of every tray ever
+drawn. Measured properly it found nothing, because `drawPermea` works in logical
+units inside a scaled context while `containers()` does not. Converted to device
+space it then failed *both* ways, because `strictCanvas` records an `arc` by its
+centre rather than its extent, so "highest ink" sat on the tray's top edge
+whichever way the sample was drawn. Measuring where the atoms are **centred**
+discriminates — but the window then caught the **speaker glyph** below the tray,
+nine points against the sample's two, dragging the mean 33 px down. Confined to
+the tray's own band, it finally bites.
+
+942 tests green (58 files), typecheck and build clean.
+
+### Step 33y — one reset, one stream, and a magnifier out of the wrong slot
+
+**0. ⚠ THE AP DEMO STILL LOOKED THE SAME, and the reason is the rule this app
+already has.** The ion current from step 33x reached the membrane scenes and not
+the axon lens, because "ions crossing a channel" existed **twice**: once in
+`channelIonsAt`, and once in the lens's own `drawTraffic` with a hardcoded
+`IN_FLIGHT = 3`. The lens is what the action-potential demo shows, so nothing
+the user could see had changed. *A second copy of a fixed bug is a bug that
+comes back* — the second time that rule has been earned here.
+
+`streamCount(drive)` is the one rule now, and both callers ask it.
+
+**⚠ And the first guard for it did not reach the second copy either** — putting
+the lens back to `3` left every new test green, because they all measured
+`streamCount` and `channelIonsAt`. The failure is structural (somebody writing
+the number down again), so the guard is too: no file outside `proteins.ts` may
+set a stream length to a bare number, and the lens must be seen asking.
+
+**1. One reset for the whole app.** There were five: an amber chip on the
+permeability canvas, two grey text links reading "↺ start again", a big amber
+pill saying "↺ Back to rest", and a tiny "↺ real". The permeability bench is the
+source of truth, so its geometry and colours moved to `stage/resetChip` and
+everything now draws or renders from there — canvas benches through
+`drawResetChip`, DOM benches through a `ResetButton` that reads its own label
+from the same place. **What each reset puts back moved into `title`**: the face
+of the control reads the same everywhere, because a control that does the same
+thing in every exhibit has to look the same in every exhibit. The permeability
+describer interpolates the label rather than spelling it. A structural test
+allows the glyph in exactly one file.
+
+**2. The magnifier is off the button row.** "How it is built" sat in the slot
+the other three panels use for their CAUSE — a control that navigates elsewhere
+wearing the costume of one that acts on the panel, right beside three buttons
+keeping that promise. It is a **magnifier chip on the canvas** now, this app's
+own grammar for "there is more to see here", on the potassium channel the
+structure exhibit takes apart. The slot keeps its height as an empty spacer, or
+the four membranes stop lining up.
+
+950 tests green (60 files), typecheck and build clean.
+
+### Step 33z — the spike never opens all the way
+
+**1. Voicing labels lost the outline on their plate.** The plate is there for
+legibility — these sit on lipid heads and bright proteins, and a name that
+disappears into its background is a name nobody can tap. A **rim** round it made
+the word look like a button, which it is not: the speaker beside it is the
+control. It also put a ruled rectangle on drawings this app takes trouble to
+keep unruled.
+
+**2. ⚠ The AP demo still showed 1–3 ions, and this time it was arithmetic, not a
+missed copy.** The rule multiplied a drive by a constant and assumed a firing
+channel reaches openness 1. **It does not.** Sodium's conductance is m³h, and h
+is already falling as m rises, so a real spike peaks at **0.517** — the busiest
+instant the whole app draws came out as three balls, and potassium's 0.327 as
+one. Exactly what the user reported.
+
+`streamCount` now takes a **fraction of the busiest**, and the lens scales
+against what the run actually reaches — measured per run and remembered, not
+typed in. Sodium's peak is now the cap (5) and potassium's is 2: both measured
+against the *same* busiest thing, so the sodium–potassium contrast survives
+rather than each hitting its own ceiling.
+
+**⚠ FOUR GUARDS IN A ROW FAILED TO CATCH THIS CLASS OF BUG, every one of them
+because it did not go through the call site.** They fed `streamCount` a drive by
+hand; the rule was never wrong, what the caller handed it was. Reverting the
+lens left all ten green. The lens's decision is now an exported function
+(`ionsInPore`) and the test calls *that* — the same fix as `drawSceneChannel`
+two steps ago, for the same reason. Both breaks were re-run afterwards and both
+now fail.
+
+956 tests green (61 files), typecheck and build clean.
+
+### Step 34a — a real current, and a bucket that is actually the same shape
+
+Action list for 2026-08-30 (the new working agreement's first use).
+
+**A1 — "AP does not work still. Remove current ion flow implementation. Replace
+it with a new current view, which looks as the flow seen in 'Patch clamp
+recording'."** Done.
+
+The old drawing was *n evenly spaced balls*, and three rounds of tuning `n` did
+not fix it — because a handful of evenly spaced balls reads as a **queue of
+individuals** however many of them there are. The patch clamp had had the right
+drawing all along: one ion emitted every 2 ms while the door is open, each
+flying for 70 ms — about **35 in the air at once**, fanning out and fading as
+they leave. That reads as a current.
+
+- `core/ionFlow.ts` is that model, shared. The lens uses it.
+- **Its clock is CHARGE, not wall time** — one ion per unit of charge actually
+  delivered — so the stream is tied to the thing it is a picture of.
+- **Each ion keeps the emission index it was born with**, so the queue slides
+  forward as the rate changes instead of reshuffling; pinned by a no-teleport
+  test and by one that checks a seed survives its whole journey.
+- Openness is still measured against **what the run actually reaches**, both
+  species against the same busiest thing, so sodium runs at full density and
+  potassium visibly thinner.
+- **Still true and still declared**: these are drawing rates. One open sodium
+  channel carries 7.5 million ions a second.
+
+*Not changed, and reported rather than hidden:* the membrane close-ups
+(`channelIonsAt`) still use the older drawing, because there an ion threads a
+large protein rather than leaving a pore in a plume, and that view was not what
+was reported. It can be converted on request.
+
+**A2 — "buckets look incorrect. They should look identical to those in membrane
+permeability."** Done, and the reason it was wrong twice is worth recording.
+
+**The sizes matched all along.** What did not was the shape: the permeability
+bench draws inside a **×4 context**, so its literal `roundRect(…, 6)` and
+`lineWidth = 1` land as **24 px and 4 px on screen** — and a 24 px radius on a
+26 px-tall box is clamped by canvas to half the height, making a **pill with a
+thick rim**. Copying its raw numbers gave a gently-rounded rectangle with a
+hairline.
+
+**⚠ And the test compared width and height only**, which is exactly why it
+passed twice while the buckets looked wrong. It now pins radius and rim against
+the reference's own exported constants, scale applied.
+
+963 tests green (61 files), typecheck and build clean.
+
+### Step 34b — ⚠ three rounds spent fixing a screen the user was not looking at
+
+Action list for 2026-08-30:
+
+**A1 — "remove the 1-3 balls animation. Let channels open and close with no
+flow."** Done. But the reason it was needed is the record worth keeping.
+
+**The action-potential view is `drawScene`, not the axon lens.** `drawRibbon`
+runs only at the `axon-signal` camera; the menu's "The action potential" row
+goes to **`axon-membrane`**, which `drawScene` draws. Three consecutive rounds of
+work — the stream count, the shared rule, the whole patch-clamp flow port — all
+went into `axonRibbon`'s `drawTraffic`, **which that view never renders**. Every
+guard written for them was green throughout and not one was watching the screen
+being reported.
+
+The "1-3 balls" were `channelIonsAt` called from `drawProtein`; the "short
+flash" after them is the gate-flash ring, which fires when a gate changes state.
+
+- Channels now carry nothing in that scene. The **pump keeps its cargo** — it
+  was not what was reported, and it is the one protein there that visibly
+  spends something.
+- The decision moved into an exported `cargoOf`, so the guard is on the function
+  `drawProtein` actually calls. `apFlow.test.ts` cites A1 by name.
+
+**⚠ THE LESSON, and it is not the one already written down.** "Test through the
+call site" was recorded two steps ago and *followed* — `ionsInPore` was exported
+and tested. It did not help, because the call site itself was in the wrong file.
+The missing question is one step earlier: **which function draws the thing on
+the user's screen?** Answer that first, from the route the user takes to get
+there, and only then look at what it does.
+
+966 tests green (62 files), typecheck and build clean.
+
+### Step 34c — the current, in the view that actually draws it
+
+Action list for 2026-08-30:
+
+**A1 — "tests pass".** Three rows flipped from `awaiting manual test` to `done`
+(steps 30, 31, 32 — D15, D13, D04).
+
+**A2 — "continue".** Step two of the action-potential debug: the flow is back,
+in `drawScene` this time, on the app's one flow model.
+
+Measured through `cargoOf` — the function `drawProtein` actually calls when
+drawing `axon-membrane` — at mid-spike:
+
+| channel | ions in the pore | before |
+| --- | --- | --- |
+| voltage-Na⁺ | **14** | 1–3 |
+| ligand | 11 | 1–3 |
+| voltage-K⁺ | 6 | 1–3 |
+| K⁺ leak | 3 | 1 |
+
+- **The density is derived, not chosen.** `roomFor(ion)` divides the journey
+  (`CROWD_REACH` either side of the wall) by the ion's own hydrated size at a
+  1.4-diameter spacing: about **21 fit** for sodium, which is a current with
+  gaps you can still pick individual balls out of. `flowAt` takes that as its
+  in-flight limit, so the lens's longer journey keeps the full 35 and the
+  scene's shorter one is not asked to draw a bar.
+- **Speed still comes from conductance × driving force**, so a channel visibly
+  slows as its ion stops caring; density comes from how busy it is against the
+  busiest thing the app draws. Both move with the model.
+- **The leak no longer empties between crossings**, and that is deliberate: a
+  real leak carries a thin continuous current. The contrast is density — 3
+  against 14 — rather than gaps.
+
+**Four tests were stale rather than wrong**, all measuring a flow that used to
+stop: three counted `0 → something` transitions, which a continuous current
+never makes, and one compared against the retired constant. Rewritten to measure
+occupancy × speed, and to compare the leak's density with the spike's.
+
+970 tests green (62 files), typecheck and build clean.
+
+### Step 34 — D05, the leaky pipe
+
+Action list for 2026-08-30, after three alignment questions:
+
+**A1 — what the child changes.** Leak doors and myelin: both act on **Rm**, the
+half of the ratio myelin actually changes. Diameter was the alternative and
+would have left myelin out of the exhibit that exists to explain it.
+
+**A2 — the hose.** The **axon is the hose**; the analogy lives in the words. A
+second drawn picture of one idea has cost this app repeatedly.
+
+**A3 — where.** A drawer, with a second entry on the patch's shelf.
+
+**λ is `core/cable.ts`'s own answer, scaled — never re-derived.** The spec
+demanded that and a test pins it: a bare wall's λ must equal `lengthConstantUm()`
+exactly. Measured:
+
+| wall | Rm × | λ | reach |
+| --- | --- | --- | --- |
+| bare | 1 | **342 µm** | 1023 µm |
+| 6 leak doors | 0.25 | **171 µm** | 512 µm |
+| myelinated | 51 | **2439 µm** | 7307 µm |
+| myelinated + 6 doors | 12.75 | 1220 µm | 3654 µm |
+
+- **The square-root law is the surprise the exhibit is built on**: four times the
+  leak only *halves* the reach. Pinned.
+- **Myelin's factor is counted, not asserted** — `lamellae()` gives 25 wraps from
+  the g-ratio the app already declares, two membranes per wrap in series, so 51
+  walls to cross.
+- **A wrapped fibre with holes punched in it** sits between the two, which is
+  what makes λ read as a *ratio* rather than a property.
+- **One drawn door is a declared teaching unit** standing for a population, as
+  every door in this app does. The direction and the law are what is honest.
+- The escaping arrows are drawn from `leakRateAt`, so a wrapped fibre visibly
+  stops losing charge rather than being *said* to.
+
+**Both new benches now have their second way in**: `resting` and `leaky` are on
+the patch shelf as well as in the menu. The shelf-order test that asserted
+`train` was last was updated — it was pinning a fixed end rather than the order
+the course meets things in.
+
+990 tests green (64 files), typecheck and build clean.
+
+### Step 34d — the AP view: plume, density, flash, colour
+
+Action list for 2026-08-30:
+
+**A1 — "we've discussed that the ion flow will look like on 'patch clamp'
+recording bench. It looks different currently. Or did I misunderstand?"** No
+misunderstanding — it had the patch clamp's **density model** and not its
+**look**. `flowAt` was shared; the plume was not. There the stream fans out and
+fades as it leaves the pore; here every ion ran dead straight down one line.
+
+It fans now — and **only once an ion is clear of the protein**. The standing rule
+that a carried ion has no sideways component is about the PORE ("barely wider
+than a single ion, so anything offset travels through solid protein"), and that
+reason stops applying out in the crowd. Inside, they still queue single file. The
+test that enforced the rule by forbidding the field outright was rewritten to
+enforce its *reason*.
+
+**A2 — "if this visualisation is scientifically correct, I would prefer a bigger
+current."** It is, and a bigger one is a *less wrong* picture, not a more
+generous one: one open sodium channel carries 7.5 million ions a second, so every
+count this app can draw understates it. Spacing went from 1.4 diameters to
+shoulder-to-shoulder — **19 ions** at mid-spike, against 14 before and 1–3 when
+this began.
+
+**A3 — "remove flash before the channel closes."** The ring fired on opening AND
+shutting. A door closing is already visible twice over — the flap swings back
+and the flow stops — so flashing it interrupted exactly the moment worth
+watching. The decision moved out of the React component into `gateFlashAt`,
+because inline in a component no test could reach it.
+
+**A4 — "K⁺ channel does not look purple enough. Fix, check other channels."**
+⚠ **A double tint.** The scene muted a channel toward its ion by 0.38, and the
+traced drawing then muted it again by 0.55 — tinting a protein with what it
+passes is the drawing's own job. Two mixes in series washed all three back to
+bronze:
+
+| | scene showed | should be |
+| --- | --- | --- |
+| potassium | `#9d8b88` brownish grey | `#a18bb9` |
+| sodium | `#ae9958` muddy olive | `#cfaf3b` |
+| chloride | `#8a9d6e` olive | `#6eb976` |
+
+The scene hands over the ion's own colour now and lets the drawing do its single
+mix, so it matches the benches exactly.
+
+**`strictCanvas` records every colour painted (`styles`).** This app has a great
+many rules about colour and none of them were testable — a list of method names
+does not include the colours. It caught the double tint on the day it was added,
+and the guard compares the scene's OUTPUT with the bench's rather than their
+inputs: the same protein has to look the same wherever it is drawn.
+
+996 tests green (65 files), typecheck and build clean.
+
+### Step 34e — the ring, and why the AP view draws fewer ions than the clamp
+
+Action list for 2026-08-30:
+
+**A1 — "I still can see a ring, shortly before the channel closes."** Fixed, and
+the previous round's fix was not wrong, just incomplete.
+
+The ring already fired on **opening only**. What was left is that the sodium door
+is open from `u = 0.032` to `u = 0.085` — a window of **0.053** — and the flash
+lasted **0.05** of the run. So the *opening* flare was still fading at 0.078,
+seven thousandths before the door shut, and read as belonging to the closing.
+
+`FLASH_WINDOW` is now **0.018**, measured against the briefest opening it has to
+mark rather than chosen: the sodium ring is bright 0.032 → 0.049 and dark for the
+last two-thirds of the opening. **A flash that outlasts the state it announces
+has stopped being an event marker and become a highlight on the state.**
+
+Two existing tests used offsets of 0.02 and 0.03, picked when the window was
+0.05, and broke for a reason unrelated to what they check. They take their offset
+from `FLASH_WINDOW` now.
+
+**A2 — "patch clamp has much more ions going through the channel compared to AP
+demo. Either make more or push back and explain why."** Pushing back, with
+measurements — and there is one thing worth offering.
+
+The AP view **already reaches its geometric maximum**: at the voltage where
+sodium is driven hardest it draws **29 ions**, which is exactly how many fit end
+to end along the journey. It shows 19 mid-spike because the driving force
+genuinely is lower there.
+
+Two reasons the clamp looks busier, neither of them a limitation to fix:
+
+1. **Geometry.** The clamp magnifies ONE channel and gives its ions a whole
+   pipette to spread along, so they are small against a long span and 35 fit.
+   The AP view draws ions at their true hydrated size against the membrane's own
+   thickness, and ~29 fit end to end. Drawing more means overlapping them into a
+   bar.
+2. **Physics, and it is the lesson.** The clamp holds a FIXED voltage step, so
+   the driving force never changes and the stream runs flat out the whole time
+   the door is open. In a real spike the voltage is climbing toward sodium's own
+   equilibrium, so the current genuinely falls as the spike peaks — which is the
+   reversal potential made visible, and the thing this app deliberately teaches.
+
+The real currents are comparable (~1.2 pA against ~1.5 pA) and both drawings are
+understatements of 7.5 million ions a second.
+
+998 tests green (65 files), typecheck and build clean.
+
+### Step 34f — D05 rebuilt on the race view's pipe
+
+Action list for 2026-08-30:
+
+**A1 — "review menu items naming. We've agreed to use more precise terms."**
+`How far a signal reaches` → **`Passive spread & the length constant`**. Every
+other row names the thing itself — *Equilibrium potential*, *Patch clamp
+recording*, *Membrane charge & capacitance* — and a menu that mixes named
+concepts with descriptions of them teaches that some of these have names and
+some do not.
+
+*Two other rows are still descriptions rather than terms and were left alone,
+because both were named that way deliberately:* `Trace one signal` and `What
+sets the membrane voltage` (renamed at the user's own request on 2026-08-30,
+when `Resting membrane potential` stopped covering what the bench does). Raised
+rather than changed.
+
+**A2 — "it has to look like a pipe… less schematic, more irregular and playful.
+See 'race' view… Use this view, do not reinvent."** Rebuilt on it.
+
+`ribbonGeometry` + `raceLayout` + `atMid` + `drawOutside` + `drawTube` are now
+exported from `axonRibbon` and D05 draws with them, so the wobbling outline, the
+rounded sealed ends and the bath either side come for free and **cannot drift
+from the fibre the rest of the app draws**. `drawTube` takes a HEAT function,
+which is exactly why it drops in: where the race feeds it a spike's voltage,
+this feeds it the decay, so the pipe's own colour field IS the fading.
+
+- **Two pipes, always both** — bare above, wrapped below, the same holes in
+  each. ⚠ The myelin toggle went with it: *a comparison you have to press a
+  button to see is a comparison you have to remember*, and this one is the whole
+  point of the exhibit.
+- **The holes are holes**, on both walls, drawn with the same leak channel the
+  benches use — so a child who has met one in the membrane view meets it again.
+- **Axial resistance is drawn**, as what it is: a row of kinks down the middle
+  of the pipe that the push has to fight past, because the inside is a poor wire.
+- One geometry serves the drawing **and** the hit tests, so a hole can be taken
+  out where it is drawn — on either pipe.
+
+**The guard for "do not reinvent" is structural**: a wobbling outline is sixty-odd
+line segments, two rounded ends and a clip; a schematic tube is four corners.
+Replacing `drawTube` with a `fillRect` fails it.
+
+1000 tests green (65 files), typecheck and build clean.
+
+### Step 34g — the leak's rate: the science was right, the clock was not
+
+Action list for 2026-08-30:
+
+**A1 — "in AP demo, leak channel lets out large amount of K⁺ ions. This happens
+on inconsistent rate. Check if it is correct scientifically."** Two answers,
+because there are two questions in it.
+
+**The large amount is CORRECT.** E_K is −89 mV. At rest the membrane sits at
+−72, so the driving force on potassium is **17 mV** — a trickle, which is what a
+resting leak is. At the peak of a spike the membrane is at +40, so the driving
+force is **129 mV, 7.6× larger**, and still outward. A K⁺ leak channel really
+does pour potassium out hard while the cell is depolarised, and that outward
+leak is part of what repolarises it.
+
+**The inconsistent rate was a real bug.** The clock was `ms / period` — that is,
+`ms × rate` — which silently assumes the rate has ALWAYS been whatever it is
+now. Every time the driving force moved, the whole accumulated phase moved with
+it, and the error grew with the clock. Measured before the fix: at a two-minute
+clock, a change in vm of **a tenth of a millivolt jumped every ion 0.377 of the
+way down the pore in a single frame**. During a spike, where vm moves every
+frame, that is a stutter rather than a flow.
+
+The honest phase is ∫rate·dt, and this is a pure function of (state, clock) with
+no history to integrate. So **the rate moved to the one place that needs no
+memory: density.** Current is density × speed either way; with the journey time
+fixed, a channel pours harder by carrying more rather than by carrying the same
+few faster. Measured after: a 0.1 mV change now moves ions **0.0332**, exactly
+what a steady frame moves them, and the leak's density goes **1 → 8** across a
+spike, matching the 7.6× physics.
+
+It is also the better drawing at the reversal potential: as the push fell to
+nothing the old model's period went to infinity and left ions **frozen mid-pore
+for ever**; the pore simply empties now, which is what a current of zero is.
+
+**Confirmed for the user, with evidence rather than assertion:** `leakyScene`
+calls `ribbonGeometry`, `raceLayout`, `atMid`, `drawOutside` and `drawTube` —
+the same five functions in the same order that `drawRace` itself uses. It is not
+a copy of the race view's pipe; it is that pipe.
+
+1004 tests green (65 files), typecheck and build clean.
+
+### Step 34h — D05's myelin, its nodes, and its door size
+
+Action list for 2026-08-30:
+
+**A1 — "myelin is styled very much differently from 'race' view."** This bench
+had grown its own pale rounded bands, which is a second myelin in the app.
+`drawSheath` was split: working out WHERE the sleeves go stays with the run;
+the LOOK of a sleeve became `drawSheathBands(ctx, geo, spans)` and D05 calls it.
+Gradient, thickness, node gaps and all.
+
+**A2 — "I add channels, and they appear on myelin. Expected: on nodes of
+Ranvier."** Correct, and it is the app's own anatomy said in as many words by
+the axon views: *under a sleeve there are no channels at all*. A hole drawn on
+myelin is a hole through another cell wrapped round this one. The wrapped pipe
+now wears `MAX_DOORS + 1` sleeves so there is **one node per hole**, and every
+hole lands in a gap. The bare pipe still takes holes anywhere, because nothing
+is wrapped round it.
+
+**A3 — "channels in 'race' have smaller size than here."** They were three times
+the size, and on a straight line through the middle of the tube rather than on
+its wobbling wall. Both fixed — and the size is now **one number the axon views
+own** (`DOOR_HALF_HEIGHT`), imported here rather than guessed at.
+
+⚠ *The first guard for A3 bounded the drawn ink by `DOOR_HALF_HEIGHT × 2.4`
+while that constant was the thing under test — tripling it tripled the bound and
+the guard passed. With one owned number the fault is unrepresentable; what can
+come back is a SECOND constant, so the guard is structural now.*
+
+---
+
+**⚠ AND AN ACCIDENT WORTH RECORDING.** Splitting `drawSheath` with a Python
+slice, I wrote `s[:i] + header + loop` and never re-appended `s[j:]` — **deleting
+the last 494 lines of `axonRibbon.ts`**, including `drawDoors`, `miniDoor`,
+`drawTraffic`, `doorPlaces`, `poreBusyness` and `busiestDrive`. `tsc` caught it
+in seconds.
+
+Recovered because the file is tracked: `git show HEAD:…` gave the committed
+copy, its tail was reattached, and the day's edits to that tail — the traced
+`miniDoor`, the traced lens channels, `LENS_DOOR_HALF`, the shared `flowAt` —
+were re-applied one at a time until the suite came back to the same 1004 it had
+before. **A cut-and-splice on a whole file must reassemble every part of it**;
+the safe shape is `head + new + tail` with all three named, never two.
+
+One test began timing out as a side effect: the denser flow made a per-ion
+`expect` loop run tens of thousands of assertions. It collects and asserts once
+now — a test that dies of its own measurement says nothing.
+
+1010 tests green (65 files), typecheck and build clean.
+
+### Step 34i — D05 becomes a race, and a misconception is removed
+
+Action list for 2026-08-30:
+
+**A2 — "there's no situation when K⁺ channels are absent (which we can build)?
+This is confusing… Validate."** ⚠ **The user is right, and the model proved it.**
+
+A "bare" pipe with no holes drawn still had **Rm = 3333 Ω·cm²** — a perfectly
+leaky membrane. λ was 342 µm *precisely because it leaks*. So the picture was
+offering a state the arithmetic underneath did not have, and that a cell cannot
+have either: a neuron with no potassium leak has no resting potential at all and
+nothing to send. The drawing said "no channels"; the model said "the normal
+amount of leak". They contradicted each other and the child was being asked to
+believe the drawing.
+
+**The holes are permanent now, the same in both fibres, and what myelin does is
+COVER them** — which is also what myelin actually does. It does not take a
+channel away; it wraps another cell's membrane round the fibre and leaves bare
+gaps, the nodes. On the wrapped pipe the covered holes are drawn faintly, so a
+child can see they are still there, under the sleeve.
+
+**A1 — "make signals race. The signal moves across the pipe and sparkle 'leaks'
+through the holes."** Built. One button sends a push down both pipes at once;
+the pulse travels, and **sparks fly out of every exposed hole it passes**. That
+is not a flourish — charge leaving through a hole is exactly WHY the signal
+shrinks, so the sparks are the mechanism, and their brightness is `sparkAt`, the
+model's own answer. On the bare pipe so much escapes that the pulse is spent
+before the end (survives < 1%); on the wrapped one it arrives (> 20%).
+
+⚠ **Both pulses travel at the same speed, declared.** A real wrapped fibre is
+also faster — bigger λ and smaller capacitance both shorten the delay — but
+speed is the conduction exhibit's lesson, and putting it here as well would
+leave a child unable to say which of the two things they had just watched.
+
+**⚠ A real finding, and my first test had it backwards.** A NODE leaks *harder*
+than a bare fibre's hole at the same distance — more signal has survived to
+reach it, and a node is ordinary bare membrane. Myelin does not make each hole
+leak less; it wins by covering most of them. Two further test claims were also
+wrong before being fixed: summing spark brightness at the end measures what is
+LEFT, not what has leaked. The payoff is measured where it belongs — how much
+arrives.
+
+1011 tests green (65 files), typecheck and build clean.
+
+### Step 34j — the button, and nodes that are actually nodes
+
+Action list for 2026-08-31:
+
+**A1 — "I see no 'Send a signal down both' button."** The canvas was sized to
+fill the drawer, so the control row was pushed out of an `overflow-hidden` grid:
+present in the DOM, invisible on the page, and the only thing there is to do
+here. The canvas now leaves it a row.
+
+⚠ **Two guards for this passed with the bug in place** before one bit. The first
+compared against a hardcoded 860-pixel window; the second against the module's
+own — and at 860 the too-tall canvas *also* fitted. The fault only shows on a
+shorter screen, which a constant cannot be asked about. The sizing is a function
+now (`leakyHeight(viewH)`) and is checked from 600 px to 1600 px.
+
+**A2 — "channels on the myelinated axon are misplaced: they are at myelin, not
+at the nodes of Ranvier."** Measured before touching anything: the sheath's gap
+is **0.0156** of the fibre and `holeExposed`'s tolerance was **0.056** — three
+and a half times too generous. Four holes counted as exposed and **not one of
+them was actually inside a gap**; every one was drawn on a sleeve.
+
+**The nodes are now derived FROM the holes** — a node *is* one of the holes, and
+the sleeves are cut around them. That removes the tolerance altogether: a gap
+cannot miss a hole it was cut around. Measured after: 4 exposed, 4 of them in a
+gap.
+
+⚠ Here too the obvious guard did not bite: once the nodes coincided with holes,
+restoring the loose tolerance changed nothing, because with holes 0.111 apart
+and a tolerance of 0.056 only the exact hole ever qualified. The guard that
+works is the structural one — **every node must be one of the holes** — which is
+what makes the fault unrepresentable rather than merely absent.
+
+1014 tests green (65 files), typecheck and build clean.
+
+### Step 34k — flashes that read as flashes
+
+Action list for 2026-08-31:
+
+**A1 — "give bigger margin on top and bottom of both axons."** Done, and the
+layout is this bench's own now. `raceLayout` builds its lanes UP from the ruler
+on the canvas floor, which is right for the race — every axon view puts its
+ruler in the same place — and wrong here, where there is no ruler. Asking it for
+taller lanes just pushed everything up: **331 px of nothing above the top pipe
+against 121 below.** The two pipes are centred as a block now: measured
+**131 above, 170 between, 131 below**, and the margin is taken FROM the flash
+(`FLASH_REACH`) rather than chosen.
+
+The canvas is capped at 540 rather than filling the drawer — two 54 px pipes
+floating in 250 px of nothing above and below is not a bigger margin, it is a
+bigger emptiness.
+
+**A2 — "make leaking look like flashes coming out… these look like tiny strings
+and are almost invisible."** Two separate faults, both measured:
+
+- **The drawing.** The bench had a 20 px halo and a 1.6 px line. The axon views'
+  own node flash is a **soft glow to radius 64 at alpha 0.95 with a white-hot
+  core**. That drawing is now `drawFlash`, exported and called by both, so the
+  numbers cannot be typed twice and drift.
+- **The brightness.** A flash's size follows the voltage still there, because
+  that is what sets the current escaping — and straight, that made the bare
+  fibre invisible past the first hole: by mid-fibre only **1%** of the push
+  survives, and 1% of a glow is nothing. Raised to a power of 0.45, the ORDER is
+  untouched (0.52 → 0.14 → 0.02 along the bare fibre; 0.76 on the wrapped one)
+  while the whole range stays on screen. **Declared in the honesty note**, with
+  the exponent quoted — the user gave permission to exaggerate, and the amount
+  is still owned up to.
+
+The flash is an eased bell **centred on the pulse** now, so a hole glows a
+little before the peak reaches it — which is not a cheat: a voltage spreads
+ahead of its own peak, and that is the entire subject of this exhibit.
+
+⚠ *The margin guard passed with the margin cut to 10*, because the outer space
+is supplied by the canvas being tall whatever the lane does. The gap that
+actually clips is the one **between** the two pipes, and that is what it
+measures now.
+
+1017 tests green (65 files), typecheck and build clean.
+
+### Step 34l — ⚠ a leak is not a signal
+
+Action list for 2026-08-31:
+
+**A1 — "flashes have to 'move away' or somehow display leakage. At the moment it
+displays a flash, which symbolizes signal across the app, which is not what we
+try to describe."**
+
+The user is right and it was a bad reuse of mine, made one step earlier. The
+white-cored yellow burst is this app's **one mark for "the signal is here"** —
+the race view puts it at every node to say the signal has been **rebuilt**
+there. Wearing the same mark on a leak made one symbol mean two opposite
+things, and at a node it meant both at once: *rebuilt here* and *lost here*.
+
+Leaking is charge **leaving**, and the app already draws that — the ion current
+that crosses a channel in the membrane views. So a leaking hole now emits the
+app's own glossy potassium ions, through the same `flowAt` model, **aimed
+outward and fading into the bath**. It says the one thing a stationary burst
+never could: the charge is going away and not coming back. The colour is
+potassium's, so it also says *what* is leaving.
+
+The margins are taken from how far an escaping ion gets (`LEAK_REACH`) rather
+than from a flash's radius, and the describers now speak of charge streaming out
+rather than of sparks.
+
+⚠ **The first guard for this banned the signal's colours from the file
+outright** — and forbade the one honest use of them: the push going IN at the
+left end genuinely is the signal. The rule is that a LEAK must not wear them,
+not that the file may not mention them.
+
+1018 tests green (65 files), typecheck and build clean.
+
+### Step 34m — the signal, and the signal leaving
+
+Action list for 2026-08-31:
+
+**A1 — "we display a very bright signal, as you see it in 'Axonal conduction and
+myelin'."** The axon views' aura is a glow **five times the tube's half-height**;
+this bench had been drawing its own at two and a half — a dimmer thing wearing
+the same colour, which is how a visual language stops being one. `signalAura` is
+exported now and both call it.
+
+**A2 — "a better relation visually between the signal and the leaking signal…
+for a kid it's not clear why the signal is fading out while ions are leaving."**
+
+Drawn as purple potassium, the leak and the signal were **two unrelated
+pictures**: a yellow glow going one way and purple balls going another, with
+nothing to say one caused the other. What escapes IS the signal — the charge
+that was carrying it — so it now leaves **wearing the signal's own light**, out
+of a blob that visibly shrinks as it goes. The blob's brightness and the holes'
+leak both read off `survivesAt`, so they are one fact drawn twice: a hole cannot
+leak hard where the signal is faint, and the signal cannot stay bright where it
+has been leaking.
+
+⚠ **This looks like a reversal of the previous step and is not.** The forbidden
+mark was never the colour — it was the axon views' **stationary burst**, which
+the race uses at a node to say the signal has been REBUILT there. A bright thing
+sitting on the wall meant the opposite of what was intended; bright things
+*moving away* mean exactly it. The guard now says which part carried the wrong
+meaning, so the two corrections stop looking contradictory.
+
+The colour choice is declared: what is leaving is potassium, and the doors stay
+potassium-purple to say so. What the signal's light reports is not which ion it
+is, but that this is the signal draining away.
+
+1020 tests green (65 files), typecheck and build clean.
+
+### Step 34n — nothing glows at rest, and a sleeve actually covers
+
+Action list for 2026-08-31:
+
+**A1 — "at the start, there are static yellow lights. Remove them."** Each pipe
+wore a pulsing glow at its left end whether or not a signal was on its way. This
+app had just settled, one step earlier, that a bright thing **sitting still**
+means *the signal is here* — which at an idle inlet is untrue, and was the exact
+fault we had removed from the leaks. Gone: the signal arriving IS the signal
+starting at the left, and nothing needs to mark the spot in advance. Measured at
+rest: **zero glows on the canvas**.
+
+**A2 — "on myelinated axons, there are ghost channels 'under' myelin layers."**
+⚠ **They were not under anything.** They were drawn AFTER the sheath at 28%
+opacity — painted *on top of* the myelin — which is precisely what a ghost is.
+
+The fix is **order, not deletion**. The holes go down first and the sleeve
+occludes them the way a real sheath occludes a real channel: no alpha trick,
+nothing hovering, and the anatomy still true — a covered channel is still there,
+it simply cannot be seen or leak. The escaping light stays on top of everything,
+because it has to cross the sleeve's own thickness to reach the water.
+
+*That also settles a rule I had written and the user was overruling* — "draw the
+covered ones faintly, or a sleeve reads as a different membrane". Correct
+z-order keeps what that rule was protecting without the ghosts it caused.
+
+1022 tests green (65 files), typecheck and build clean.
+
+### Step 34o — the passive-spread view, laid out like the axon views
+
+Action list for 2026-08-31, numbered as sent:
+
+**A1 — remove the caption, put Race on top of the canvas.** Both done. The
+sentence is gone from the markup as well as the screen, and the control now sits
+above the picture, which is where the axon views put their clock: the thing you
+press and the thing it starts read top to bottom.
+
+**A2 — use the layout of *Axonal conduction & myelin*.** The one piece of that
+layout this bench was missing is the **ruler on the floor**. `drawRuler` was
+private and welded to `VIEW_LENGTH_UM`; it is now split into a shared
+`drawScaleRuler` (how a ruler looks) and its caller's marks (where they fall), so
+D05 gets 0–3 mm in half-millimetres without a second ruler existing.
+
+**A3 — stretch the canvas vertically.** The 540 px cap is gone; the height is the
+drawer's budget less the control's row, checked at four window heights rather
+than at this one.
+
+**A4 — verify the λ placement.** ⚠ **It was already right, and the complaint was
+still right.** Measured: λ on the bare fibre falls at 11.4 % along, where
+survival is 0.381 — 1/e to three places; wrapped, 81 % along at 0.369. What was
+wrong is that the mark sat on an axis with no numbers on it, and on the bare
+fibre the whole decay is crammed into the left ninth of 3 mm, so *nothing visibly
+changes* at the mark. The ruler from A2 is the fix: λ now lands at a readable
+distance instead of at a place with no name.
+
+**A5 — "length constant" off the axon body.** It is above the λ reading now, and
+centred on the dashed mark rather than anchored beside it — the glyph hangs 18 px
+left of the anchor, so the anchor is not the middle.
+
+**A6 — unify the fibre's thickness.** It was 54 px against the race's 86.
+`TUBE_PX` is now `AXON_W * AXON_VIEW_SCALE` — the axon views' own number, so if
+that fibre changes this one follows rather than drifting.
+
+**A7 — the apparent conflict between the two views.** Answered in the reply, not
+built: they are not in conflict, and the answer is the exhibit's whole point.
+
+**A8 — a small axon top-left.** The app's own miniature, with the ring on the
+axon zoom target's own centre and **no pipette** — which needed `drawNeuronInset`
+to stop meaning two things by one argument.
+
+1029 tests green (65 files), typecheck and build clean. Every new guard was
+broken and watched to fail.
+
+### Step 34p — passive spread becomes a place on the cell
+
+Action list for 2026-08-31:
+
+**A1 — "small neuron is placed on the canvas. Should be placed in the same
+location as across the app."** Removed from the canvas entirely. It only existed
+because a drawer covers the column; the column's permanent miniature is back and
+its dashed ring sits on this view's own zoom target, which is the app's rule
+rather than a second drawing of the same cell.
+
+**A2 — "buttons should be placed on the canvas… look at what the buttons look
+like on it."** 🏁 Race and ↺ Reset now sit in the axon view's own floating pill —
+same corner, same plate, same 38 px chips. `ResetButton` grew a height so the one
+reset can stand in a 38 px row without becoming a second-looking reset.
+
+**A3 — "let's follow 'Axonal conduction and myelin' pattern, and add another
+entry point: magnifying glass on the 'big neuron'."** D05 is a **place** now:
+
+- a new zoom target `axon-passive` at `AXON_PASSIVE_T = 0.82`, further down the
+  axon than conduction at 0.3 — measured so the two markers cannot overlap
+  (x ≈ 589 and 800 against a marker radius of 14), which is now pinned by a test
+  over *every* pair of markers;
+- the marker is the app's own dashed ring with a 🔎 in it, which is what a zoom
+  marker already wears — the "magnifying glass on the big neuron" was already the
+  house style, so nothing new had to be invented;
+- drawn on a layer of its own, untransformed, gated on arrival in decades from
+  either side, with the scene given the same number as its opacity;
+- the drawer, its store's `open` flag, its sidebar and its canvas reset chip are
+  all gone; the words moved to `LeakyInfoPanel` in the column beside every other
+  view's;
+- off the membrane patch's shelf — it is not about that patch — and the contents
+  row flies to the marker instead of opening a drawer. Two doors still, both of
+  them somewhere a child can see what they point at.
+
+⚠ **Two bugs caught on the way, neither of them visible in a test that existed.**
+The Race button stamped `performance.now()` while the frame reads Konva's
+`frame.time` — milliseconds since the animation started — so the run position
+would have come out negative from the first press. And `drawLeaky` opened with a
+`clearRect`, which on a Konva layer erases whatever sibling drew before it; it
+owns its layer and clears nothing now.
+
+⚠ **A rule was rewritten rather than worked around.** *Where a concept lives*
+sent "comparisons" to drawers, which would have made this exhibit a drawer
+forever. The app already contradicted it — the conduction view compares two
+fibres and is a place — so the rule now says what decides is what the exhibit is
+OF, not how many of them it shows.
+
+1025 tests green (65 files), typecheck and build clean. Every new guard was
+broken and watched to fail.
+
+### Step 34q — the ghost axon, and a menu of what is coming
+
+Action list for 2026-08-31:
+
+**A1 — "I can see a ghost axon behind the visualisation, on both 'passive
+spread' and 'Axonal conduction and myelin'."** ⚠ **A real bug, and an
+instructive one.** The scene layer was being faded with `layer.opacity()`, which
+Konva implements by setting `globalAlpha` before calling the shape's
+`sceneFunc` — and `drawScene` **assigns** `globalAlpha` in eighteen places. An
+assignment overwrites; so from the first one onward the layer's fade was gone
+and those parts painted at full strength however far out the camera had flown.
+
+Measured, not guessed: the ease was checked first and reaches 0.0002 within two
+seconds, which ruled out the obvious suspect and pointed at the ink.
+
+Three fixes, in order of how much they buy:
+
+1. The scene now fades by the **CSS opacity of its layer's canvas element**, so
+   nothing a drawing does can escape it — and an invisible layer stops listening,
+   so a faded-out cell is not still clickable underneath its replacement.
+2. `drawLeaky` had three of the same assignments. Measured: at a fade of 0.05,
+   three of 436 ink calls painted at up to 0.54 — the passive view would have
+   popped in rather than arrived. They multiply now, and a test asks the question
+   directly at three fades.
+3. `strictCanvas` gained `alphas` (the alpha in force at every ink call) and a
+   `save`/`restore` that puts the **drawing state** back, not only the transform.
+   ⚠ It had been *more forgiving than a browser* — the direction that hides
+   faults — and two particle-style tests were reading colours off the context
+   after the drawing had finished, which only worked because of that leak. They
+   read `styles` now.
+
+**A2 — "fill in the app menu sub-items. Make them inactive."** Put to the user as
+a conflict first, because `core/contents.ts` carried the opposite rule with a
+stated reason. The user ruled: *"List what you can, it is still subject to
+change… make it look as similar to active chapters as the plan allows, but make
+it inactive."*
+
+31 planned rows from `docs/01-feature-spec.md`, each carrying its spec ID,
+interleaved by lecture among the built ones so a Part reads as one list. Parts
+III–VII go from a single "not built yet" line to 7, 6, 4, 5 and 6 rows. The rule
+was rewritten rather than worked around — see 03-architecture.
+
+1033 tests green (65 files), typecheck and build clean. Every new guard was
+broken and watched to fail.
+
+### Steps 20 and 21 — the synapse, and the machinery inside it
+
+The user asked for both in one round ("scene first then drawer"), handed over
+`presynaptic-bouton.svg`, and ruled two questions before anything was drawn.
+
+**Ruling 1 — the handover wins on composition.** This document's earlier spec
+had the terminal "fading out at the frame, no invented far surface", 42 / 6 / 42.
+The SVG draws the whole bouton, stalk and all, and the user chose it. Recorded
+in 05-visual-language with the reasoning: the earlier ruling described a
+*close-up of the cleft*, where the far side is off the page and drawing it would
+be invention; this is a wider view in which the whole terminal fits, so its
+boundary is observed. The rule is unchanged for close-ups.
+
+**Ruling 2 — validate the lower shape against the transmitter.** ⚠ **Pushed
+back on the fallback.** The user said "if it makes no difference scientifically,
+make it a shaft". It makes a difference: **glutamate synapses land on dendritic
+spines** (Gray's type I; inhibitory GABAergic contacts are the ones on shafts
+and somata), and the app's own plan already depends on it — S13 has "Ca²⁺ enters
+the spine", P04 has the spine enlarging with LTP. A shaft would have been
+redrawn as a spine two steps later. So the reference's lower shape became the
+dendritic **shaft**, with a spine rising out of it to meet the bouton. Its wander
+is kept; only the hollow beneath the terminal is altered.
+
+**Step 20, the scene.** The outgoing synapse is a **place** again — its own
+layer, its own arrival gate, a quarter turn on the way in because this synapse
+lies along the x axis on the cell while the drawing puts the cleft across the
+middle. Both kept models drive it (`core/synapse.ts`, `core/cleft.ts`, 33 tests
+between them, untouched): the calcium gate, the calcium the sensor sees, which
+of the five vesicles went, the transmitter concentration, the receptors' state.
+Nothing in the drawing decides anything.
+
+⚠ **Level of detail cut the other way for the first time.** At ~440 px per
+micrometre the membrane is 2 px and a lipid head is a third of a pixel, so this
+scene draws the wall as a two-leaflet BAND. The molecules go in D06, where one
+vesicle fills the frame — and the paver is one shared function, extracted from
+the whole-neuron scene (`bilayer.paveMembrane`) rather than copied.
+
+**Step 21, the drawer.** `core/vesicleCycle.ts` owns the sequence: tether → dock
+→ prime → trigger → zipper → pore → collapse → retrieve → refill, with the
+clock following the interest (the trigger and the zip get a fifth of the window
+each; refill gets a twentieth). The zip **stops at half and waits** — that pause
+is the mechanism, and a complex winding smoothly from nought to one would be a
+picture of fusion with no trigger in it. The sensor's site count is the scene's
+own `HILL_N`, so the drawer's sensor is the scene's sensor. Two doors: the
+magnifier beside the active zone, and the contents row.
+
+⚠ **The model says which numbers are measured.** The four calcium sites are
+(Dodge–Rahamimoff); the pace is not — SNARE zippering energetics are an open
+question, so the info block says the order and cast are settled science and the
+stopwatch is not.
+
+⚠ **Four guards passed with the code deliberately broken**, all the same way:
+they counted ink instead of asking the decision. Written up as a rule in
+03-architecture (*Ask the DECISION, not the ink*). `transmitterCloud`,
+`vesicleRing` and `snareLens` exist as exported functions because a test needed
+to reach the real call site.
+
+⚠ **And one of my own tests was wrong about the biology**: it demanded the four
+calcium sites hold still, when the sensor rides on the vesicle and travels with
+it. The real claim is that they do not REARRANGE, and that is what it checks now.
+
+1061 tests green (68 files), typecheck and build clean. Every new guard was
+broken and watched to fail.
+
+### Step 20a — the synapse redrawn: the active end
+
+Corrections after manual testing, 2026-08-31.
+
+**A1 — "shorten the 'neck'."** Both of them: the bouton's stalk is cropped at
+the top edge (182 px → 44 px) rather than squashed, and the spine's neck is a
+fifth of the head's width rather than nearly half.
+
+**A2 — "make the active area 2× larger."** ⚠ **Measured, and it is 1.96×, not
+2×.** A literal doubling of both structures does not fit 660 px of frame, so the
+scale is now SOLVED from a budget the scene declares and what it reaches is
+reported: active zone ×1.96, spine head ×1.74, bulb ×1.32. The active zone is a
+fraction of the bulb's half-width now — it was a fraction of the canvas, which
+is exactly why the first version left it unchanged however much room the bouton
+had. The spine head became an ellipse to pay for it.
+
+**A3 — "exocytosis should visually tear the membrane."** `tearsAt` is a named
+decision: no gap before the model says a vesicle went, a gap opening over 9 ms
+after, one per fused vesicle, at that vesicle's own place, never wider than the
+vesicle that made it. The wall is clipped rather than painted over — this view
+shares a Konva layer, and a shape that erases pixels erases its neighbours.
+
+**A4 — "vesicles as circles, inner colour the same as extracellular space."**
+⚠ **This reverses the user's own ruling of 2026-08-27** ("clean hollow-circle
+vesicles → overridden: a vesicle is a bilayer ring"). Recorded as
+Reconciliation #10 with the reason it is an improvement rather than a
+regression: **a vesicle's lumen is topologically outside the cell**, so painting
+it in the bath's ink teaches the topology that makes exocytosis possible. It is
+the SAME CONSTANT, not a match — and the bath had to become opaque for that to
+be a fact rather than a thing you check by eye.
+
+**A5 — "the area that overlaps with the membrane loses outline."** `mergeBand`,
+also a named decision. It carries what #4 used to: an outline that stops where
+the two walls meet says *same material* more directly than a ring did.
+
+⚠ **The tests caught a portability fault on their first run**: the tear used
+`Path2D`, which does not exist in every environment this drawing runs in.
+Replaced with `beginPath` + `clip('evenodd')`.
+
+⚠ **And one of my own tests was wrong again** — it asserted "the first tear
+belongs to the first vesicle", when by that moment a second had fused and the
+list comes back in slot order. It checks every tear against its owner now.
+
+1068 tests green (68 files), typecheck and build clean. All six new guards were
+broken and watched to fail.
+
+### Step 20b — "the animation looks broken"
+
+Five points, 2026-09-01. Each was measured before it was touched.
+
+**B1 — "push the whole image down: bouton two thirds, postsynaptic one third."**
+The scale is solved so the foot lands on the two-thirds line. Measured: 0.652,
+checked at four frame sizes.
+
+**B2 — "the opening vesicles are placed outside of the presynaptic bouton."**
+⚠ **A real bug, and worse than it looked.** The active zone was a straight row
+at the outline's LOWEST point; a bouton's foot is a curve. Measured before the
+fix: the wall under the five docked vesicles is at y = 394, 426, 431, 413 and
+353, while all five were drawn at y = 297 — the outer two floating 47 and 88 px
+outside the cell. The reserve pool had the same fault.
+
+The fix is to let the traced outline be ASKED where its floor is
+(`svgPath.flattenPath` → `boutonShape.boutonFloorAt`), and to have everything on
+the wall read it: docked vesicles, the pool, the calcium doors, the tear, the
+merge band, and the transmitter's ceiling. Measured after: every vesicle sits
+exactly one membrane-thickness inside the wall at its own x.
+
+**B3 — "no neurotransmitters are visibly released."** ⚠ **True, and the model
+was right.** Measured: the packet is in the gap for 0.87 ms of a 60 ms window —
+u = 0.045 to 0.090, **4.6% of the run**. A linear clock cannot show that however
+slow it is, and slowing it slows the empty 95% too.
+
+So the run has legs now, which is this app's own rule (*a run's clock follows
+the interest*): 20% of the screen for the arrival, **58% for fusion, filling and
+binding**, 22% for the tail. On screen the transmitter is visible for **27%** of
+the run against 4.6%. Inside a leg the map is linear — slow the leg, never the
+item — and a test walks it.
+
+**B4 — "neurotransmitters are not visible inside the vesicles."** `cargoIn`
+places seven particles per bubble, in the SAME ink as the transmitter in the
+gap, emptying as the bubble opens. A vesicle drawn empty is a bag of nothing.
+
+**B5 — "slow down."** 7.8 s → 15 s, on top of the legs.
+
+⚠ **The postsynaptic face stopped being an ellipse.** It could not stay one: an
+ellipse hung off the foot's height while the presynaptic wall is a curve gives a
+cleft that opens out at both ends. Its membrane now follows the bouton's own
+wall one cleft below, so the gap is a constant 26 px — measured at 21 points
+across the zone.
+
+1072 tests green (68 files), typecheck and build clean. All five new guards were
+broken and watched to fail.
+
+### Step 20c — the omega rework: "the cut does not repeat the curve"
+
+Two points, 2026-09-01. *"The cut on the vesicles does not repeat the curve of
+the presynaptic bouton... it looks unrelated. Reconsider the animation so that
+the activated vesicles visually merge with the membrane."* User chose: true
+omega figure, flattening fully into the wall afterwards, and fix the ordering.
+
+**A1 — the merge follows the bouton's own curve.** The fused vesicle was a full
+circle clipped by a HORIZONTAL band over a tear of chosen width — two shapes
+solved separately, meeting only where the wall happened to be flat. Now one
+geometry owns the joint: `fusedShape` sinks the circle through the wall on a
+declared schedule, `pocketAt` finds the two points where it crosses the traced
+outline (bracketed, then bisected against the curve), the arc is drawn between
+those feet, and the tear runs exactly between the same two points (`Tear.xL/xR`)
+— so the torn wall's ink runs into the pocket's arc without a joint, in the
+wall's own two strokes, because after fusion it IS the wall. The docked
+outline-skip follows the curve too (`wallStrip`), not a flat band. Afterwards
+the pocket flattens into the wall (`FLATTEN_FROM_MS + FLATTEN_MS`) and the tear
+heals: the run ends on a whole membrane.
+
+⚠ **The rework surfaced a real placement bug**: a docked circle set `r + MEM_PX`
+above the wall *at its own x* was already through the outline SIDEWAYS on the
+sloped slots — pocketAt reported a 10 px tear at the instant of fusion, before
+anything had opened. `dockedY` now raises the centre until the whole circle
+clears the curve.
+
+**A2 — cause before effect.** The model puts the dose in the gap AT the fusion
+instant, but the drawing's `FUSE_MS = 9` was longer than the whole fusion leg,
+so the cloud came and went while the vesicles were still "slowly merging".
+Replaced by a schedule: mouth open in `PORE_OPEN_MS = 1.1` (√-eased so it is
+open by the first drawn moment), cargo drains over `CARGO_DRAIN_MS = 2.6`
+(roughly the transmitter's stay), flattening is the slow part and comes after
+the payload. A test walks the legged clock and requires a moment with the cloud
+out AND the mouth fully open.
+
+Folded into 03-architecture as *An opening in a shape is ON the outline too*
+and *Cause on screen no later than effect*. 1077 tests green, typecheck clean.
+The feet-on-the-curve guard was broken (pocketAt flattened to a horizontal
+solve) and watched to fail with a foot 4.7 px off the wall.
+
+### Step 20d — six corrections, 2026-09-01 (round 3)
+
+*"The vesicle merge looks good"* — the omega stands. Then six points.
+
+**C1 — "release also the vesicle in the middle."** The chance draw fired the
+two OUTERMOST slots (indices 0 and 4). User chose: three release. ⚠ **The seed
+is curated and declared** (`core/synapse.ts`): the xor constant was searched so
+this run's draws fall {0, 2, 4} under the run's own release probability —
+`totalHazard` 0.188 → p ≈ 0.17 per vesicle, and 3-of-5 is an ordinary outcome
+of that chance (~18%). Nothing else moved: the times still fall out of the
+hazard (2.57 / 2.78 / 2.88 ms — the middle goes first), and the quartered-
+calcium run still releases nothing. `totalHazard` became a field of the run so
+the seed can be held against it. ⚠ One model test was passing by luck: "the
+transmitter peaks the instant a vesicle goes" compared the peak to the FIRST
+fusion, and with three staggered doses the peak sits on whichever dose tops the
+stack. It now checks the NEAREST fusion — the real claim, since a journey would
+land the peak after all of them.
+
+**C2 — "vesicle outlines like the membrane."** Same material, same band: every
+bubble wears the leaflet stroke WITH the oily core through it.
+
+**C3 — "neurotransmitters not white, add gradient."** ⚠ Reconciled with the
+2026-08-30 ruling ("a single glossy ball IS what this app means by 'ion'"),
+which was quoted to the user before choosing: the dot is SHADED, not glossy —
+light centre, dark rim, no sparkle, no glow — and TEAL, which no ion wears.
+`transmitterDot` is the one door: cargo, cloud, D06's cargo and the whole-cell
+view's crossing messengers all go through it or its `TRANSMITTER_INK`, and the
+cleft facts' "green molecules" became teal with it. strictCanvas learned to
+record gradient stops as ink, or every colour-counting test would have gone
+blind the moment the dots became gradients.
+
+**C4 — "docked vesicles' membrane closed."** Not a reversal of "the area that
+overlaps the membrane while moving loses outline" (2026-08-31): since
+`dockedY` a resting vesicle overlaps nothing, so the skip now applies exactly
+where that ruling says — while a fusing vesicle is sinking through the wall.
+
+**C5 — "Ca channels get covered at the start."** ⚠ A z-order bug: the
+spike-arrival membrane repaint was painted LAST, over every channel in the
+wall. A repaint of a surface draws when the surface draws — it sits with the
+membrane band now, under the doors, and honours the same tears.
+
+**C6 — "the postsynaptic specialization looks misshaped, has angles."** The
+spine's flanks were a straight diagonal plus a vertical hop — two corners a
+side. Each flank is one cubic now, leaving the neck vertically and arriving at
+the face's end vertically (the face curve's own tangent there), so neck, flank
+and face meet without a corner. The face itself — the apposition — is
+untouched.
+
+1082 tests green, typecheck and build clean. The C5 guard was broken (repaint
+disabled) and the C1 guard was broken (seed reverted); both watched to fail.
+
+### Step 20e — four corrections, 2026-09-01 (round 4)
+
+**D1 — "released neurotransmitters disappear; they should stay and bind"
+(science check requested).** Half confirmed, half corrected, and the split IS
+the lesson: FREE glutamate honestly vanishes in under a millisecond — the info
+block teaches exactly that, so the cloud's fade stays — but molecules CAUGHT BY
+RECEPTORS persist for many milliseconds, desensitized receptors longest of all.
+The model always computed `bound`; the picture never drew it, even though the
+cleft facts promised "two teal molecules still sitting in its mouth". Now
+`seatedTransmitter` puts two molecules in each bound receptor's mouth — two,
+because the receptor takes two keys — gated per receptor by the same threshold
+the open/socket states use. At the window's end the gap is empty and the
+mouths are still occupied.
+
+**D2 — "the vesicle in the middle does not move."** ⚠ It moved — FIRST, at
+2.57 ms, before the transmitter cloud gave the eye any reason to be on the
+zone, so its whole opening played unwatched. The curated seed now makes the
+middle fuse LAST (2.75 ms), when the gap already carries ~78% of a packet and
+the user is looking. The sink was also deepened (OPEN_DEPTH 0.55 → 0.4, growth
+0.15 → 0.25) so it travels ~0.7 r instead of ~0.55 r.
+
+**D3 — "calcium should stay next to the docked vesicles."** Honest version
+drawn: the LOCAL nanodomain collapses when the current stops (that is why
+release stops dead — the door-mouth burst still shows it), while the terminal's
+AVERAGE free calcium clears on the measured ~30 ms clock. `terminalCalcium`
+scatters seeded ions across the active zone among the docked row, allocated by
+threshold off `caUm` — a crowd at the peak, thinning to a couple by the
+window's end. Still there at u = 1; never a permanent decoration.
+
+**D4 — "the postsynaptic specialization is very nonsymmetrical, completely
+weird — redraw."** ⚠ The fault had a mechanism: beyond the active zone,
+`faceAt` kept tracking `wallAt(x) + drop`, and past the zone's edge the bouton
+curves steeply UP — so each shoulder rose into its own hump before falling,
+a different hump each side. Apposition is a fact about the active zone, not
+the neighbourhood: beyond the edge the face now drops from its own edge's
+height on one shared quarter-ellipse, so the shoulders are congruent by
+construction and monotone. Proportions rebalanced with it (FACE_OF_BELOW
+0.5 → 0.6, FACE_OVER 0.34 → 0.22, flank bulge 0.8 → 0.6): the head was a slab
+4.6× wider than tall, now ~3.3×.
+
+⚠ The reseed exposed a model test passing by luck a second way: none this
+round — but the cleft "peaks at the nearest fusion" guard from 20d carried the
+new times without change, which is what it was rewritten for.
+
+1086 tests green, typecheck clean. D4 was broken (freeze reverted → hump
+returned) and D3 was broken (threshold ignored); both watched to fail.
+
+### Step 20f — the storyboard round, 2026-09-01 (round 5)
+
+The user storyboarded the whole sequence — flash, red depolarization tint,
+calcium at the docked vesicles, transmitter spreading and escaping, receptors
+opening, ions entering, the spine depolarizing and passing it on — and asked
+for a science check with pushback. Verdicts, and what was built:
+
+**E1 — the depolarization "red tint".** The user pointed at the voltage-gated
+bench as precedent, and that resolved the colour question: the app already
+owns a charge-aura grammar (`chargeWash`: red = inside positive, blue =
+negative). Both interiors now wear it. ⚠ AND THE ASYMMETRY IS THE LESSON: the
+bouton's spike genuinely overshoots past zero, so its aura really goes red and
+comes back; the spine's EPSP climbs from −70 to about −58 mV and NEVER goes
+positive, so its aura warms toward neutral and never reaches red. A test
+sweeps the whole run and pins "the spine's aura is never positive". Timing
+pushback also applied: the tint follows the membrane VOLTAGE (which opens the
+calcium doors), not the calcium's arrival.
+
+**E2/D3 — calcium at the docked vesicles.** Confirmed science (synaptotagmin
+waits at the vesicle–wall junction). `terminalCalcium` ions are now anchored
+each to a docked slot, low at its feet, and constrained OUTSIDE the bubble's
+circle — an ion over the lumen read as cargo.
+
+**E3 — transmitter "floats away".** Confirmed science (lateral diffusion out
+of the gap plus uptake — the info block always said it; now ten seeded
+molecules are watched leaving at the gap's two ends during the decay, on a
+declared `ESCAPE_LIFE_MS` schedule). ⚠ The crossing is still never a journey:
+they leave ALONG the gap, not across it, and a guard pins the outward drift.
+
+**E5/E1 — the postsynaptic answer.** ⚠ THE ONE REAL PUSHBACK: the storyboard's
+"another yellow flash that propagates down the dendrite" would draw an action
+potential, and a single synapse's EPSP is not one — it is graded, decays with
+distance, and whether the CELL fires is decided at the soma after summation.
+Built instead: an honest RC-with-conductance-synapse spine model in
+`core/cleft.ts` (`vmPost`, τ = 12 ms, g-ratio 1.5, AMPA reversal 0 mV — the
+drive DECLARED as typical, not measured), drawn as sodium dripping through
+every open receptor (`postsynEntry`, per-receptor gated), the charge aura
+warming, and a gold signal-glow that swells with the EPSP — head-bright,
+already faint at the shaft, brightening everywhere at once, because passive
+spread at this scale is effectively instantaneous and decays with distance.
+The cleft facts' "nothing is coming through them yet" died with this round;
+its guard now pins the new claims (NOT MEASURED declared, soma named, "not an
+action potential" said).
+
+1091 tests green, typecheck and build clean. The EPSP was broken past its
+reversal (conductance form replaced with a hard pull to +40 mV) and both the
+model guard (E5) and the view guard (E1, "the spine never reads red") watched
+to fail. Notably, milder breaks — reversal moved to +40 in the conductance
+form — did NOT fail: the short transient keeps the peak negative anyway,
+which is the physics doing the guarding.
+
+### Step 20g — the pacing round, 2026-09-01 (round 6)
+
+**F1 — "the AP coming, as a yellow flash on top of the presynaptic axon."**
+`arrivalFlash`: a knot of the signal's own gold entering at the frame's top
+edge (`neckTop`, measured off the traced outline's own top corners) and
+running down the stalk while the terminal charges. Its alpha IS the wall
+highlight's `hot`, so the flash and the depolarization cannot disagree about
+when the spike happens.
+
+**F2 — "a clear chain, with a small pause between events."** ⚠ The real
+couplings are sub-millisecond — that IS the physics, and the model keeps it —
+but the clock can hold its breath: CLOCK_LEGS went from 3 legs to 10, three of
+which are BEATS — legs whose model span is ≤0.15 ms given ~0.75 s of screen,
+so the picture stands still after each cause and before its effect
+(depolarized → beat → doors open and calcium seats → beat → exocytosis → beat
+→ the gap). A beat is the limit case of "slow the leg, never the item", and a
+guard checks no fusion ever lands inside one. `synapseClock` learned to snap
+u = 1 exactly (ten shares of floating dust) and the last leg absorbs the
+remainder.
+
+**F3 — "some transmitter should stay in the cleft."** Science held again —
+free glutamate clears in under a millisecond and the exhibit teaches exactly
+that — but two legibility faults were real: the cloud's LINEAR alpha made the
+exponential's tail invisible long before it was gone (now γ = 0.55, visible
+for the full decay the model computes, no longer), and the seated pairs in the
+receptor mouths — the molecules that really do stay, IN the cleft — were drawn
+at 2.4 px (now the cargo's own 3.2 px).
+
+**F4 — "the postsynaptic aura has a linear cut."** ⚠ Mechanism found: the
+wash's gradient began at the FACE'S CENTRE height, and a linear gradient
+clamps to its first stop — alpha zero — above that line, so wherever the
+curved face rose past the centre's level the aura ended along a ruler edge.
+`spineAuraTop` starts the wash above the face's highest point, leaving the
+clip — the shape itself — as the aura's only boundary. Guard: the aura's top
+is above every sampled point of the face.
+
+1094 tests green, typecheck clean. F3's guard was broken (aura top back to the
+centre height → the cut returned, 14 px deep at x = 324) and F1's was broken
+(the knot pinned in place → "an arrival, not a lamp" failed); both watched.
+
+### Step 20h — the soup round, 2026-09-01 (round 7)
+
+**G1 — "calcium ions just teleport into the bouton."** True: the burst drew
+ions above the doors, inside, drifting up — born on the wrong side of the
+wall. `calciumEntry`: each open door now runs a drip from the CLEFT below —
+calcium's outside is the gap — up through the channel into the terminal, for
+exactly as long as current flows (`lit` is the model's own local calcium).
+Endpoints sine-faded so an ion melts out of the outside soup and into the
+standing pool instead of popping.
+
+**G2 — "large and bright, as if a big electric current just flashed."**
+`FLASH_R = 150`: a hot core inside a wide halo, wider than the stalk it runs
+down.
+
+**G3 — "ion soup in pre, post and extracellular space; ions should not appear
+from nowhere."** `ionSoup`: seeded loose ions in all three compartments
+carrying the real asymmetries — potassium-rich inside BOTH cells, sodium and
+chloride outside, calcium waiting in the cleft for the doors. The sodium the
+receptors admit joins the spine's crowd one ion at a time (threshold-allocated
+off the EPSP). ⚠ THE COUNTS ARE A MOOD, NOT A CENSUS, declared beside the
+other exaggerations (`SOUP_NOTE`): drawn true, 145 mM of sodium would be solid
+ink; the handful carries the ratios. A gentle thermal wobble rides the model's
+own clock, so the soup holds its breath during the beats too. ⚠ The soup broke
+an ink-anchored test: a calcium soup ion's gradient stops land on screen
+before anything else, so C5's raw `ca.mid` anchor now matches the soup — the
+anchor became the door's white-lit species stroke, an ink only the channel
+drawing mixes.
+
+**G4 — "remove reset button; after the animation, reset to new."** ⚠
+Reconciled with "every transport that can reach an end needs a control that
+says start over" rather than traded against it: a run that PLAYS to its end
+now holds for `SYNAPSE_END_HOLD_MS` (2.2 s — clearing at the instant it ends
+would wipe the last thing it teaches) and then puts itself back to rest, so
+the transport can never strand at an end, and the start-over control is the ⚡
+button the reset hands back. The stamp is set only by playing to the end,
+never by scrubbing — a user parked at u = 1 by the slider is not yanked back
+under their thumb.
+
+1098 tests green, typecheck clean. G1 was broken (drip born inside → "starts
+in the cleft" failed) and G3 was broken (pre-soup pushed below the wall →
+containment failed); both watched.
+
+### Step 20i — nothing teleports, 2026-09-01 (round 8)
+
+Three asks, two of them against pinned rules — both conflicts were quoted to
+the user, who chose the reconciliations.
+
+**H1 — "the AP flash should be fast."** The spike's leg went 13% → 6% of the
+screen; the freed time went to the beat after it, so the jolt is quick and the
+red it leaves is what gets dwelt on.
+
+**H2/H3/D1 — "neurotransmitters should not teleport — come out of vesicles,
+move around, some bind."** ⚠ Head-on against *the transmitter appears already
+spread — never a journey* (the crossing is 0.61 µs; drawing it as a trip is
+wrong ×4000). User chose the honest middle, EMERGE–WANDER–BIND, which
+animates only the millisecond-scale events: `emergingCargo` (each dot slips
+out through the open mouth and dissolves into the cloud), a bounded THERMAL
+wander on the cloud (time-driven only — a guard pins that concentration still
+cannot move a particle, so the no-journey rule survives), and
+`seatedTransmitter` rebuilt on the model's own `bound` series: a pair is
+CAPTURED (settles the last pixels out of the cloud onto the seat), HELD, and
+LET GO (drifts up, fading into the same clearance) — no dot pops into or out
+of existence anywhere.
+
+**H5 — "a postsynaptic flash like the presynaptic one, moving off the
+canvas."** ⚠ Against the round-5 pushback (an EPSP is not a spike). User chose
+TRAVELS BUT DECAYS: `departingFlash` — the arrival's grammar, the opposite
+truth — launches when the model's own `vmPost` reaches 60% of its swing, runs
+down the dendrite and off the bottom edge in 2.8 model ms (cable spread toward
+the soma really is millisecond-scale), SHRINKING AND DIMMING the whole way.
+The decrement is the science; a guard pins alpha falling below half before it
+leaves.
+
+1101 tests green, typecheck clean. H2 was broken (dots never left the bubble)
+and H5 was broken (constant-brightness knot — a drawn dendritic spike); both
+watched to fail.
+
+### Step 20j — the continuity round, 2026-09-01 (round 9)
+
+Two concerns, both verified as DRAWING artifacts (no science conflict), both
+fixed.
+
+**I1 — "entering ions look half transparent, as if born inside the
+channels."** Confirmed: the drip's sine envelope faded ions IN on the
+approach, so full strength arrived only in the pore. An entering ion is a
+fully real soup ion the whole trip — `entryAlpha` now ramps up quickly OUT
+AMONG THE SOUP (so nothing pops), holds full opacity through the channel, and
+melts only at the far end into the interior crowd. Both drips (calcium at the
+doors, sodium at the receptors) share it, and both start deeper on the outside
+so the approach begins where the soup lives. Guard: every ion within the
+membrane's own band is at ≥ 0.95 alpha.
+
+**I2 — "no neurotransmitters materialize in the cleft; those which leave the
+vesicles bind."** Confirmed: emitted cargo dissolved while a separate cloud
+faded in — two populations, no identity. Now, with the run in hand, every
+cloud particle is BORN AT A FUSED VESICLE'S MOUTH — exactly where the emitted
+cargo dissolves — and puffs to its seeded standing place in `DISPERSE_MS`
+(0.06 model ms, ⚠ declared in `CLEFT_NOTE`: still ~100× slower than the real
+0.61 µs crossing, and a blink on screen, because anything slower would draw
+the one journey this exhibit exists to deny). The captures then pull pairs
+from that same cloud, closing the chain of identity: bag → mouth → cloud →
+seat. Side profit: a run with nothing yet released now shows an EMPTY gap,
+killing the sampling slop that let a whisper of cloud precede the first
+fusion. The no-journey guards survive intact: concentration still cannot move
+a particle, and the settled cloud is byte-identical to the run-less one.
+
+1103 tests green, typecheck clean. I1 was broken (sine envelope restored →
+0.89 in the pore) and I2 was broken (births skipped → particles materialized
+mid-gap); both watched to fail.
+
+### Step 20k — the identity round, 2026-09-01 (round 10)
+
+The user's ruling, ending three rounds of piecemeal anti-teleport fixes: "all
+ions and all neurotransmitter balls have identity; they live in the soup,
+visible from the very beginning; each has its own travel trajectory; none
+fades, none materializes, none teleports."
+
+**Built: `stage/synapseCast.ts`** — three fixed-size casts replacing every
+particle *effect* (the cycling drips, the concentration-faded cloud, the
+threshold-popping crowds, the popping seats):
+
+- **Transmitter (35 balls, 7 per vesicle).** In its bubble → out through its
+  own mouth → a blink of a puff to a standing place NEAR that mouth (spread
+  across the zone comes from the mouths being spread) → thermal wander → its
+  fate: captured onto a receptor's seat (two per receptor that binds, released
+  when it lets go) or out an end of the gap into the bath, where it rests.
+- **Calcium (14 ions).** Waiting in the cleft from frame one; ion i enters
+  when the model's own INTEGRATED CURRENT crosses its rung; through the
+  nearest door to a vesicle's feet; leaves the zone when the clearing average
+  falls below that same rung — buffered deeper into the terminal, never
+  dimmed.
+- **Sodium (2 per receptor).** Waiting above its receptor; crosses when the
+  model's `open` crosses that receptor's rung; settles in the spine. A
+  receptor that never opens keeps its pair waiting — the honest shut door.
+
+Deleted as superseded: `transmitterCloud`, `emergingCargo`,
+`escapedTransmitter`, `seatedTransmitter`, `calciumEntry`, `postsynEntry`,
+`terminalCalcium`, and the soup's overlap species (one population per
+substance, never two). Conservation became a test: the cast's length never
+changes, and the teal ink at rest EQUALS the teal ink mid-release.
+
+⚠ **The new teleport guard (J1) walks SCREEN time** — `synapseClock`, every
+cast, every step, per-ball movement bounded — and caught two real faults on
+its first run: the puff outran the screen step in a fast leg (stands moved
+local to their mouths), and a path plunged 114 px where the bulb's flank turns
+steep (travel through the gap now interpolates (x, wall-fraction) and asks the
+membranes for y at every step; stands, waits and exits keep to the apposed
+region; bath rest-spots moved to the pocket the gap actually opens into).
+Folded into 03-architecture as *Loose matter has identity*.
+
+Performance made it honest to run: crossings, calcium times, `activeZone` and
+`dockedY` are memoised per run/geometry (pure, so the caches cannot go
+stale) — the guard evaluates ~70,000 cast frames in under a second.
+
+1101 tests green, typecheck and build clean. J1 was broken (near-instant puff
+→ "ball 0 jumped 78 px") and conservation was broken (escaped balls dropped →
+conservation, departure and continuity all failed); both watched.
+
+### Step 20l — eight corrections, 2026-09-01 (round 11)
+
+**K1 — "vesicles should only start merging when calcium is visibly bound."**
+Right science, wrong schedule: fusions at 2.59–2.75 ms could precede the drawn
+ions' arrival. The two earliest ions anchored to each FUSING slot now have
+their entries clamped to land at its feet before its fusion instant — a
+declared curation, and the more honest one: the charge those ions carry
+genuinely came in first. Guard: at every fusion instant, an ion already rests
+at that slot's feet.
+
+**K-2 — "released transmitter should stay in the cleft for reuptake."**
+Correct science for this window (transporters work on a slower clock), so a
+ball a receptor lets go now lifts off and LINGERS in the cleft, wandering,
+to the end of the run. The gap at the end holds exactly the released balls;
+the payload-share guard now counts the release FLOOD above that baseline.
+
+**K-3 — calcium after entry, verified.** No change: buffering (the model's own
+`BUFFER_RATIO`) dominates this 60 ms window, which is what "carried deeper and
+held" draws; pump extrusion is slower and drawing ions exiting through an
+undrawn pump would violate the machinery rule.
+
+**K-4 — "the zoom does not correspond to the perspective it lands on."** ⚠ A
+real sign error: Konva's positive rotation is clockwise on a y-down canvas, so
+`turn: −π/2` landed the world with the TARGET ABOVE and the axon below —
+180° against the view that then faded in. Now +π/2; the place-guard updated.
+
+**K-5 — vesicles of different sizes.** ⚠ With the REAL spread: synaptic
+vesicles are famously uniform (±10% in diameter), so `vesicleScale` stays
+inside that — a bigger spread would be less realistic, not more. Threaded
+through docking (each slot solved for its own radius), fusion, cargo rings and
+the calcium feet offsets; declared in `VESICLE_NOTE`.
+
+**K-6 — "unrelated pieces of SVG in the bottom corners."** The traced shaft's
+END-CURLS: the reference's lower shape curls up at both ends, and stretched
+across the frame those towers peeked into the corners. `easeShaftY` blends the
+profile to a level baseline near the frame's edges; the dendrite continues out
+of frame LEVEL, and the spine's root in the middle is untouched.
+
+**K-7 — "ions jiggle at the end but not before."** True, and not scientific:
+the wobble rode the MODEL clock, which crawls early and races in the tail.
+Thermal motion never pauses — the jiggle now rides an ambient screen-time
+clock (`SynapseView.jiggle`, fed by the stage's frame time), so the soup
+trembles at rest, through the beats, and at one pace. Tests keep the
+deterministic default.
+
+**K-8 — D06: lipid identity and floating calcium.** The drawer's fusing ring
+DELETED its mouth molecules and then the whole ring. Now it is THE OMEGA,
+UNROLLED: every phospholipid keeps its ring angle for ever; the part of the
+circle past the wall lies unrolled along it — arclength onto the line, exact
+material conservation — until the whole ring IS wall, and stays drawn as
+such. The original wall's molecules are pushed outward to make the room
+(never skipped), the oily core stops at the omega's feet, and the retrieval
+runs the same morph backwards. ⚠ Found on the guard's first run: a sphere's
+waterline sweeps at INFINITE rate at first contact (the √-ramp), flicking the
+first-submerged lipids 36 px in a step — the sink is now driven by the
+waterline's ANGLE at constant rate, which bounds every lipid's speed and eases
+both contacts (the depth follows a sine). And the four calcium ions each FLOAT
+IN from beyond the frame, seat on their own sites at the exact moments the
+model fills them, ride the vesicle, and float out at the collapse — one
+trajectory each, walked by a continuity guard.
+
+1105 tests green, typecheck and build clean. K1 was broken (deadline clamp
+removed → no ion at vesicle 4's feet at 2.64 ms) and K2 was broken (unrolled
+lipids offset → waterline jump); both watched to fail.
+
+### Step 20m — two corrections from a screenshot, 2026-09-01 (round 12)
+
+**L1 — "place active vesicles closer to the postsynaptic area."** Docked
+means TOUCHING: the docking clearance dropped from a full membrane thickness
+of daylight (`r + MEM_PX`) to contact (`r + MEM_PX·0.4`) — the bubble's
+outline now meets the wall's ink. Side effect, absorbed: the sinking window
+before the mouth opens shrank to ~0.02 model ms (contact is 2 px from
+crossing), so the outline-skip guard samples inside that sliver and the D2
+sink-motion bound is the mouth's own opening (~half the vesicle's radius).
+
+**L2 — "remove the lines at the bottom that do not belong."** Found: the
+dendritic shaft's membrane was stroked on its CLOSED path, which inked the
+off-canvas closing edges — two lines running to (±40, height+40) that cut
+across the visible bottom corners. `shaftSurfacePath` traces only the open
+surface run; the closed `shaftPath` remains for fills and clips. Guard: the
+surface trace never touches the closing edges' row (their exact y is pinned,
+because the wander's own curve controls legitimately dip deeper than any
+blanket bound).
+
+1106 tests green, typecheck clean.
+
+### Step 20n — the cluster round, 2026-09-01 (round 13)
+
+**M1 — "is it correct that most released transmitter goes into extracellular
+space?"** YES, emphatically: a packet is ~4,000 molecules against fewer than a
+couple of hundred postsynaptic binding sites, so only a few per cent are ever
+caught; the rest diffuses out of the cleft within a fraction of a millisecond
+into the astrocyte transporters that ring every synapse (outside this frame).
+The drawing's 10-of-21 caught actually OVERSTATES capture so catching is
+visible at all — now declared beside the other exaggerations
+(`CAPTURE_NOTE`).
+
+**M2 — "by 'active' I meant those which will fuse — place them closer to each
+other; revert the hover if that is more correct."** Re-seeded so the fusing
+trio is the ADJACENT cluster {slots 2, 3, 4} (2.59 / 2.67 / 2.78 ms, the
+middle still last, on camera, with the cloud at 71% of peak; the weak run
+still fires nothing). Every generic guard — middle-last, trigger-before-
+fusion, conservation, continuity — carried the new cluster without a line
+changed, and C1 now pins contiguity. The hover is NOT reverted, on science:
+docked is defined morphologically as membrane CONTACT (the SNARE/RIM
+machinery holds the vesicle against the plasma membrane); it is the TETHERED
+reserve pool that hovers, and it already does.
+
+1106 tests green, typecheck clean.
+
+### Step 20o — the shaft, measured at last, 2026-09-01 (round 14)
+
+**"The bottom of the canvas still contains elements."** Round three of the
+same corner debris, and this time it was MEASURED instead of patched: at the
+bouton's scale the reference shaft's 20-unit relief maps to ~280 px, so the
+surface's whole midsection ran a hundred pixels BELOW the canvas — the only
+visible parts were the two eased edge pieces, stranded in the corners like
+debris, plus their dives toward the submerged middle. ⚠ THE WANDER IS A
+TEXTURE, NOT A DISTANCE: `SHAFT_RELIEF = 0.25` compresses the vertical
+mapping only (the horizontal is untouched), so the entire surface now lives
+on screen — level at the edges, a gentle 40 px dip mid-frame, the spine
+rooting ON it instead of below the frame. Guard extended: every point of the
+surface trace is on-canvas.
+
+1106 tests green, typecheck clean.
+
+### Step 20p — astrocytes on the list, and three more lines, 2026-09-01 (round 15)
+
+**Astrocytes are a feature now.** They were only a caveat inside S14; the user
+asked for them on the list, so **S15 — the astrocyte, the synapse's third
+cell** — is specified: a process wrapping the synapse whose EAAT transporters
+take up the escaped glutamate S12 already shows drifting out of the cleft,
+with the glutamate–glutamine cycle handing material back. Not yet built; the
+spec row says where it must sit (where the escaped balls already come to
+rest, so the two views tell one story).
+
+**"Keep working on the lines."** Three more offenders, fixed structurally:
+the shaft FILL's closing edges ran to x = ±40 — inside the canvas
+horizontally — so the translucent fill's boundary cut a visible diagonal
+across the bottom (now closed by vertical drops beyond ±1.1× the width, every
+closing edge off screen); the spine's membrane stroked its own CLOSING edge —
+a notch hanging under the shaft's surface (the band now strokes an OPEN
+outline); and the shaft's surface line ran straight across the neck's mouth,
+walling the spine off from its own dendrite (now punched out over the
+opening, with the same even-odd punch the tears use).
+
+1106 tests green, typecheck clean.
+
+### Step 20q — the shaft rebuilt, 2026-09-01 (round 16)
+
+**"The lines look fine, but the fill is now outside."** The sixth appearance
+(superseded one round later by 20r, which removed the shaft entirely)
+of the same family of fault, and the last: the traced reference wander —
+20 units of relief, self-disagreeing once eased — had now failed in every way
+a path can fail (corner curls, closing-edge diagonals, a submerged midsection,
+and finally a fill escaping its own stroke). ⚠ A RIGHT SOURCE CAN STILL BE AN
+UNREADABLE VIEW — REBUILD THE VIEW: the shaft's profile is SYNTHETIC now.
+`shaftLineY` is one pure function — a level line with a gentle sag under the
+synapse (a dendrite bows where a bouton presses on its spine) — and the
+stroke, the fill, and the spine-root sampler all read the SAME function, so
+they cannot disagree again. The reference trace stays in the file for the
+record; the bouton, which is the exhibit's subject, keeps the user's drawing
+untouched.
+
+1106 tests green, typecheck clean.
+
+### Step 20r — the postsynaptic side matches the wide view, 2026-09-01 (round 17)
+
+**"The shape is in general wrong in comparison to the area in the big-neuron
+view."** True, and structural: out on the whole cell, our bouton synapses
+onto the TIP of the target's dendrite branch, which (after the landing
+quarter-turn) runs DOWN toward the target's soma — while the close-up drew a
+spine on a horizontal dendrite crossing the whole frame, a shape the wide view
+never shows. The postsynaptic side is now that same object magnified: spine
+head at the cleft, narrow neck, and the dendrite WIDENING DOWNWARD out of the
+frame toward the soma — one open outline, head to trunk, every joint a cubic.
+The spine-on-dendrite science (S13's "Ca²⁺ enters the spine") is untouched.
+
+Side effect, welcome: the horizontal shaft — six rounds of bottom-of-canvas
+debris — is gone from the drawing entirely. Its draw functions were deleted
+(a guard for an undrawn line is a claim that rots); the reference trace and
+`SHAFT_BOX` stay in `boutonShape` for the record. The EPSP's departing knot
+now visibly travels INSIDE the dendrite it leaves through.
+
+1105 tests green, typecheck clean.
+
+### Step 20s — the wide view grows the demo's anatomy, 2026-09-01 (round 18)
+
+**"Improve the zoomed-in big image with the demo synapse."** The wide scene's
+outgoing synapse was a blob for the bouton and a bare line for the target's
+dendrite — fine at ×1, nonsense at ×100, and nothing like the picture the
+zoom lands on. Now, on the way down (`outgoingDetailAt`): the stand-ins
+dissolve OUT between ×8 and ×16, and between ×16 and ×40 the demo's own
+shapes dissolve IN — the user's traced bouton outline with its docked
+vesicles, and the target dendrite's tip as the demo's spine head, neck and
+widening trunk — seated in scene coordinates and oriented along the actual
+stub, so the landing quarter-turn brings the picture into register with the
+view that then fades in. ⚠ The two ramps DO NOT OVERLAP (level of detail
+dissolves, and the two representations are never both on screen) — pinned by
+the scene's first test file (`drawScene.test.ts`, M1).
+
+1106 tests green, typecheck and build clean.
+
+
+### Step 20t — labels adjusted, and the active zone becomes a PLACE, 2026-09-01 (round 19)
+
+**"Adjust labels places."** The 'active zone' caption hung centred over the
+docked row and landed ON the vesicles once docking became touching-contact.
+`activeZoneLabelAt` seats it just outside the zone's right end, hugging the
+membrane it names, stacked above 'synaptic cleft'; the 'vesicle' label nudged
+clear. Guard: the caption keeps its distance from every bubble.
+
+**"Create the same demo, but at the scale in the image."** The user chose the
+DEEPER PLACE: `active-zone` is a new zoom target at ×4 the synapse view's
+magnification. Not a new view — the synapse view itself keeps running and the
+camera continues INTO it, scaling the layer about the zone's centre; labels,
+captions and lens doors dissolve on the dive (`SynapseView.chrome`), because
+words and doors would be giant. Same run, same balls, same clock — watched
+closer. Doors: a second magnifier ON the zone beside its caption (`zoneLens`),
+and a marker on the whole cell offset a diameter from the synapse's own (two
+doors at one place, two icons). ⚠ `arrivalAt` is a single-scale band and would
+have BLINKED the view out midway between the two places — `arrivalSpan` holds
+it home across the whole range, pinned by a guard.
+
+1108 tests green, typecheck and build clean.
+
+### Step 20u — six things the close frame revealed, 2026-09-01 (round 20)
+
+**P1 — "the postsynaptic flash highlights the dark fill of fusing vesicles."**
+Found: the departing flash's glow was painted BEFORE the pockets, whose opaque
+lumen fill then cut dark holes in the light. Both travelling flashes are now
+painted last of all the physics — the glow washes bath and lumen alike, and
+since they are the same ink they now LOOK the same, which is the topology's
+own claim.
+
+**P2 — "we need to display the SNARE complex — Ca ions bind to nothing."**
+`snareMini`: each docked vesicle carries a miniature of D06's cast — the
+three-strand rope (D06's own strand colours) between base and wall, and a
+synaptotagmin knob on each side, placed exactly where the calcium cast's ions
+come to rest (the rest band was pulled onto the knobs). Guard: every calcium
+ball resting in the zone at the run's end sits within a vesicle-radius of a
+knob. The machinery disassembles with fusion.
+
+**P3 — camera down at the zone place: the dive anchor moved below the foot so
+the receptors sit fully in frame.**
+
+**P4 — "ligand-gated channels are upside-down."** A real bug: a leftover
+rotate(π) put the binding seat INSIDE the spine. The traced channel's seat is
+on its extracellular mouth at local −y — already toward the cleft — so the
+rotation is gone.
+
+**P5 — "neurotransmitters should move slower."** Every travel leg got more
+model time (emerge 0.9→1.5 ms, capture 0.9, release 1.3, exit 1.5, bath glide
+5.5). The DISPERSE blink stays a blink: that one is the no-journey rule's.
+
+**P6 — "make the bilayer look like made out of phospholipids."**
+`membraneLipids`: at the zone's depth the bands resolve into rows of heads —
+drawn by the app's ONE membrane paver, dissolving in exactly as the chrome
+dissolves out, and skipping torn spans (a torn wall has no molecules left
+there to show). At the synapse's own magnification the band remains the
+honest drawing, per this file's founding LOD note.
+
+1110 tests green, typecheck clean. O1 was broken (knob displaced two radii →
+"calcium rests on the knobs" failed at 59 px); watched.
+
+### Step 20v — four things the bilayer depth revealed, 2026-09-01 (round 21)
+
+**Q1 — "phospholipids should look like a bilayer; not overlap channels;
+vesicles made of them too."** The depth-lipids got smaller heads and wider
+leaflet separation so the two rows read as two rows; `membraneLipids` skips
+the spans under every door and receptor (a channel REPLACES the lipids it
+displaced); and at depth every intact bubble resolves into a ring of the same
+molecules (`vesicleLipids`), paved by the same paver.
+
+**Q2 — "postsynaptic channels open before neurotransmitters got bound."**
+True: the model's open-crossing could precede the drawn pair's landing.
+`receptorSeatWindow` (built on the same fate assignment the cast animates —
+extracted, shared, so they cannot disagree) gates every receptor's drawn
+socket AND open state on its pair being visibly seated; and pairs hold a
+declared `RELEASE_HOLD_MS = 5` past the model's unbinding, so users have time
+to read cause before effect. Guard: at seatedAt + ε the pair is on its seats,
+just before it is not, and drawn-open is structurally impossible earlier.
+
+**Q3 — "ions strictly through the middle of the channel."** The sodium pair
+crossed at ±4 px; both balls now cross at the channel's own centre — the
+stagger is in TIME, never in x. (Calcium already crossed centred.)
+
+**Q4 — "make the cleft wider so the ball-on-rope clears the postsynaptic
+membrane."** CLEFT_PX 26 → 34, still declared beside the real 20 nm; the
+falls-away guard re-anchored to the face's own edge (the bulb's flank out
+there rises too steeply to be the reference).
+
+1111 tests green, typecheck and build clean. Q1's window was broken (seat time
+collapsed to the bind crossing) and watched to fail.
+
+### Step 20w — the causal chain, timed for reading, 2026-09-01 (round 22)
+
+**S1 — "phospholipids as in the bilayer bench."** The zone-depth lipids adopt
+the bench's own proportions (HALF_MEM/HEAD_R = 5): small heads, LONG tails,
+two clearly separate leaflets.
+
+**S2 — "is it correct that docked vesicles touch or overlap the bilayer?"**
+Near-contact yes, overlap no — and the PRIMED state is the picture worth
+drawing: half-zippered SNAREs hold the vesicle a few nanometres off the
+membrane. Docking clearance became a small visible gap (r + 1.6·MEM_PX),
+spanned by the rope, which is also what lets the rope's PULL be seen.
+
+**S3 — "Ca ions bind on the placeholders, hold ~1 s, then fusion."** The
+calcium cast's rest positions now ARE the synaptotagmin knobs (taken from the
+same `snareMini` the drawing places; knobs re-anchored to the wall at their
+own x after the sloped outer slot caught one 4 px inside the membrane), and
+the arrival deadline gained margin so, on the legged clock, every trigger ion
+sits on its knob for well over a second of screen time before its vesicle
+goes. Guard R2 measures that hold through CLOCK_LEGS.
+
+**S4 — "Na ions penetrate before the transmitter is bound."** The whole
+postsynaptic chain is now built on the shared seat windows: pair seats → holds
+`BIND_HOLD_MS` (~1 s on screen) → the channel opens (`receptorOpenWindow`;
+null for a receptor whose gate the model never opened — it catches and stays
+shut, the honest minority) → `NA_PAUSE_MS` → the sodium crosses → a beat →
+`departingFlash` launches only after the FIRST pair has flowed in. Guard R1
+walks the order end to end; broken (pause removed → sodium in the spine
+early), it failed at receptor 0 and was restored.
+
+1113 tests green, typecheck and build clean.
+
+### Step 20x — slower still, and lipids inside the contour, 2026-09-01 (round 23)
+
+**T1 — "balls still move jerkily; replace with slow movement."** Diagnosed by
+leg: the TAIL leg compresses 51 model-ms into ~2.4 s of screen, so anything
+millisecond-scale there flicks (release lifts, buffered-calcium drifts); the
+sodium legs were 0.25–0.5 ms (~0.1–0.2 s); the puff was a deliberate blink.
+Every travel leg got more model time (release 4 ms, buffer drift 8, exits
+3.5, bath glide 7, Na legs 0.7/1.2/1.0, stagger 0.8) and the puff eased to
+0.18 ms — still ~300× faster than any journey-reading, its guard bound moved
+with it. One guard refinement followed: an ion the buffers are mid-carrying
+at the window's end is exempt from the on-its-knob claim — it left by travel.
+
+**T2 — "scale lipids ~2× down; display phospholipids during fusion."** Heads
+0.6 px (bilayer now fits INSIDE the drawn band), packing tightened to the
+bench's own density — and the FUSING vesicle keeps its molecules: the
+standing omega arc is paved (the submerged rest have become wall, whose own
+rows part at the tear), so fusion at depth reads as molecules joining a
+molecular wall.
+
+1113 tests green, typecheck and build clean.
+
+### Step 20y — constant speed, and the ghost band, 2026-09-01 (round 24)
+
+**U1 — "green balls speed up without a reason after release."** True and
+measured: the emerge leg ran at ~25 px/model-ms while the spread leg ran at
+~640 — a ball lurched the instant it cleared the mouth. Both legs now take
+their DURATIONS from one speed (`NT_SPEED = 30 px/ms`, per ball: distance
+over speed), shared verbatim by the seat-window arithmetic so the chain's
+clocks moved with it. Knock-ons absorbed: a receptor whose pair seats after
+the model's population already unbound now holds a guaranteed readable beat
+(`max(tDown + hold, seated + 2.5)`), and the payload-share bounds moved with
+the wider flood window.
+
+**U2 — "the vesicle membrane visually breaks before fusing — a ghost
+outline."** Found: the sinking vesicle's outline was clipped against the
+wall's strip from fusion's first frame, cutting its bottom arc while the
+bubble was still clear of the wall. The skip now engages only once the circle
+actually TOUCHES the membrane band, with a tighter pad; the outline stays
+whole until contact, then merges.
+
+1113 tests green, typecheck and build clean.
+
+### Step 20z — the pink rush, 2026-09-01 (round 25)
+
+**"Pink balls still rush at high speed at the end."** The buffered calcium
+drift (knob → deep interior) took 8 model-ms — a third of a screen-second in
+the compressed tail leg, over hundreds of pixels. `CA_BUFFERED_TRAVEL_MS`
+8 → 26: a buffered ion now glides away over more than a second wherever in
+the run it clears. The two feet-guards (E4, O1) filter to RESTING ions — one
+mid-carry at the window's end has left its knob by travel, which is the
+design, not a fault.
+
+1113 tests green, typecheck clean.
+
+### Step 20aa — the calcium's pace, leg by leg, 2026-09-01 (round 26)
+
+Three "rush" reports, each pinned by its timer reading: the early/4 ms rushes
+were the entry legs (0.3/0.3/0.4 model-ms — fine in the slow-motion early
+legs, a blur at gap-leg pace for the charge-paced late entries) → now
+1.0/0.6/0.7, inherited by the fusion-deadline clamp with a t = 0.15 floor so
+no ion starts before the run; the 11 ms "rushing around" was the buffered
+drifts clustering their starts in the tail → 26 → 45 ms, a calm glide at
+tail compression. R2's on-knob hold survives at ~0.95 s for the earliest
+fusion (the beat carries it).
+
+1113 tests green, typecheck clean.
+
+### Step 20ab — calcium stays put, the flash goes under, 2026-09-01 (round 27)
+
+**V1 — "at 4 ms Ca ions rush to the sides."** An ion's entry door (nearest
+its RANDOM wait spot) and its destination knob (fixed slot assignment) could
+sit at opposite ends of the zone, so its settle leg dashed across. Each ion
+now WAITS BESIDE ITS OWN ANCHOR: it enters through an adjacent door and
+settles a few pixels — in the vicinity for its whole life.
+
+**V2 — "at 9 ms Ca ions rush up."** The buffered clearance carried ions
+100–200 px deep into the terminal. The science prefers the user's
+expectation: buffer proteins are everywhere, so a grabbed ion stops WHERE IT
+IS. Buffered ions now slip a short way off their knobs into the nearby
+cytoplasm (≤ ~2.6 r) and rest there — clearance still thins the knobs on the
+model's caUm clock, by a calm local drift.
+
+**V3 — "display the postsynaptic flash below the bottom screen edge."** The
+departing nudge now emerges UNDER the canvas and recedes further; what shows
+is its glow bleeding up over the bottom edge, dimming as the signal leaves
+for the soma — no knot materialising beside the cleft.
+
+1113 tests green, typecheck clean.
+
+### Step 20ac — the synapse's chrome joins the app's patterns, 2026-09-01 (round 28)
+
+**W1 — "instead of a magnifying glass, a scale switch, top right."** The two
+framings (whole synapse / active zone) are now a two-way switch in the top
+right corner — the axon views' own radiogroup pattern: both named, the one
+you are in lit, each press a `zoomTo` so the camera still performs the dive.
+
+**W2 — "replace the magnifying glass with a shortcut button, as on 'The AP',
+bottom left, both views."** The way into D06 is the membrane patch's own
+shelf pattern: one labelled button (🫧 Vesicles & the SNARE machinery),
+bottom-left of both framings. The on-canvas magnifiers and their hit circles
+are deleted; the old "door ON the thing" test now pins what remains pinnable
+(the drawer's home gates which chrome advertises it) and records the user's
+override of the magnifier grammar for this view.
+
+1113 tests green, typecheck and build clean.
+
+### Step 20ad — the chain gets its own leg, and binding gets its snap, 2026-09-01 (round 29)
+
+**X1/X2/X5 — "at 9.6 ms Na rushes; at ~10 the animation speeds up; increase
+the general duration."** One root: the tail leg squeezed 51 model-ms into a
+sixth of the screen, so everything after ~9 ms fell off a pacing cliff. The
+run is 20 s now (ratio guard 300 → 400), and the postsynaptic chain
+(9→18 ms: opens, pauses, sodium, the departing nudge) has a LEG OF ITS OWN;
+only the true clearing (18→60 ms) remains compressed — and nothing
+millisecond-scale plays there any more. Na legs also eased (0.9/1.5/1.2).
+
+**X3 — "emphasize binding, as in the ligand demo: white aura, snap into
+place."** `bindPulses`: a brief white `softGlow` — the bench's own white-hot
+idiom — at the instant of every seating: calcium onto its knob, transmitter
+into its cup. Computed from the same arrival arithmetic the casts move by,
+so a pulse can never fire beside an empty seat.
+
+**X4 — "at 4.6 ms a Ca ion from the right channel rushes."** Addressed by the
+global slowdown (the gap leg's pace eased with the 20 s total); the entry
+legs themselves were left alone because the fusion-deadline clamp needs them —
+an ion must still beat its vesicle to the knob.
+
+1113 tests green, typecheck clean.
+
+### Step 20ae — four adjustments and an inherited aura, 2026-09-01 (round 30)
+
+**Y1 — "make the presynaptic flash 5 ms duration."** `FLASH_LIFE_MS = 5`: the
+jolt still arrives fast (travel done by the spike's peak) and then dies away
+slowly to the 5 ms mark instead of vanishing when the voltage drops.
+
+**Y2 — "Ca ions sparkle twice — what does the second sparkle mean?"**
+Answered, not changed: the ~5.5 ms sparkles are the LATER calcium cohort —
+the ions paced by the real charge influx rather than a fusion deadline —
+binding the spectator vesicles' sensors and stacking third ions onto occupied
+knobs. Same event, later arrivals; honest, kept.
+
+**Y3 — "keep Na ions fixated at the channels."** The waiting pair now sits at
+its channel's mouth, near-still (quarter wobble), until the gate's own
+moment; the crossing is its only journey.
+
+**Y4 — "left vesicle's NTs go left, right one's right, middle spreads among
+the channels."** `standXOf`: one shared stand-position rule (outer fused
+vesicles spread strictly outward; the middle across the receptor row) used by
+the cast, the fates, the seat windows and the pulses alike, so nothing can
+disagree. The payload-share guard recalibrated: the release now occupies a
+real slice of model time (~11%), so the legs' advantage is smaller but still
+required.
+
+**Y5 (mid-turn) — "Ca keeps its aura longer; let Na inherit it."** Sodium
+arrivals in the spine now fire the same white snap, with a longer MODEL pulse
+(`NA_BIND_PULSE_MS = 5`) so it reads as long on screen as calcium's does —
+calcium binds in the slow early legs, sodium settles in the quicker chain
+leg.
+
+1113 tests green, typecheck and build clean.
+
+### Step 20af — the timeline tool, 2026-09-01 · awaiting manual test
+
+**A1 — the tool.** `src/ui/Timeline.tsx` + `src/ui/timelineMath.ts`: one wide
+bar per run — track, filled portion, a dot per main event, a named chip under
+each dot with its own 🔊 (the F04 speaker speaks the name; the rest of the
+chip rewinds). Chips stagger onto a second row where neighbours would collide
+(`labelRows`, tested).
+
+**A2 — rewind, never teleport.** Pressing a label, a dot, or the bare track
+GLIDES the run to that moment — ease-in-out, ~0.35 s + 1.1 s per full bar,
+driving the store through every intermediate position on the glide's own rAF
+clock. Works in both directions (user chose: forward glides too). A run that
+was playing when pressed resumes on arrival (tape-player, user's choice); a
+paused one stays put. Continuity and monotonicity pinned in
+`timelineMath.test.ts`.
+
+**A3 — the drag control.** The thumb drags (pointer capture); a track press
+that turns into movement converts from glide to live scrub.
+
+**A4 — the action button stays.** All three sites keep their ⚡ / ▶ pair
+beside the tool; the bare `<input type=range>` sliders are gone.
+
+**A5 — three sites.**
+- *The AP* (membrane patch pill): dots at `apSteps`' own measured moments,
+  named via the new `STEP_NAMES` (speakable words — "sodium opens", not
+  "Na⁺"); the beat banner moved down to clear the taller pill.
+- *The synapse* (both framings): `synapseEvents(run, cleft)` dates the dots
+  off the run itself — the spike (0.4 ms), calcium in (1.75), first fusion,
+  first seating, first opening, the nudge's launch (via the new
+  `nudgeLaunchMs`, ONE copy shared with `departingFlash`), clearing (18) — and
+  the new `screenOfModel` (inverse of the legged clock, roundtrip-tested)
+  places them on the transport's own bar. A weak run drops the events that
+  never happen.
+- *Vesicles & the SNARE machinery*: the stage-chip row and slider REPLACED by
+  the timeline (user's choice); dots at each stage's own start so the lit chip
+  always agrees with the "Right now" caption.
+
+1122 tests green (9 new, citing A1/A2/A5), typecheck clean.
+
+### Step 20ag — stillness, the kept aura, reflection pauses, seats that fit, 2026-09-01 · awaiting manual test
+
+**A1 — bound ions are STILL.** Seated calcium (on a knob), buffered calcium
+(grabbed deeper in) and settled sodium lose the soup wobble entirely; ions
+still free — waiting in the cleft, or the surplus calcium — keep the thermal
+jiggle, so motion itself says free-vs-bound. Declared exaggeration: cytosolic
+sodium is really still free and jostling; the stillness marks "arrived and
+done", same as its aura.
+
+**A2 — sodium keeps its white aura** at full strength from arrival until its
+OWN receptor's `closeAt` (user chose: the glow and the open door end
+together), then fades over `NA_BIND_PULSE_MS`.
+
+**A3/A4 — the reflection pauses (~1 s each, user's choice).** `NA_PAUSE_MS`
+0.5 → 2.5 (open → flow); the nudge's lag 0.8 → 3.5 ms (ions settled → signal
+departs); `RECEPTOR_OPEN_MS` 3.5 → 10.4, so the door now outlives both
+crossings plus a ~1 s hold — it used to close while the second ion was still
+mid-pore. The chain leg stretched 9→18 to 9→21 model ms (share 0.13 → 0.17,
+taken from the clearing) so the launch (~17.7 ms) and the closes (18.1–21 ms)
+play at the leg's ~0.28 s/ms instead of falling off into the compressed tail;
+the 'clearing' timeline dot moved to 21 ms with it.
+
+**A5 — every seat fits.** The invented "tier" stacking is gone: two knobs per
+vesicle = ten seats, and each of the first ten ions gets its OWN knob, dead
+centre. The four surplus ions never pretend to bind — they settle nearby as
+free calcium (the honest picture: calcium beyond the sensors' capacity stays
+free until buffered) and fire no binding pulse.
+
+Guards: seated-still vs waiting-jiggles (Na and Ca), aura full-until-close,
+clock-walked ≥0.7 s pauses, knob-exactness + surplus-never-on-a-knob — each
+broken deliberately once and watched fail (the old O1 guard tolerated the
+tier offsets; the new A5 one does not). 1127 tests green, typecheck clean.
+
+### Step 20ah — full-width timeline; the plugged pair serves the whole transaction, 2026-09-01 · awaiting manual test
+
+**A1 — the timeline is the canvas's own width, action button in front.** All
+three sites became one row: ⚡/▶, then the bar (the `Timeline` now fills its
+container and measures itself for the label stagger), then the readings. On
+the synapse the top-right scale switch rides the same plate's right end —
+a full-width bar leaves no separate corner; the AP beat banner moved back up
+to clear the now single-row pill.
+
+**A2 — the receptor's transaction, in order.** The plugged transmitter pair
+now stays for the WHOLE transaction: capture → hold → the channel eases open
+over `OPEN_EASE_MS` with the pair riding the drawn socket (`ntSeatAt` reads
+`ligandSeat`, the socket that slides with its subunit; k = 1 mirrored) →
+sodium flows → ~1 s reflection with the door open → every white glow (NT and
+Na together) fades over `GLOW_FADE_MS` → the pair lifts off
+(`NT_DEPART_LEAD_MS` before the close) → the door eases shut. Release is
+owned by ONE function (`receptorSeatWindow`, scheduled off the door's own
+`closeAt`; a receptor that never opens falls back to the model's unbinding),
+and the cast's private copy of that arithmetic is gone. Plugged means
+plugged: the seat wobble is removed. `RECEPTOR_OPEN_MS` grew to 12.6 to hold
+the tail; the chain leg stretched to 9→24.5 ms and the whole run to 22 s so
+nothing new falls into the compressed clearing.
+
+Recalibrations, each a real consequence: the flood threshold rose to ≥11
+(all TEN captured balls now linger for reuptake, none stays plugged at the
+end); D1's end-state flipped to "nothing seated, every captured ball
+lingering"; the seat-slide guard checks tracking, not amplitude (the drawn
+socket's own slide is ~1.9 px). New guards: glow-holds/dies-together,
+seat-tracking (ball exactly on the moving socket), beats-in-order walked on
+the screen clock — broken once (early release) and watched fail. 1129 tests
+green, typecheck clean.
+
+### Step 20ai — timeline ends, slim row, obvious events, 2026-09-02 · awaiting manual test
+
+**A1 — clickable ends.** Two larger points (14 px vs the events' 9 px) sit at
+the very start and end of every timeline; pressing one glides there. An event
+that sits at an end (the AP's "resting"/"back to rest") is represented by the
+end point itself — its chip stays, its small dot does not stack on the big one.
+
+**A2 — timer rightmost, slim row.** Every transport row now reads: action
+button (+ that view's own switch — 🔆 on the patch, 🕸/🔍 on the synapse),
+then the bar, then the ms timer at the right end. The element slimmed: 38 px
+buttons on the AP pill (was 46), tighter track and label rows (~46 px total,
+was ~56), thinner padding; the beat banner moved back up to 84 px.
+
+**A3 — "what is 'the nudge'?"** Answered: the departing EPSP flash, drawn
+BELOW the bottom canvas edge (the user's own earlier ruling), dim and
+decaying — a dot pointing at almost nothing. Replaced by **"sodium in"**, the
+first gold pair visibly crossing its pore (`opens + NA_PAUSE_MS`). The flash
+itself stays in the animation; the drawing⇄launch-time guard stays too.
+
+1129 tests green, typecheck clean.
+
+### Step 20aj — a clean timeline row, connectors to the names, 2026-09-02 · awaiting manual test
+
+**A1 — nothing in the row but action, bar, timer.** The 🔆 emphasis switch
+(AP) and the 🕸/🔍 scale switch (synapse) moved out to their own plates under
+the bar's right end — the scale switch back in the top-right corner it owned
+before the bar went full-width. The SNARE drawer's ↺ Reset was removed
+outright: the bar's own start point and ▶-at-end cover "start over", the
+same grammar as the synapse's auto-reset (flagged in the hand-over for veto).
+
+**A2 — connectors.** A thin vertical line runs from every event dot down to
+its own chip — with two staggered label rows, which name belonged to which
+dot was a guess; the reached event's line is amber like its dot.
+
+1129 tests green, typecheck clean.
+
+### Step 20ak — no aura on crossed sodium, 2026-09-02 · awaiting manual test
+
+**A1.** The sodium arrival pulses are gone from `bindPulses`: the white snap
+is the ligand bench's BINDING idiom, and an ion that has crossed into the
+spine is not bound to anything — it is simply inside. (Supersedes 20ad's
+"let Na inherit the aura".) Only the plugged transmitter glows now, holding
+while plugged and dying before the pair flies. Guard flipped to "no pulse
+ever sits on a settled sodium ion, at any moment" — broken once (a re-added
+pulse) and watched fail.
+
+### Step 20al — the action button leaves the container, 2026-09-02 · awaiting manual test
+
+**A1.** The ⚡→▶ swap was resizing the transport row and shifting the bar
+(user: "creates layout shift"). The action button now floats on its own plate
+under the bar's LEFT end — mirroring the 🔆/scale plates on the right — in
+both the AP and synapse views, and the timeline owns the container's full
+width (only the timer shares the row). ⏸/▶ keeps one fixed width so the
+frequent pause↔play swap moves nothing; the once-per-run ⚡→▶ change resizes
+only its own floating plate. The AP beat banner moved below the new plate
+row (120 px). The SNARE drawer's Play is width-stable and never morphs, so
+it stays inline.
+
+### Step 20am — the fusion finishes before the binding, 2026-09-02 · awaiting manual test
+
+**A1.** "Vesicle fusion pauses in the middle, at 5.2 ms" — measured and
+confirmed: sink+open ended at age 1.1, the cargo drained to age 2.6 (= 5.2 ms
+for the first fusions), then the shape FROZE until a flatten that began at
+age 6 and crawled for 18 ms. Now `FLATTEN_FROM_MS = CARGO_DRAIN_MS` (the
+pocket flows straight from emptying into merging, no dead zone) and
+`FLATTEN_MS = 1.0`, chosen so the LAST fusing vesicle is one smooth wall by
+~6.4 ms — before the first transmitter seats (6.5 ms). Fuse → release → bind
+is now a strict on-screen sequence. Declared drawing exaggeration: real
+full-collapse takes tens of ms; the model's dose timing is untouched. The
+clearing leg/dot no longer claim "pockets flattened". Guard: every fused
+pocket returns null from `fusedShape` at the first seat instant, plus
+no-dead-zone on the schedule — broken once (FLATTEN_MS back to 18) and
+watched fail. 1130 tests green, typecheck clean.
+
+### Step 20an — the propagation flash, in the cell, 10 ms each side, 2026-09-02 · awaiting manual test
+
+**A1.** The postsynaptic flash now IGNITES INSIDE THE SPINE HEAD — where the
+sodium that caused it just settled — and runs down the neck and trunk off the
+bottom edge over `POST_FLASH_MS = 10`. Supersedes the below-the-frame start
+of 2026-09-01, whose real target was "never in the synaptic cleft": it still
+never touches the cleft, and still shrinks and dims as it travels (an EPSP
+decays; never a spike). Guard: ignition point inside the spine head, on
+canvas — broken once (start moved back below the frame) and watched fail.
+
+**A2.** `FLASH_LIFE_MS` 5 → 10: the presynaptic arrival still lands fast (by
+the spike's peak) and now afterglows to the 10 ms mark, matching the
+postsynaptic flash's length. 1130 tests green, typecheck clean.
+
+### Step 20ao — the afterglow moves to the screen clock, 2026-09-02 · awaiting manual test
+
+**A1.** "The yellow ball keeps hanging on the top of the page for multiple
+seconds" — confirmed and explained: 20an sized the afterglow in MODEL ms
+(10), and the clock crawls through the early legs, so those 10 ms were ~13
+real seconds; the postsynaptic flash's same 10 ms play in a fast leg and last
+~2 s. A clock belongs to the event it is timing: the fade is now defined in
+SCREEN ms (`FLASH_FADE_SCREEN_MS = 1800`, via `screenOfModel`, still a pure
+function of position so scrubbing replays it), sized to read like the
+postsynaptic flash. Guard pins the absolute budget (≤ 2.5 s) — the first
+guard sampled only at fractions of the constant and PASSED at 13 s when
+broken; the pinned version was then broken and watched fail. 1131 tests
+green, typecheck clean.
+
+### Step 20ap — the spine's charge tint, paced by the drawn ions, 2026-09-02 · awaiting manual test
+
+**A1 — no glow before the ions.** The gold "current arriving" spine glows
+followed the model's vmPost, which rises at ~5.5 ms — long before the drawn
+(slowed, curated) ions cross at ~10–17 ms. "The sodium didn't even penetrate
+the cell, but the yellow aura is already there" — confirmed; the glows are
+deleted.
+
+**A2 — red/blue charge tint instead.** New `spineTint`: the spine's interior
+wash on the app's own charge ramp, RELATIVE TO REST (red = depolarized, blue
+= hyperpolarized), rising with each drawn ion's own crossing and cooling on
+the model's membrane clock (`SPINE_TAU_MS`) after the last one settles. Pace
+curated to the drawn schedule, size normalised to the run's own peak.
+Declared science: the spine's absolute polarity never goes positive (the
+`synapseAuras.post` pin stays), so red means "pushed off rest", not "inside
+positive"; and blue never shows in THIS run — an AMPA synapse only
+depolarizes. The 20an ignition flash is untouched (user: "the post-synaptic
+flash is updated correctly"). E1 rewritten around the tint: zero before the
+first drawn pore entry (walked), full at last settle, τ-cooling, never
+negative — broken once (tint keyed to the gate instead of the ion) and
+watched fail. 1131 tests green, typecheck clean.
+
+### Step 20aq — the AP bar follows the interest; rows solved from real widths, 2026-09-02 · awaiting manual test
+
+**A1.** "The timeline labels overlap much" — root cause was not the rows: the
+spike's five middle moments live inside a fifth of the MODEL window, so a bar
+linear in u stacked five names into ~100 px no row count could untangle
+(measured: the 3-row solver still collided at every tested width). Two fixes,
+inside and out:
+- `apBar` (core/apSteps.ts): the AP transport's bar is now DWELL-WEIGHTED —
+  each stretch between moments gets its movement time plus the arrived
+  moment's dwell, the same follow-the-interest reallocation as the synapse's
+  legged clock, piecewise linear and exactly invertible (thumb, dots and
+  scrub all convert through it; the ms timer still reads model time). Dots
+  now sit 12–18% apart. Guards: every adjacent pair > 0.1 apart on the bar;
+  roundtrip inversion — the no-overlap guard was watched fail against the
+  old linear placement.
+- The label row solver now judges collisions from each chip's OWN estimated
+  width (`chipWidth`) instead of a fixed 88 px guess, and staggers across up
+  to THREE rows (user's cap), taking the roomiest only when all are blocked;
+  the label area's height follows the rows actually used. Guard: the AP's
+  own points, row-solved at three widths, with zero same-row collisions.
+
+1134 tests green, typecheck clean.
+
+### Step 20ar — edge chips slide inward, 2026-09-02 · awaiting manual test
+
+**A1.** The first and last labels, centred on dots at u = 0 and u = 1, hung
+half outside the bar — into the pill's border on the left and the ms timer on
+the right. `chipCenter` clamps a chip's centre so the whole chip stays inside
+[0, width]; mid-bar chips are untouched, the row solver judges collisions
+from the same clamped positions the component draws, and the dot's own x
+always remains within the shifted chip's span, so the connector line still
+lands on its chip. Guarded at both ends. 1135 tests green, typecheck clean.
+
+### Step 20as — one gap everywhere, and a slimmer bar, 2026-09-02 · awaiting manual test
+
+**A1 — consistent gap.** The bar's label area grew with the rows each view
+happened to use, so the pill's height — and the gap to the fixed-position
+⚡/▶ plate below — differed across views and could jump when a run's points
+changed. The label area now reserves its full three-row height CONSTANTLY,
+and every floating plate (⚡/▶, 🔆, scale switch) sits at one shared offset
+(86 px): identical gap in every view.
+
+**A2 (mid-turn: "reduce timeline height").** The reserve was then compacted:
+row pitch 16 → 14 px, chips py-0 with leading-none — three rows in 42 px
+instead of 49, the whole element ~7 px slimmer, plates and the AP beat banner
+moved up to match. 1135 tests green, typecheck clean.
+
+### Step 20at — one TransportBar, flowing chrome, dynamic height, 2026-09-02 · awaiting manual test
+
+**A1 — the representative component.** `TransportBar` (ui/Timeline.tsx): the
+amber plate, the bar filling its width, the timer at the right end — owned
+once, used in all three sites. The SNARE drawer's bar (previously bare in the
+drawer row — "looks wrong") now wears the same plate; it passes no timer,
+because the cycle is a schematic sequence, not a clocked run.
+
+**A2 (mid-turn: "no need to reserve space for additional rows").** The label
+area is dynamic again — only the rows actually used — superseding the same
+day's constant three-row reserve. The gap consistency that reserve bought is
+now had BY CONSTRUCTION: on both canvas views the ⚡/▶ plate, the 🔆/scale
+plates and the AP beat banner FLOW in a pointer-transparent column under the
+bar with a fixed margin, instead of sitting at hardcoded offsets that a
+taller bar could collide with. 1135 tests green, typecheck clean.
+
+### Step 20au — D06 rebuilt around its own complaints, 2026-09-02 · awaiting manual test
+
+**A1 — button under the bar.** The drawer's row became the canvas views' own
+flowing column: TransportBar on top, ▶ Play beneath it.
+
+**A2 — the sensor TOUCHES the thing it controls.** Synaptotagmin was four
+floating dots; now it is a body — a stalk anchored in the vesicle's own
+membrane, a head carrying the four sites, and a visible GRIP on the
+half-wound rope through docking, priming and the whole calcium count (the
+famous pause IS the grip). When the fourth ion lands the head lets go, swings
+down onto the wall, and a go-flash runs from its grip point along the rope —
+cause travelling to effect, and only then does the zip finish. Guard: head
+within its own radius of the rope's midpoint at dock/prime/trigger, off the
+rope and at the wall by the zipper's end — broken once (grip offset) and
+watched fail.
+
+**A3 — callouts.** Each canvas name (vesicle, SNARE complex, synaptotagmin)
+now carries a connector line to the part it names, and the whole layer fades
+out over the run's first 4% (`LABEL_FADE_U`) — invisible labels also stop
+being clickable (`snareLabels` returns none). Guard: three callouts whose
+lines leave their boxes; labels empty past the fade.
+
+**A4 — the run belongs to the button.** `openBench` no longer auto-plays
+(supersedes the 2026-08-31 auto-start): the drawer opens on the labelled
+still. Guarded in `snareStore.test.ts`.
+
+**A5 — retrieval is the fusion, backwards, at the same spot.** The old
+"Taken back" grew a SECOND enclosed omega at cx − 1.9r over an intact wall.
+Now `fusedCentreY` runs the sink's angle-sweep backwards on the same centre
+line: the wall opens again, the ONE bubble stands back up open-mouthed
+(continuous with the membrane until the pinch), the wall's molecules slide
+home (`wallShift` returns to 0), and the reformed vesicle lifts to the exact
+height and spot the cycle began. The released transmitter cloud below stays
+put throughout (`poreAt` holds 1). The retrieve leg's share grew 0.07 → 0.09
+(paid by tether/dock) so the reversal keeps the sink's own pace under the
+K2 continuity walk. Ring/wall-shift/conservation guards rewritten to the
+round-trip story. 1138 tests green, typecheck clean.
+
+### Step 20av — the drawer's controls sit on the canvas, 2026-09-02 · awaiting manual test
+
+**A1.** The SNARE drawer's TransportBar and ▶ button moved from a stack above
+the canvas onto the canvas itself — the AP/synapse views' own overlay
+grammar: a pointer-transparent column at the top (bar, then ▶ under its left
+end), so the picture beneath the empty middle stays clickable for the spoken
+labels. The stage-name reading moved to the canvas bottom beside the calcium
+counter, out from under the new plate. 1138 tests green, typecheck clean.
+
+### Step 20aw — D06 extended upstream: the machinery that catches a vesicle, 2026-09-03 · awaiting manual test
+
+The user's redo of the vesicle & SNARE demo: start BEFORE tethering, with an
+undocked vesicle at the top of a stretched canvas, and draw the catching cast
+(t-SNARE, GTP, Rab effector, "etc."). Alignment answers: full active-zone cast
+(Munc18, Munc13, complexin included); the GTP story animated (badge dims,
+Rab released); room made by rescaling inside the viewport-sized canvas, no
+scrolling; ONE new `approach` stage.
+
+**A1 — the canvas stretched down.** The wall moved from 0.72 to 0.85 of the
+height and the vesicle shrank (r: 0.16w/0.24h → 0.14w/0.17h), so the top
+two-thirds of the frame is free water. Guard: `wallY/SN_H > 0.8`, start
+position wholly in the top half.
+
+**A2 — the run opens undocked at the top.** New first stage `approach`
+(share 0.08, paid for by tether/dock/prime/trigger/zipper/pore/collapse/
+retrieve trims; refill grew 0.05 → 0.06 to keep the longer lift-off inside
+the K2 continuity walk). `vesicleCentre` descends `highY → freeY` on an eased
+`descentAt`; the refill lift now returns all the way to `highY`, so the loop
+closes at the very height it opened. The v-SNARE is on the bubble from the
+first frame (see A3's stubs).
+
+**A3 — the catching cast, drawn and named.**
+- **Rab-GTP** (`rabAt`): an orange body riding the vesicle's upper-left
+  shoulder wearing a lit yellow GTP badge (glow). The badge dims to GDP
+  across docking (`gtpAt`), and the spent Rab is extracted across priming —
+  drifts off and fades (`rabGoneAt`).
+- **Tether / Rab effector** (`tetherAt`): a violet arm standing on the wall
+  left of the landing site; its waves pay out as it rises to meet the
+  descending bubble (`tetherHoldAt` ramps over the WHOLE approach — a
+  half-leg reach made the tip the fastest thing on screen and the walk
+  caught it), tip = the Rab's shoulder through tether+dock, released home
+  across priming. The hand-over from tether to SNAREs is the picture.
+- **Separate SNAREs before the rope** (`snareStubs`): synaptobrevin hanging
+  from the vesicle, syntaxin standing folded shut on the wall, SNAP-25 lying
+  along it — the same three strand colours as the rope, now owned once
+  (`SNARE_STRANDS` in synapseScene, shared with the snareMini; the second
+  private copy deleted). Tips converge on the meeting point across docking
+  and the function returns null the moment they join: stubs and rope are
+  never both on screen.
+- **Munc18/Munc13** (`munc18At`/`munc13At`): the slate minder clasping
+  syntaxin's folded tip; the teal arm lying on the wall stands up at docking
+  to open it (`syntaxinOpenAt`); minder slides aside; both fade across
+  priming.
+- **Complexin** (`complexinAt`): an amber rod that floats in from beyond the
+  left edge over priming's last quarter (`clampArriveAt`, owned in core so
+  model and flight read one window), lies across the half-wound rope through
+  the whole count, and is flicked off over the zip's first strokes —
+  `CLAMP_OFF`, the SAME window as the sensor's release swing, so the two
+  hands visibly open together.
+- **The sensor rides first**: before the rope exists `sensorHead` sits just
+  off the vesicle's lower-right shoulder (it lives in that membrane), and
+  steps onto the rope as docking joins the strands; the grip band draws only
+  once there IS a rope.
+- **Callouts**: the still now names the upstream cast — vesicle, Rab-GTP,
+  synaptotagmin, tether, Munc13, Munc18, v-SNARE, t-SNARE (8; "SNARE
+  complex" dropped — at u=0 there is no complex). All boxes guarded inside
+  the frame and below the transport plate. New SAY_AS entries so the en-US
+  voice says "munk eighteen", "vee snare", "rab, G T P".
+- **Info block**: three new WHAT paragraphs (the badge-and-tether catch, the
+  minders, the two hands on the drawn bow) and one new honesty paragraph:
+  the one drawn tether stands for the Rab-effector family (RIM among them),
+  and WHEN Rab spends its GTP is drawn at docking but not settled science.
+- **Stage watch texts** updated for approach/tether/dock/prime/refill.
+
+Guards for every claim above (core: descent monotone, badge lit→spent order,
+clamp holds the zip at PRIMED_ZIP through the count; scene: tether catch is a
+travel — tip and Rab walked at 400 samples — stubs/rope exclusivity and tip
+convergence, minder-on-tip contact, complexin seat/flick window, sensor
+riding-then-gripping). Exclusivity and tether-hold guards broken on purpose
+and watched fail. 1146 tests green, typecheck clean.
+
+### Step 20ax — D06 corrections round: the ring, the beats, the seams, 2026-09-03 · awaiting manual test
+
+Five corrections from the first manual look at 20aw, plus alignment answers:
+~20 s clock, and the mirror covers EVERYTHING (full symmetric pairs).
+
+**A1 — a second copy of the whole cast, mirrored on the left.** Every
+geometry function gained a `side: 1 | -1` (computed right-handed, reflected
+across the centre line — one geometry, two copies), and the drawing loops
+both sides: tether+Rab, Munc18/13, stubs/rope, complexin, sensor — and a
+second set of calcium ions that floats in from beyond the LEFT edge onto the
+left sensor. The info block explains it as a slice through a RING (pulls
+straight down, the hole opens in the middle) whose per-protein count is
+declared not settled. Labels stay on the right copy only. Guard: reflection
+identities across five stages; left ions off the left edge, seated on the
+left sensor's own sites.
+
+**A2 — slower, with beats.** `SNARE_SCREEN_MS` 13 s → 20 s, and stages
+gained a `hold`: dock 0.25, prime 0.25, trigger 0.22, zipper 0.2, pore 0.15 —
+`through` completes its ramp in the first (1 − hold) of the leg and the
+picture RESTS for the remainder, so each event lands before the next starts.
+`uAtThrough` (the ramp's inverse, owned in core) keeps the calcium flights
+landing at the exact model moments the sites fill — a hold cannot desync an
+ion from its site. Guard: every held leg finishes early and sits still;
+un-held legs unchanged.
+
+**A3 — canvas stretched to the page bottom.** The old SN_H reserved 120 px;
+the drawer's real vertical chrome measures 66 (SideDrawer p-5 ×2 = 40, bench
+grid pt-2 = 8, canvas plate border+p-2 = 18) — the missing 54 was the
+pre-20av below-canvas controls row, now reclaimed. Only the person at the
+browser can confirm the fit.
+
+**A4 — one paint for lumen and bath.** `LUMEN` is now literally `OUTSIDE`
+(the same string, as the synapse scene already does), not a hex that
+approximated its composite. The lumen arc never reaches below the wall line,
+so the two washes never stack. Guard: `LUMEN === OUTSIDE`.
+
+**A5 — the rope rides its membranes (the hanging-rope complaint).** Both of
+`ropeEnds`' ends now obey the membranes they live in: the syntaxin end is
+pushed outward with `wallShift` like every other wall molecule, and the
+synaptobrevin end sits at a fixed ring angle and follows the omega's
+unrolling — the identical rule the lipids obey. After fusion the rope
+therefore lies FLAT in the one wall (a cis-SNARE complex — real) and travels
+outward with the membrane flow; the machinery layer then fades over the
+collapse (`machineFade`) instead of popping off at pore = 0.5. The rope's
+afterlife is named in the info block: NSF prises the flat complex apart for
+reuse — declared, not drawn. Guards: flat at collapse's end, travelled
+outward, NOT stretched (length < 0.6 r), both ends walked at 800 samples;
+broken (ves end re-pinned to hang) and watched fail. 1150 tests green,
+typecheck clean.
+
+### Step 20ay — D06: the mirrored copies pushed clear of the centre, 2026-09-03 · awaiting manual test
+
+**A1 — "place SNARE complex and Ca binding areas further away from the
+center, as currently they collide."** The collision was the v-SNARE's ring
+anchor: at ~87° it sat ±0.05 r from the centre line, so the two mirrored
+ropes met tip-to-tip and the clamps and site clusters tangled between them.
+The anchor moved to 1.1 rad (±0.45 r), syntaxin's stand to ±0.81 r —
+`WALL_ANCHOR` is now DERIVED as cos(anchor) + `CIS_LEN`, so the flat
+cis-complex still lands with zero jump — Munc13's base rides the wall anchor
+instead of being marooned at the centre, and the tethers moved out to
+±1.85 r (at ±1.55 r the mirrored tether stood exactly on the other copy's
+SNAP-25). During the flow phase the joined complex now rides the unrolled
+v-SNARE molecule as one flat object, wall end one cis-length beyond. Guard:
+every piece of one copy's machinery (rope ends, stubs, sensor sites, clamp)
+stays ≥ 0.3 r clear of the centre at five stages — the mirror identity turns
+that into a ≥ 0.6 r channel between the copies; broken (anchor back at the
+bottom) and watched fail. 1151 tests green, typecheck clean. (Full-suite runs
+on this machine intermittently time out heavyweight walking tests in
+UNTOUCHED files — cable, ions, synapse — under parallel load; each passes
+alone and the suite settles clean on re-run.)
+
+### Step 20az — D06: the bubble returns empty, and the lumen seam is closed, 2026-09-03 · awaiting manual test
+
+**A1 — "now the vesicle returns refilled, is this correct? If not — return
+empty."** It is not correct: a retrieved vesicle leaves the wall as bare
+membrane, and refilling — re-acidification, then tens of seconds of
+transmitter pumping — happens later, up in the pool. `cargoAt` lost its
+refill term: the bubble now lifts back to the crowd EMPTY, the stage was
+retitled 'Back to the crowd' ("It lifts back up still EMPTY. Pumps will fill
+it again up in the crowd — slowly, before its next turn."), and the ♻️ info
+paragraph explains that the full bubble each run begins with was filled the
+same way, off-stage, between turns. Guard: cargo is exactly 0 from the
+collapse's end to the run's end (supersedes the "full again at the end"
+assertion, which pinned the compression).
+
+**A2 — "a gap or an overlap is occurring between bg of vesicle and outside
+the cell space."** Found and measured: the lumen wash's closing chord was
+solved on the RING's radius but painted on the lumen's (r − halfMem/2), so
+its edge missed the wall line by halfMem/2·sin(mouth) — a bright unpainted
+strip while the mouth was above centre (~8 px at worst), a double-painted
+dark band once the centre passed below the wall, and a stray arc even after
+the lumen was wholly submerged. The mouth angle is now a named decision,
+`lumenArc`, solved by asin on the radius that is actually painted — chord
+exactly ON the wall line, 'none' once submerged. Guard: an 800-sample walk
+pins both endpoints to wallY to 1e-6 whenever the mouth is open and forbids
+painting after submersion; broken (angle back on the ring's radius) and
+watched fail at the measured 8.16 px. 1152 tests green, typecheck clean.
+
+### Step 20ba — D06: the transmitter gets identity, and flows away, 2026-09-03 · awaiting manual test
+
+Reuptake itself was moved OUT of this drawer at the user's direction (after
+scientific pushback: this app's synapse is glutamatergic and glutamate is
+cleared mostly by astrocytes, so the classic presynaptic-reuptake picture
+belongs to a view that can say so properly). A dedicated reuptake view is
+planned, TBD; the "machinery reset for the next round" idea is deferred to
+that round. Recorded in auto-memory (`reuptake-view-planned`). Per the
+frontier rule, no in-app text promises the future view.
+
+**A1 — identity.** The cargo was the last cast member still teleporting: two
+unrelated seeded dot sets (22 inside, 26 in the gap) crossfaded by alpha. Now
+`transmitterAt` follows ONE fixed set of `NT_COUNT` molecules — a seeded seat
+riding the sinking bubble, an exit moment each on the very ramp `cargoAt`
+empties on (`uAtThrough('pore', (i+0.5)/N)`, so picture and model cannot
+disagree), a quadratic flight pinched through the pore's mouth that leaves
+with the drift's own velocity (no kink), then a seeded outward drift. Nothing
+fades, nothing swaps; pure function of u. `NT_COUNT` moved to core so the
+honesty text interpolates the same number the drawing uses ("the 22 dots
+stand for the few THOUSAND a real vesicle holds").
+
+**A2 — restored bubble stays unfilled** (already the model since 20az); now
+also pinned in the picture: no dot is ever 'inside' again after the collapse.
+
+**A3 — the transmitter flows AWAY.** Drift velocities are scaled from the
+frame (the slowest molecule still crosses the gap in the run's remaining
+fifth), so every molecule is off the page by u = 1 on any viewport — it
+leaves the scene by travelling, "collected by machinery outside this
+picture" (the honesty text's words). Guards: fixed count and continuity at
+800 samples, inside-count tracks cargoAt within one molecule, all off-frame
+and none inside at the end; the flight was cut on purpose and the walk caught
+the 210 px teleport. 1154 tests green, typecheck clean.
+
+### Step 20bb — D06: nothing leaves a sealed bag, 2026-09-03 · awaiting manual test
+
+**A1 — "NTs start leaving the vesicle too early (visually fly through the
+membrane)."** The exit schedule was keyed to the pore stage's whole ramp, but
+that ramp's first `SINK_TOUCH` (0.15) is the approach to CONTACT — the bubble
+is still sealed, so the first third of the exits crossed an intact bilayer.
+The moment-a-mouth-exists is now a named core decision: `SINK_TOUCH` moved
+from the scene into core (one copy, read by the sink geometry, the cargo and
+the schedule), `mouthOpenAt` is 0 until the membranes have fused and 1 when
+the release window closes, `uAtMouthOpen` is its inverse, and BOTH the
+molecules' exits and `cargoAt` read it — so the bag stays visibly and
+numerically full until fusion, then pours. Guards: cargo exactly full up to
+`uAtMouthOpen(0)`; schedule/state agreement (`mouthOpenAt(uAtMouthOpen(f)) =
+f`); and a 1600-sample walk of the scene pinning that every molecule crossing
+the wall line does so INSIDE the ring's open chord — through the hole, never
+the wall. Broken (schedule back on the raw ramp) and watched fail. 1156 tests
+green, typecheck clean.
+
+### Step 20bc — D06: the reuse pipeline on stage, 2026-09-03 · awaiting manual test
+
+The deferred "cell prepared for the next round", picked up with alignment
+answers: proton pump drawn on the lift; a new 'Taken apart' leg; and the
+clathrin coat DRAWN (the user chose the bigger option).
+
+**A1 — nothing vanishes any more.** The machinery-wide collapse fade is gone;
+every part manages its own ink. The spent cis-rope stays lying in the wall —
+`ropeEnds` freezes at retrieval's start (the reforming bud must not drag a
+wound rope back up) and the flow-ride is capped at 1.6 r so the recycling
+happens on stage, not at the frame's edge. `zipAt`'s unwind moved from
+retrieve to recycle: a rope loosens because NSF takes it apart, not on its
+own. The sensor's stalk re-anchors by phase — vesicle while riding, wall
+after the swing (its membrane became wall), vesicle again once sorted home.
+
+**A2 — the readiness pipeline.** New stage `recycle` ('Taken apart', share
+0.06, hold 0.2; paid by tether/trigger/zipper/pore/collapse trims — retrieve
+kept at 0.08 for the sweep's continuity budget). On stage: the CLATHRIN COAT
+(cyan studs on the bud's cytosolic face, assembling across retrieval — the
+shape-maker — shed radially across the taking-apart); NSF (red barrel with a
+bore) dropping onto the flat rope; the three strands WALKING HOME as the
+rope unwinds — synaptobrevin to the bubble (and riding it up), syntaxin and
+SNAP-25 to their stands, where Munc13 lies back down and Munc18 fades in to
+re-clasp the re-folded syntaxin; synaptotagmin sorted back to its shoulder;
+and on the lift a PROTON PUMP (indigo, two bars through the bilayer) with
+the first three H⁺ entering and seating inside — sour, empty, ready, ending
+exactly where NT pumping would begin (off-stage, as decided). The end still
+IS the start still (minus the Rab badge, declared re-armed off-stage). New
+info paragraphs (🧺 coat, 🔋 battery; 🪢 rewritten — the prising-apart IS
+drawn now) and the pace honesty names the squeezed recycling timeline.
+
+**A5 (mid-turn) — wall proteins ride the membrane.** `wallRideX`: the tether
+and the stands slide outward with `wallShift` exactly as the wall's lipids do
+(off the frame's edge and back, by travel), and home again with retrieval —
+except the rope's own wall end, which is governed by its v-SNARE side once
+fusing (adding shift there opened a measured 119 px branch jump; the
+continuity walk caught it and the comment records it).
+
+**Fixed en route:** the sensor's ride and the stalk were anchored on
+`vesicleCentre`, which parks at the touch position for ever — the walked-home
+sensor would have stayed at the wall while the bubble lifted. Both now ride
+`fusedCentreY` (identical pre-fusion). Caught by the new closure guard.
+
+Guards: end-still == start-still (strands, sensor shoulder at the LIFTED
+bubble, minder re-clasped); rope frozen through retrieval; walk-home
+continuity at 200 samples; NSF on the rope's middle and off-duty either
+side; coat present only retrieve→recycle, every stud above the wall; pump on
+the risen bubble with every proton inside at the end; tether base rides
+wallShift out and home, mirrored. Walk-home broken (half-way homes) and
+watched fail. 1160 tests green, typecheck clean.
+
+### Step 20bd — D06: the rope and the sensor bolted to their lipid, 2026-09-04 · awaiting manual test
+
+**A1 — "Ca binder and snare helices do not follow membrane all the time."**
+Two of step 20bc's own devices were the cause: the 1.6 r CAP parked the rope
+mid-collapse while the wall material streamed past it, and the FREEZE from
+retrieval parked it while the membrane slid home beneath it — the sensor
+inherited both through the rope. Both removed (superseding 20bc's freeze/cap):
+`ropeEnds`' v-SNARE end now obeys the lipids' own material rule at EVERY u —
+unrolled out with the flow (it stays inside the frame: the full unroll ends at
+~3.44 r < the half-width), rolled home with the retrieval, up onto the
+reforming bud, which is made of the very patch that flattened. NSF then takes
+the rope apart there, so the recycle walk-homes got shorter, and the closure
+still holds. Guard — the strongest form of the claim: the rope's v-SNARE end
+stays within 1.5 lipid spacings of the SAME ring molecule (by identity, index
+i*, not proximity to whatever membrane is near) across 800 samples of the
+whole run; and the sensor's head keeps a CONSTANT offset from the rope from
+the swing's end to the walk-home's start — it moves exactly as much as the
+membrane it sits in. Broken (cap reintroduced) and watched fail at 11 px.
+1161 tests green, typecheck clean.
+
+### Step 20be — D06: labelled checkpoints, 2026-09-04 · awaiting manual test
+
+Prompted by "what are the yellow balls?" (the protons — named in the info
+block, unnamed on the canvas): the transient cast had no chance to be
+labelled, because labels lived only on the opening still.
+
+**A1 — the player pauses to name things.** While playing, the run now stops
+at labelled checkpoints (`LABEL_STOPS`), shows the labels with connectors for
+`LABEL_HOLD_MS` (3 s), then continues. The hold clock lives in the bench's
+own refs (the clock belongs to the event); a stop is spent when crossed and
+re-armed by any travel backwards past it (replay, scrub back).
+
+**A2 — two mid-run stops**, because NSF and the coat do not exist while
+calcium and complexin are on stage: the RELEASE stop at the instant the
+fourth calcium seats (labels: SNARE complex, calcium, transmitter,
+complexin) and the RECYCLING stop early in 'Taken apart' (labels: NSF,
+clathrin). `snareCallouts` is now context-aware — four label sets by region.
+
+**A3 — the closing still is labelled.** At u = 1 the labels re-appear for
+every visible element: vesicle, v-SNARE, t-SNARE, synaptotagmin, Munc18,
+Munc13, tether, proton pump, protons — nine, from the same resting-cast list
+as the opening still (Rab dropped when faded, pump and protons added when
+present, the bubble's centre read from `fusedCentreY` so the end labels ride
+the lifted bubble).
+
+**A4 — spoken labels work at every still**: `snareLabels` gains a `held`
+flag (the bench passes its hold state to the hit-test), labels are clickable
+at rest, at the end and during holds — never while the picture moves — and
+"NSF" is pronounced N-S-F (SAY_AS).
+
+Guards: all four sets — exact term lists, connectors that leave their boxes,
+every label in-frame below the transport plate, and a no-overlap check (each
+label's centre hits its OWN box via the real hit-tester); visibility gating
+(empty while running, populated when held, nine at the end). The held gate
+was broken on purpose and watched fail. 1161 tests green, typecheck clean.
+
+### Step 20bf — D06: red protons, the trade, and a closed loop, 2026-09-04 · awaiting manual test
+
+**A1 — the atomic playground's proton ink.** Found in its particleStyle.ts:
+protons are GLOSSY RED (light #ffd4d0, mid #f87171, dark #dc2626, glow
+248,113,113) — red being the + charge colour both apps reserve, and a proton
+being a bare + charge. Adopted verbatim: `GLOSSY_COLORS.h` (a `GlossyKind`,
+not an `IonKind` — protons carry no concentration model here), drawn with the
+ions' own glossy painter. NSF moved off red to fuchsia #c026d3 so the
+reserved meaning stays unshared.
+
+**A2 — protons much smaller.** Radius 2 glossy balls (transmitter dots are 3,
+calcium 5.5) — a proton is the smallest thing on stage and now looks it.
+
+**A3 — the proton→transmitter EXCHANGE, on stage.** New final stage `load`
+('Refilled', share 0.06, hold 0.15; paid by dock/prime/trigger/zipper/pore
+trims). A TRANSPORTER (the pump family's indigo, a visibly different shape:
+one wide barrel with a bore, at the bubble's upper-left) fades in and trades:
+the three seated protons leave through it one by one and drift off the
+frame's top, while generation-2 transmitter — NEW molecules, made up in the
+crowd — rains in from beyond the top edge through the transporter, each dot
+to the SAME seeded seat its predecessor held. Booked on the load ramp
+(`uAtThrough`), the very ramp `cargoAt` now refills on. A third label stop
+mid-trade names transmitter, transporter, proton pump, protons.
+
+**A4 — the closing frame IS the opening frame** (supersedes 20az's "returns
+empty and stays empty", which was right only while refilling was off-stage):
+cargo back to full at the same 22 seats; the Rab returns re-armed (`gtpAt`
+and `rabGoneAt` close over the load leg — the re-arming was declared to
+happen up in the crowd, and the closing frame now IS up in the crowd); pump
+and transporter fade once their work is done (declared residents, drawn only
+while working — the 🔋 paragraph says so); the closing label set is exactly
+the opening eight, Rab-GTP included.
+
+**Fixed en route:** `rabAt` anchored on `vesicleCentre` — the same
+parked-centre bug the sensor had (20bc) — so the returning Rab missed the
+lifted bubble by 300 px; caught by the new closure guard, moved to
+`fusedCentreY`. The gen-2 inbound flight got its own longer window (0.05)
+after the continuity walk caught a 29 px step.
+
+Guards: cargo empty exactly until the load leg and full at 1; badge lit and
+Rab home at 1 (position-identical to u=0); gen-1 gone by travel, gen-2
+dot-for-dot on gen-1's opening seats; both machines null at 1 and the
+transporter on the bubble mid-trade; every proton off the top by the end;
+2N-dot continuity walk; closing label set == opening label set. The seat
+identity was broken (offset seats) and watched fail. 1161 tests green,
+typecheck clean.
+
+### Step 20bg — D06: timeline marks, the door, the slower tail, the labels switch, 2026-09-04 · awaiting manual test
+
+**A1 — the checkpoints are ON the bar.** The shared Timeline gained an
+optional `marks` prop — small amber DIAMONDS, distinct from the event dots —
+rendered at `LABEL_STOPS`. Pressing one glides there (the bar's own rewind
+verb), and the bench now shows labels whenever the run is PARKED exactly on
+a checkpoint (diamond press or a scrub that lands there), not only during
+the automatic holds.
+
+**A2 — "NTs enter the vesicle through membrane."** The inbound quadratic
+could cut the ring anywhere near its control point. Reworked: each gen-2
+molecule rains from beyond the top DURING THE LIFT into a waiting QUEUE on
+the transporter's outside (an arc of seeded spots riding the bubble), and
+passes inside only through the door — two segments pinned to
+`transporterSpot`, on `uAtLoadFill`, a new core ramp (`loadFillAt`, the
+load's second half) that the cargo ledger also reads, so no dot is ever
+booked before the door exists. Guard: a 1600-sample walk — any gen-2
+molecule inside the membrane's band must be within 0.6 r of the door, with
+20+ crossings witnessed. (Breaking the queue wide was caught first by the
+continuity walk — the guards overlap, and both bite.)
+
+**A3 — the tail slowed, with beats.** After 'Taken apart': recycle
+0.06→0.07, refill 0.06→0.08 (hold 0.2), load 0.06→0.10 (hold 0.2) — paid by
+approach/dock/prime/trigger/zipper/pore trims (retrieve kept at 0.08: the
+reverse sweep's continuity budget). The holds test now covers the tail legs
+too.
+
+**A4 — the Labels switch.** `labelsOn` in the store (default on), a
+🏷 Labels on/off button beside ▶ (label + state reading, sentence in
+title=). Off: no checkpoint ever pauses the run, no label is drawn anywhere
+(rest and end stills included), the canvas hit-test goes quiet, and the
+diamonds leave the bar. 1162 tests green, typecheck clean.
+
+### Step 20bh — D06: the proton keeps its name, and the switch becomes a switch, 2026-09-04 · awaiting manual test
+
+**A1 — "I see no label for proton."** The proton exits were scheduled from
+0.1 of the load leg, so by the exchange stop (0.7) the protons were mostly
+off the frame's top — the 'protons' entry (gated on an on-frame proton) could
+vanish, viewport-dependently. Exits rescheduled to run WITH the filling
+(0.45 + k·0.14, each 0.16 long, last gone by 0.89): at the stop the trade is
+mid-swap, at least one proton still seated — guarded — and the callout now
+prefers a SEATED proton over one mid-flight. Broken (exits back at 0.05) and
+watched fail exactly as the complaint: the 'protons' name dropped from the
+exchange still.
+
+**A2 — the Labels control is a track-and-knob SWITCH**, the aquaporin
+toggle's own grammar (permeaScene): sky-500 track when on, slate when off, a
+sliding white knob — on/off readable without reading — with '🏷 labels'
+as its name, `role="switch"`, and the sentence in title=. 1162 tests green,
+typecheck clean.
+
+### Step 20bi — D06: the trade threads the bore, 2026-09-04 · awaiting manual test
+
+**A1 — "give neurotransmitters identity"**: already in place since steps
+20ba/20bf (both generations individual, walked at 800 samples) — nothing new
+built, recorded so the point is answered rather than dropped.
+
+**A2 — "let them penetrate the vesicle through the channel if that's
+scientifically the case."** It is: transmitter is loaded by the vesicular
+transporter (VGLUT for glutamate — a carrier, this app's indigo barrel). The
+INTENT was already the transporter, but the door pass was a quadratic with
+the barrel as its control point, and a quadratic only passes NEAR its
+control — dots could visibly cross the membrane beside the barrel, inside
+the old guard's lax 0.6 r tolerance. The pass is now piecewise through the
+barrel's OUTER and INNER mouths — every molecule crosses the membrane inside
+the bore — and the guard tightened to 0.2 r (the barrel's own footprint).
+Broken (bore bypassed mid-pass) and watched fail twice over: the door guard
+at 42 px off-door and the identity walk at a 76 px jump. 1162 tests green,
+typecheck clean.

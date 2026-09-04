@@ -24,6 +24,11 @@ import { DEMOS } from '../state/demoStore'
 //
 // The order is the course's: the wall, what crosses it, its charge, a door in
 // it, the balance across it, and what a run of them looks like in time.
+//
+// ⚠ "How far" HAS LEFT THIS SHELF (user, 2026-08-31). Passive spread is a place
+// on the axon now, with a marker of its own on the big neuron, so it is reached
+// where a child can see which stretch of cell is being talked about — the same
+// reasoning that has always kept propagation off this shelf.
 
 export interface PatchDoor {
   /** The drawer this opens. */
@@ -36,6 +41,7 @@ export interface PatchDoor {
     | 'patch'
     | 'balance'
     | 'train'
+    | 'resting'
   icon: string
   /** Named for the adult; the icon is for the kid. Kept SHORT, because six of
    *  them share one row — the full name is in the contents and in `title`. */
@@ -52,8 +58,15 @@ const ORDER: { id: PatchDoor['id']; label: string }[] = [
   { id: 'gating', label: 'Channel types' },
   { id: 'patch', label: 'How we know' },
   { id: 'balance', label: 'Balance' },
+  { id: 'resting', label: 'What sets it' },
   { id: 'train', label: 'Spikes' },
 ]
+
+/** The drawers whose home is the membrane patch — the ones this shelf may
+ *  claim. A drawer belonging to another view (D06 opens from the synapse) is
+ *  not this patch's business. */
+export const membraneDrawers = () =>
+  DEMOS.filter((d) => d.drawer && (d.home ?? 'membrane') === 'membrane')
 
 /** Every door on the patch, in the order the course meets them. Icons and
  *  full names come from the exhibit registry rather than being retyped, so a

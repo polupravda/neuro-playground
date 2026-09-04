@@ -350,7 +350,17 @@ export function drawNeuronInset(
   lit: number,
   ringAt: { x: number; y: number } | null,
   stim: StimFlash | null = null,
+  /** ⚠ THE ELECTRODE IS THE PATCH CLAMP'S, NOT THE MINIATURE'S (2026-08-31).
+   *  `ringAt` used to mean two things at once — "you are here" AND "a pipette
+   *  is clamped here" — which is fine while only the spike-train bench draws
+   *  this cell, and wrong the moment another exhibit wants to say where it is
+   *  looking without claiming apparatus that is not in its picture. Splitting
+   *  them costs one flag; leaving them fused would have cost a second copy of
+   *  this drawing, and a second copy of a drawing is a second copy of every
+   *  bug in it. */
+  opts: { probe?: boolean } = {},
 ): void {
+  const probe = opts.probe !== false
   const k = box.w / NEURON_MAP_BOX.width
   ctx.save()
 
@@ -411,7 +421,7 @@ export function drawNeuronInset(
   //
   // Quiet on purpose: a thin probe and a flash, so the neuron stays the
   // subject of its own picture.
-  if (ringAt) {
+  if (ringAt && probe) {
     const tip = place(box, ringAt)
     const len = Math.max(14, box.w * 0.16)
     const from = { x: tip.x + len * 0.72, y: tip.y - len }
@@ -443,7 +453,7 @@ export function drawNeuronInset(
   if (lit > 0.02) {
     for (const [i, at] of spots.entries()) {
       const p = place(box, at)
-      const here = ringAt && i === 0
+      const here = ringAt && probe && i === 0
       softGlow(
         ctx,
         p.x,

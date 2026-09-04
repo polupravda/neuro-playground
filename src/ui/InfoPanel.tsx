@@ -11,6 +11,8 @@ import { useIonStore, type IonCounts } from '../state/ionStore'
 import { ZOOM_TARGETS } from '../stage/layout'
 import { DEMOS, useDemoStore } from '../state/demoStore'
 import { AxonInfoPanel } from './AxonInfoPanel'
+import { LeakyInfoPanel } from './LeakyInfoPanel'
+import { SynapseInfoPanel } from './SynapseInfoPanel'
 import type { ChainPhase } from '../stage/chain'
 import { useNeuronStore } from '../state/neuronStore'
 import { useMembraneStore } from '../state/membraneStore'
@@ -269,6 +271,15 @@ export function InfoPanel() {
   // applies out there — no part is selectable, no protein is on show, and the
   // chain that runs across the whole neuron is not what is happening.
 
+  // ⚠ TWO VIEWS PRESENT 'axon' NOW (2026-08-31), and they are about different
+  // things: one follows a spike being rebuilt, the other watches a voltage
+  // fade with nothing rebuilding it. Same flag, different describer — routed on
+  // the target's own id rather than on what it presents.
+  if (zoom === 'axon-passive') return <LeakyInfoPanel />
+  // The synapse is its own kind of place — nothing in the general describer
+  // applies out here either: the parts are not selectable, and what is
+  // happening is one terminal's own event rather than the cell's.
+  if (target?.presents === 'synapse') return <SynapseInfoPanel />
   if (target?.presents === 'axon') return <AxonInfoPanel />
   const running = run !== null && phase !== 'idle'
 

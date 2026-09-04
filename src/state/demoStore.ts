@@ -30,13 +30,26 @@ export type DemoId =
   | 'channel'
   | 'gating'
   | 'patch'
+  | 'resting'
+  | 'leaky'
+  | 'snare'
 
 /** The exhibits that take over the canvas. All of the others open a drawer, and
  *  typing that distinction stops a drawer exhibit ever being set as the canvas's
  *  mode by accident — which would blank the neuron. */
 export type CanvasDemoId = Exclude<
   DemoId,
-  'balance' | 'train' | 'lipid' | 'permea' | 'capacitor' | 'channel' | 'gating' | 'patch'
+  | 'balance'
+  | 'train'
+  | 'lipid'
+  | 'permea'
+  | 'capacitor'
+  | 'channel'
+  | 'gating'
+  | 'patch'
+  | 'resting'
+  | 'leaky'
+  | 'snare'
 >
 
 export interface Demo {
@@ -58,9 +71,44 @@ export interface Demo {
    *  from a marker on the axon itself, where a child can see which part of the
    *  neuron is being talked about. A word in a list cannot point at anything. */
   drawer?: boolean
+  /** ⚠ WHICH VIEW'S CHROME THIS DRAWER BELONGS TO (2026-08-31). A drawer is
+   *  "triggered from the view it extends", and until now every one of them
+   *  extended the membrane patch, so the patch's shelf could simply be "all the
+   *  drawers". D06 extends the SYNAPSE — its door is the magnifier beside the
+   *  active zone — so the shelf needs to know which drawers are its own rather
+   *  than claiming every drawer in the app. */
+  home?: 'membrane' | 'synapse'
 }
 
 export const DEMOS: Demo[] = [
+  {
+    id: 'resting',
+    name: 'What sets the membrane voltage',
+    icon: '🪑',
+    asks: 'Build a wall out of doors and see where the voltage settles.',
+    drawer: true,
+  },
+  {
+    id: 'leaky',
+    // ⚠ THE NAME THE CONTENTS USES (user, 2026-08-30: "we've agreed to use
+    // more precise terms; 'how far a signal can reach' is not the one"). The
+    // menu was renamed and this was not, so the same exhibit had two names.
+    name: 'Passive spread & the length constant',
+    icon: '🫗',
+    asks: 'Why a voltage fades as it spreads, and what myelin changes.',
+    // ⚠ NOT A DRAWER ANY MORE (user, 2026-08-31), for exactly the reason
+    // written above `drawer`: this exhibit is about a length of axon rather
+    // than about the patch you would open it from, so it is reached from a
+    // marker on the axon itself. It has joined propagation on that side.
+  },
+  {
+    id: 'snare',
+    name: 'Vesicles & the SNARE machinery',
+    icon: '🫧',
+    asks: 'How a bubble of chemical gets out of the cell, and what pulls it in.',
+    drawer: true,
+    home: 'synapse',
+  },
   {
     id: 'spike',
     name: 'Fire an action potential',

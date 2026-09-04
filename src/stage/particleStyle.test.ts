@@ -54,9 +54,17 @@ describe("an ion's charge badge", () => {
     for (const [q, ink] of [[1, '#ef4444'], [-1, '#0ea5e9']] as const) {
       const c = strictCanvas()
       drawIonCharge(c.ctx, 10, 10, 4, q)
-      // The last fill set is the disc's; white belongs to the glyph stroke.
-      expect(c.ctx.fillStyle).toBe(ink)
-      expect(c.ctx.strokeStyle).toBe('#ffffff')
+      // ⚠ READ FROM `styles`, NOT OFF THE CONTEXT AFTERWARDS (2026-08-31). This
+      // used to inspect `ctx.fillStyle` when the drawing had finished, which
+      // only worked because the stand-in's `restore` did not put the drawing
+      // state back — a real canvas forgets a colour set inside a save block the
+      // moment it restores. The stand-in was fixed; the question is unchanged,
+      // and `styles` answers it directly: these are the colours actually laid
+      // down, in order.
+      expect(c.styles).toContain(ink)
+      expect(c.styles).toContain('#ffffff')
+      // And nothing else: a badge is two inks, never a body colour.
+      expect(new Set(c.styles)).toEqual(new Set([ink, '#ffffff']))
     }
   })
 
@@ -69,9 +77,22 @@ describe("an ion's charge badge", () => {
     expect(at.arm).toBeLessThan(tiny)
     expect(at.r).toBeLessThan(tiny)
     expect(Math.hypot(at.x, at.y)).toBeLessThan(tiny * 2)
+    // ⚠ Measured INSIDE the drawing, for the reason above: a real `restore`
+    // puts the line width back, so asking the context afterwards asks the
+    // wrong canvas. The widest stroke the badge ever asks for is what matters.
     const c = strictCanvas()
-    drawIonCharge(c.ctx, 0, 0, tiny, 1)
-    expect(c.ctx.lineWidth).toBeLessThan(tiny)
+    let widest = 0
+    const seen = new Proxy(c.ctx, {
+      set: (t, k: string, v) => {
+        if (k === 'lineWidth' && typeof v === 'number') widest = Math.max(widest, v)
+        ;(t as unknown as Record<string, unknown>)[k] = v
+        return true
+      },
+      get: (t, k: string) => (t as unknown as Record<string, unknown>)[k],
+    }) as CanvasRenderingContext2D
+    drawIonCharge(seen, 0, 0, tiny, 1)
+    expect(widest).toBeGreaterThan(0)
+    expect(widest).toBeLessThan(tiny)
   })
 
   it('survives a strict canvas at crowd sizes', () => {

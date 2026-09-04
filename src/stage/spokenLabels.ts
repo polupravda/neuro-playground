@@ -88,14 +88,19 @@ export function drawSpoken(ctx: CanvasRenderingContext2D, l: SpokenLabel) {
   // A dark plate under every name (2026-08-28). These sit on whatever the
   // view happens to draw — pale lipid heads, a bright protein — and a name
   // that disappears into its background is a name nobody can tap.
+  //
+  // ⚠ NO OUTLINE ON THE PLATE (user, 2026-08-30: "on voicing labels, remove
+  // outline on the container"). The plate's job is legibility — to stop a name
+  // disappearing into whatever it lies on — and a dark wash does that on its
+  // own. A rim round it makes the name look like a BUTTON, which it is not:
+  // the speaker glyph beside it is the control, and boxing the word competes
+  // with that. It also put a ruled rectangle on top of drawings the app has
+  // taken a lot of trouble to keep unruled.
   ctx.save()
   ctx.fillStyle = 'rgba(2, 6, 23, 0.72)'
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)'
-  ctx.lineWidth = 1
   ctx.beginPath()
   ctx.roundRect(l.x + 2, l.y + 2, l.w - 4, l.h - 4, 5)
   ctx.fill()
-  ctx.stroke()
   ctx.restore()
 
   ctx.fillStyle = LABEL

@@ -72,3 +72,39 @@ describe('the axon ribbon, drawn against a canvas that complains', () => {
     }
   })
 })
+
+describe('the stand-in restores what a browser restores', () => {
+  it('puts back globalAlpha, styles and line width on restore', () => {
+    // ⚠ IT DID NOT, AND THAT LET A BUG THROUGH (2026-08-31). `save`/`restore`
+    // tracked the transform and nothing else, so a colour or an alpha set
+    // inside a save block was still readable afterwards — the stand-in being
+    // MORE forgiving than a browser, which is the direction that hides faults.
+    const c = strictCanvas()
+    c.ctx.globalAlpha = 0.4
+    c.ctx.fillStyle = '#111111'
+    c.ctx.lineWidth = 3
+    c.ctx.save()
+    c.ctx.globalAlpha = 1
+    c.ctx.fillStyle = '#ffffff'
+    c.ctx.lineWidth = 12
+    c.ctx.restore()
+    expect(c.ctx.globalAlpha).toBe(0.4)
+    expect(c.ctx.fillStyle).toBe('#111111')
+    expect(c.ctx.lineWidth).toBe(3)
+  })
+
+  it('records the alpha in force at every ink-laying call', () => {
+    const c = strictCanvas()
+    c.ctx.globalAlpha = 0.2
+    c.ctx.fillStyle = '#123456'
+    c.ctx.beginPath()
+    c.ctx.fill()
+    c.ctx.save()
+    c.ctx.globalAlpha *= 0.5
+    c.ctx.stroke()
+    c.ctx.restore()
+    c.ctx.fill()
+    expect(c.alphas).toEqual([0.2, 0.1, 0.2])
+  })
+})
+

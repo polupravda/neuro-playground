@@ -32,6 +32,17 @@ and `05-handover.md` for the methodology).
   most of what goes wrong here is in the picture. If a step lands with nothing
   visible yet — a model without its view — say so plainly under **What was built**
   and give no steps rather than inventing some.
+- **Every message becomes a numbered ACTION LIST first** (2026-08-30). Before
+  building anything, restate the user's message as numbered action points —
+  `A1`, `A2`, … — so the user can see what is about to be built and correct the
+  reading before the work happens. One point per thing asked for; never merge
+  two asks into one point, and never silently drop one. If a point is refused,
+  deferred, or turns out to be already done, it still appears in the list with
+  that outcome against it.
+  - **Tests cite the point they guard.** A test written for `A2` says so in its
+    name or its comment, so a green suite can be read against the list.
+  - **The hand-over is checked against the list**, point by point — which is
+    what makes "did you actually do it?" answerable without re-reading the diff.
 - **Report what you plan to implement next**, at the end of every turn.
 - **When an input contradicts an established rule or an earlier decision of the
   user, stop and ask — do not guess.** Quote both sides prominently and put the
@@ -84,6 +95,10 @@ and the bug it came from. **Read that section before working in the area.**
   → *Handing the scene over…*
 - **Level of detail dissolves, never switches**, and the two representations are
   never both on screen. → *Level of detail must dissolve…*
+- **Level of detail cuts both ways**: draw less than the app owns when the
+  molecules would be smaller than a pixel. → *Level of detail cuts BOTH ways*
+- **A drawer knows which view it extends** (`home`), and only that view's chrome
+  advertises it. → *Where a concept lives*
 - **Two shapes on one Konva layer must not `clearRect` the canvas.**
   → *Handing the scene over…*
 
@@ -91,6 +106,12 @@ and the bug it came from. **Read that section before working in the area.**
 
 - **One dashed ring, on the zoom target's own centre.** A marker's job is to say
   what is on screen. → *The whole-cell miniature*
+- **A drawer rebuilding the app's furniture is evidence it should be a place.**
+  → *The scene is the world…* / *Where a concept lives*
+- **Two doors at one place need two icons, not one menu**, spaced by a marker's
+  own diameter. → *Two doors at one place…*
+- **A view about distance carries the axon views' ruler.** A correct marker on an
+  unlabelled axis is still unreadable. → *A view about distance carries…*
 - **The axon lights patch by patch in every view.** An axon lighting as a unit is
   the misconception the milestone exists to dismantle. → *The whole-cell miniature*
 
@@ -100,6 +121,8 @@ and the bug it came from. **Read that section before working in the area.**
   window into legs and give the payload most of the screen time. **Slow the leg,
   never the item.** Check it by walking the clock in a test. → *A run's clock
   follows the interest…*
+- **When the payload is a few per cent of the run, the clock is the bug** —
+  measure it before reaching for a slower animation. → *When the payload is 5%…*
 - **Every transport that can reach an end needs a control that says start over.**
   → *A run's clock follows the interest…*
 
@@ -120,6 +143,13 @@ and the bug it came from. **Read that section before working in the area.**
 
 ### Drawing a scene
 
+- **A layout is solved from a budget, not chosen** — and what a request reached
+  is measured and reported, never asserted. → *A layout is SOLVED from a budget*
+- **Size a part off the structure it belongs to, not off the canvas.**
+  → *A layout is SOLVED from a budget*
+- **Where the outside is, say so with the same ink.** → *Where the outside is…*
+- **Put things ON the shape, not on a line through it** — flatten the traced
+  path and ask it. → *Put things ON the shape…*
 - **Plan the anatomy before the picture.** For every structure ask: is it where it
   really is, made of what it is really made of, seen from a plausible direction?
   → *Drawing a scene: plan the anatomy…*
@@ -131,8 +161,20 @@ and the bug it came from. **Read that section before working in the area.**
 - **A membrane is a liquid, not a ruled line.**
 - **Make the model's hidden states visible**, allocated by threshold not rounding.
 
+### Fades
+
+- **Composite the layer, not its contents** — canvas `globalAlpha` is set, not
+  multiplied, so a drawing that assigns its own wipes a caller's fade.
+  → *A fade must be a property of the surface…*
+- **Inside a drawing, `globalAlpha` is multiplied, never assigned.** Check it
+  with `strictCanvas().alphas`. → *A fade must be a property of the surface…*
+
 ### Testing the drawing
 
+- **Ask the DECISION, not the ink.** Make the choice a named exported function
+  and test that; counting marks on a canvas measures whatever else was drawn.
+  → *Ask the DECISION, not the ink*
+- **A guard you have not broken is a guess.**
 - **A test stand-in must fail where the real thing fails.** Use `strictCanvas()`,
   which rejects unparseable colours and non-finite numbers. → *A test stand-in must
   fail where the real thing fails*

@@ -5,6 +5,7 @@ import { allSettled } from '../core/balance'
 import { useBenchStore } from '../state/benchStore'
 import { BalanceChamber } from './BalanceChamber'
 import { SideDrawer } from './SideDrawer'
+import { ResetButton } from './ResetButton'
 import { BenchInfoPanel } from './BenchInfoPanel'
 
 // Demo ②: find the voltage at which each ion stops caring.
@@ -115,13 +116,7 @@ export function BalanceBench() {
               <span className="w-20 text-right text-lg font-semibold tabular-nums text-slate-100">
                 {`${vm < 0 ? '−' : '+'}${Math.abs(vm)} mV`}
               </span>
-              <button
-                type="button"
-                onClick={reset}
-                className="rounded-lg px-2 py-1 text-[11px] text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
-              >
-                ↺ start again
-              </button>
+              <ResetButton onClick={reset} title="Put the ions back where a real cell keeps them" />
             </div>
           </div>
         </div>

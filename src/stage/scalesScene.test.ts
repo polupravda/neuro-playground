@@ -94,3 +94,4 @@ describe('it uses the app\'s own pictures', () => {
     for (const scale of SCALES) expect(scaleLabels(scale.i)).toEqual([])
   })
 })
+

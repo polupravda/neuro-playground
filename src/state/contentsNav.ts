@@ -8,9 +8,11 @@ import { useLipidStore } from './lipidStore'
 import { usePermeaStore } from './permeaStore'
 import { useCapacitorStore } from './capacitorStore'
 import { useChannelStore } from './channelStore'
+import { useRestingStore } from './restingStore'
 import { useFilterStore } from './filterStore'
 import { usePatchStore } from './patchStore'
 import { useGatingStore } from './gatingStore'
+import { useSnareStore } from './snareStore'
 
 // TAKING SOMEONE SOMEWHERE, rather than showing them a page.
 //
@@ -33,10 +35,12 @@ const OPENERS: Record<string, () => void> = {
   permea: () => usePermeaStore.getState().openBench(),
   capacitor: () => useCapacitorStore.getState().openBench(),
   channel: () => useChannelStore.getState().openBench(),
+  resting: () => useRestingStore.getState().openBench(),
   filter: () => useFilterStore.getState().openBench(),
   gating: () => useGatingStore.getState().openBench(),
   patch: () => usePatchStore.getState().openBench(),
   scales: () => useTourStore.getState().openBench(),
+  snare: () => useSnareStore.getState().openBench(),
 }
 
 /** Everything a route does, as data — so a test can check the plan without

@@ -1,10 +1,10 @@
+import { drawLeakChannel } from './leakChannel'
 import {
   HALF_MEM,
   HEAD_R,
   HEAD_GAP,
   PX_PER_NM,
   drawLipids,
-  drawGatedChannel,
   mix,
   CHANNEL_MID,
   CHANNEL_DARK,
@@ -735,13 +735,17 @@ export function drawSide(ctx: CanvasRenderingContext2D, tried: TryState | null, 
   ctx.save()
   ctx.translate(ix + INSET_W / 2, iy + INSET_H / 2)
   ctx.scale(1.15, 1.15)
-  drawGatedChannel(ctx, {
+  // ⚠ THE INSET IS THE SAME PROTEIN SMALL, NOT A CARTOON OF IT (user,
+  // 2026-08-30). The pair is realistic-and-magnified, joined by dashed lines —
+  // so a generic lobed shape in the amber box was the old "one silhouette for
+  // every channel" hiding in a corner of a view whose whole subject is how
+  // THIS channel is built. It is a potassium channel with no gate on it, so it
+  // is the traced leak drawing, in potassium's purple.
+  drawLeakChannel(ctx, {
     cx: 0,
     midY: 0,
-    open: 1,
-    mid: mix(CHANNEL_MID, GLOSSY_COLORS.k.mid, 0.3),
-    dark: mix(CHANNEL_DARK, GLOSSY_COLORS.k.dark, 0.25),
     species: GLOSSY_COLORS.k.mid,
+    speciesDark: GLOSSY_COLORS.k.dark,
   })
   ctx.restore()
   ctx.strokeStyle = RING

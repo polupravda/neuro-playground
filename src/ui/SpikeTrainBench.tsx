@@ -1,3 +1,4 @@
+import { ResetButton } from './ResetButton'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SideDrawer } from './SideDrawer'
 import { Section } from './InfoPanel'
@@ -300,13 +301,7 @@ export function SpikeTrainBench() {
               <span className="tabular-nums">
                 {state?.presses ?? 0} pressed · {state?.spikes ?? 0} fired
               </span>
-              <button
-                type="button"
-                onClick={reset}
-                className="rounded-lg px-2 py-1 text-[11px] transition hover:bg-slate-800 hover:text-slate-200"
-              >
-                ↺ start again
-              </button>
+              <ResetButton onClick={reset} title="Clear the record and start the train again" />
             </span>
           </div>
         </div>

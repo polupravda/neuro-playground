@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   PARTS,
+  PLANNED,
   ENTRIES,
   entriesIn,
   inCourseOrder,
@@ -134,3 +135,70 @@ describe('going there', () => {
     }
   })
 })
+
+describe('A2: the planned rows, and how they stay honest', () => {
+  it('goes nowhere — inert by construction, not by styling', () => {
+    // ⚠ "Make them inactive" (user, 2026-08-31). A greyed-out button that
+    // still navigates is the worst of both, so the guard is on the DATA: a
+    // planned row has no destination at all, and there is nothing for a stray
+    // click to do even if the markup forgot to disable it.
+    for (const e of PLANNED) {
+      expect(e.planned).toBe(true)
+      expect(e.to).toBeNull()
+    }
+    // And the two flags cannot come apart: planned ⇔ no destination.
+    for (const e of [...ENTRIES, ...PLANNED]) {
+      expect(e.planned === true).toBe(e.to === null)
+    }
+  })
+
+  it('never lists as planned something the app already reaches', () => {
+    // The rot this replaces the old "list only what exists" rule with. A
+    // planned row claims what the SPEC contains; the moment an exhibit is
+    // built, its promise has to come off the list or the menu is lying.
+    const built = new Set(ENTRIES.map((e) => e.id))
+    const titles = new Set(ENTRIES.map((e) => e.title.toLowerCase()))
+    for (const e of PLANNED) {
+      expect(built.has(e.id)).toBe(false)
+      expect(titles.has(e.title.toLowerCase())).toBe(false)
+    }
+    expect(new Set(PLANNED.map((e) => e.id)).size).toBe(PLANNED.length)
+    // Every planned row carries the spec ID it came from, and no two share one.
+    const specs = PLANNED.map((e) => e.spec!)
+    expect(specs.every((s) => /^[A-Z]\d{2}$/.test(s))).toBe(true)
+    expect(new Set(specs).size).toBe(specs.length)
+  })
+
+  it('reads like a real row, because it is one', () => {
+    // "Make it look as similar to active chapters as the plan allows" — so a
+    // planned row is held to the SAME rules as a built one: an icon for the
+    // kid, a name for the adult, a question either can be asked.
+    for (const e of PLANNED) {
+      expect(e.icon.length).toBeGreaterThan(0)
+      expect(e.title.length).toBeGreaterThan(3)
+      expect(e.asks).toMatch(/\?$/)
+      expect(PARTS.map((p) => p.id)).toContain(e.part)
+    }
+  })
+
+  it('gives every Part something to show', () => {
+    // The whole reason the user asked: an overview. A Part with neither a
+    // built row nor a planned one is a hole in the plan, not a tidy menu.
+    for (const part of PARTS) {
+      expect(entriesIn(part.id).length).toBeGreaterThan(0)
+    }
+    // And the two lists interleave by lecture rather than sitting in blocks:
+    // Part II's planned rows come after its built ones because their lectures
+    // are later, not because they are planned.
+    const II = entriesIn('II')
+    expect(II.map((e) => e.lecture)).toEqual([...II.map((e) => e.lecture)].sort((a, b) => a - b))
+  })
+
+  it('keeps `inCourseOrder` to what a child can actually reach', () => {
+    // Other code walks this to audit doors; a promise in it would be counted
+    // as an exhibit.
+    expect(inCourseOrder().every((e) => e.to !== null)).toBe(true)
+    expect(inCourseOrder().length).toBe(ENTRIES.length)
+  })
+})
+

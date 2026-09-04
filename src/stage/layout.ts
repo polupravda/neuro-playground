@@ -169,6 +169,18 @@ export const AXON_POLYLINE: Pt[] = Array.from({ length: 41 }, (_, i) => axonPoin
  *  clear of the membrane-patch marker further along. */
 export const AXON_SIGNAL_T = 0.3
 
+/** ⚠ WHERE THE SECOND AXON EXHIBIT LIVES (user, 2026-08-31: "let's follow
+ *  'Axonal conduction and myelin' pattern, and add another entry point:
+ *  magnifying glass on the 'big neuron'").
+ *
+ *  Passive spread is a place on this cell, not a thought about it, so it gets a
+ *  marker of its own — the app's own dashed ring with a 🔎 inside it — rather
+ *  than a drawer over the scene. It sits FURTHER DOWN the axon than the
+ *  conduction view, chosen so the two axon doors never overlap: measured, the
+ *  markers along the axon land at x ≈ 589 (conduction), 690 (membrane patch),
+ *  800 (here) and 938 (the outgoing synapse), against a marker radius of 14. */
+export const AXON_PASSIVE_T = 0.82
+
 /** How wide the axon is drawn when the camera is at the propagation view, px.
  *  Fat enough to be a tube with an inside, rather than a line. */
 const AXON_VIEW_PX = 86
@@ -177,6 +189,15 @@ const AXON_VIEW_PX = 86
  *  to draw this axon's real width at a readable size, rather than a number
  *  chosen to make a picture work. */
 export const AXON_VIEW_SCALE = Math.round(AXON_VIEW_PX / AXON_W)
+
+/** What the camera settles at for the synapse view.
+ *
+ *  The bouton is ~1 µm across (`BOUTON_DIAMETER_UM`) and the drawing gives it
+ *  about 42% of a 1060 px stage, so the magnification is what makes a
+ *  micrometre fill four hundred pixels. Derived rather than picked: change how
+ *  big the terminal is drawn and the camera follows it. */
+export const SYNAPSE_VIEW_SCALE = Math.round((STAGE_W * 0.42) / (1 * PX_PER_UM))
+
 
 /** Which way this stretch of axon runs, radians. */
 function axonSlopeAt(t: number): number {
@@ -191,6 +212,7 @@ function axonSlopeAt(t: number): number {
  *  distance both have to be square to the screen to be readable, and the axon
  *  they belong to has to be square to them. */
 export const AXON_SIGNAL_TURN = -axonSlopeAt(AXON_SIGNAL_T)
+export const AXON_PASSIVE_TURN = -axonSlopeAt(AXON_PASSIVE_T)
 export const AXON_FLAT: number[] = AXON_POLYLINE.flatMap((p) => [p.x, p.y])
 /** Where the axon leaves the soma — where an action potential is born. */
 export const HILLOCK: Pt = axonPoint(0.015)
@@ -599,25 +621,76 @@ export const ZOOM_TARGETS: ZoomTarget[] = [
     roadmap: 'Action-potential milestone',
   },
   {
+    id: 'axon-passive',
+    label: 'Passive spread',
+    center: axonPoint(AXON_PASSIVE_T),
+    scale: AXON_VIEW_SCALE,
+    turn: AXON_PASSIVE_TURN,
+    presents: 'axon',
+    promise:
+      'What a voltage does with nothing rebuilding it: two stretches of the same cable, one bare and one wrapped, and the same push sent down both.',
+    roadmap: 'Cable-theory milestone',
+  },
+  {
     id: 'outgoing-synapse',
+    // ⚠ A VIEW OF ITS OWN AGAIN (2026-08-31, milestone 4 step 20). The note
+    // below was written when the molecular view was removed for redesign; the
+    // redesign is here, built on the user's own bouton drawing, and the quarter
+    // turn it asks for is honoured — this synapse lies along the x axis in the
+    // scene, so its real cleft is vertical, and the camera performs the
+    // rotation on the way in rather than the drawing pretending otherwise.
+    presents: 'synapse',
     label: 'Outgoing synapse',
     center: mid(OUTGOING.bouton, OUTGOING.tip),
-    // Back to a marker with a promise on it. The molecular view that lived here —
-    // the terminal, the gap and the far side — has been removed to be redesigned
-    // from the picture up; the MODELS behind it are kept and tested
-    // (`core/synapse.ts`, `core/cleft.ts`), because the science was never what was
-    // wrong with it.
+    scale: SYNAPSE_VIEW_SCALE,
+    // ⚠ THE QUARTER TURN, and the note that earned it. This synapse lies along
+    // the x axis in the scene, so its real cleft is VERTICAL — and the view
+    // draws a cleft the textbook way, across the middle with the target below.
+    // The camera performs the rotation itself on the way in, so the drawing
+    // never has to pretend the anatomy is something it is not.
     //
-    // Keep this note for when it comes back: this synapse lies along the x axis in
-    // the scene, so its real cleft is VERTICAL, and any view that draws a cleft the
-    // textbook way — across the middle, target below — needs a quarter turn on this
-    // target so the camera performs that rotation itself on the way in.
-    scale: 7,
+    // ⚠ THE SIGN (user, 2026-09-01: "the zoom-in view does not correspond to
+    // the perspective it lands on"). Konva's positive rotation is clockwise on
+    // a y-down canvas, so +π/2 sends the scene's bouton→target direction (+x)
+    // to DOWN — target below, axon arriving from the top — which is exactly
+    // where the landed view puts them. −π/2 landed the world upside down
+    // against the view that then faded in.
+    turn: Math.PI / 2,
     promise:
-      'Where this neuron stops being electrical. An action potential arrives, calcium doors open, and packets of chemical are thrown across a gap to the next cell. Being rebuilt.',
+      'Where this neuron stops being electrical. An action potential arrives, calcium doors open, and a packet of chemical crosses a gap to the next cell.',
+    roadmap: 'Synapse milestone',
+  },
+  {
+    // ⚠ THE SAME PLACE, DEEPER (user, 2026-09-01: "the same demo, but at the
+    // scale in the image"). Not a new view: the synapse view itself keeps
+    // running and the camera continues into it, four times closer, framed on
+    // the active zone. Same run, same balls, same clock — watched closer.
+    // The marker is offset a diameter along the dendrite from the synapse's
+    // own marker: two doors at one place need two icons.
+    id: 'active-zone',
+    presents: 'synapse',
+    label: 'Active zone',
+    center: {
+      x: mid(OUTGOING.bouton, OUTGOING.tip).x + 12,
+      y: mid(OUTGOING.bouton, OUTGOING.tip).y + 38,
+    },
+    scale: SYNAPSE_VIEW_SCALE * 4,
+    turn: Math.PI / 2,
+    promise:
+      'The release machinery at working distance: one calcium door, the vesicles it serves, and the receptors across the gap.',
     roadmap: 'Synapse milestone',
   },
 ]
+
+/** How far the camera has arrived within a RANGE of magnifications — 1 inside
+ *  [lo, hi], falling off over ARRIVE_DECADES beyond either end. The synapse
+ *  view spans two places (the whole synapse and its active zone); a
+ *  single-scale band would blink the view out midway between them. */
+export function arrivalSpan(scale: number, lo: number, hi: number): number {
+  if (scale <= 0 || lo <= 0 || hi <= 0) return 0
+  const out = Math.max(0, Math.max(Math.log10(lo / scale), Math.log10(scale / hi)))
+  return clamp01(1 - out / ARRIVE_DECADES)
+}
 
 /** Radius of a zoom marker on SCREEN (counter-scaled while zoomed). */
 export const MARKER_R = 14
@@ -727,7 +800,8 @@ export function litTrunks(firedInputs: readonly number[] | null): number[] {
  *  milestones). */
 export function regionOfZoom(id: string | null): NeuronRegion | null {
   if (id === 'dendrite-membrane') return 'dendrites'
-  if (id === 'axon-membrane' || id === 'axon-signal') return 'axon'
+  if (id === 'axon-membrane' || id === 'axon-signal' || id === 'axon-passive') return 'axon'
+  if (id === 'outgoing-synapse' || id === 'active-zone') return 'terminals'
   if (id === 'hillock') return 'hillock'
   return null
 }

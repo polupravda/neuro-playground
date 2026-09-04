@@ -47,9 +47,15 @@ export interface SeparatingChannel {
 
 export interface Separating {
   draw: (ctx: CanvasRenderingContext2D, c: SeparatingChannel) => void
-  /** How wide it is WHEN FULLY OPEN, so a caller can cut a gap in the bilayer
-   *  that still fits once it has opened. */
-  halfWidth: (halfHeight?: number) => number
+  /** How wide it is AT THIS OPENNESS.
+   *
+   *  ⚠ It has to take the openness (user, 2026-08-30: "ligand-gated and
+   *  mechanically-gated have a visual hole in the membrane"). Callers used to
+   *  get the fully-open width and cut a gap that size — which is correct once
+   *  the channel has opened and a bare hole in the wall for the whole time it
+   *  is shut. A gap is cut to what is ACTUALLY there; the lipids either side
+   *  are then shoved out of the way as it widens. */
+  halfWidth: (halfHeight?: number, open?: number) => number
   /** Where the binding site is in canvas coordinates — and it MOVES as the
    *  channel opens, because the socket is cut into a subunit that slides. */
   seat: (cx: number, midY: number, open: number, halfHeight?: number) => {
@@ -69,8 +75,8 @@ export function makeSeparating(paths: SeparatingPaths): Separating {
   const BOX = boundsOf([...BACK, ...LEFT, ...RIGHT])
   const fitScale = (halfHeight: number) => (2 * halfHeight * 1.12) / BOX.h
 
-  const halfWidth = (halfHeight = HALF_MEM) =>
-    ((BOX.w + SEPARATION) * fitScale(halfHeight)) / 2
+  const halfWidth = (halfHeight = HALF_MEM, open = 1) =>
+    ((BOX.w + SEPARATION * Math.max(0, Math.min(1, open))) * fitScale(halfHeight)) / 2
 
   const seat = (cx: number, midY: number, open: number, halfHeight = HALF_MEM) => {
     const k = fitScale(halfHeight)

@@ -1,12 +1,16 @@
+import { drawLeakChannel, leakHalfWidth } from './leakChannel'
+
+/** How wide the gap in this bench's wall is — ASKED OF THE DRAWING that stands
+ *  in it (2026-08-30). A shared constant cut it eight pixels too wide either
+ *  side and left bare lipid-free stripes beside the protein. */
+export const CHANNEL_HALF = leakHalfWidth(HALF_MEM) * 1.06
 import { IONS, ION_KINDS, type IonKind } from '../core/ions'
 import { GLOSSY_COLORS, chargeWash, ionGradient, polarityT } from './particleStyle'
 import type { Flow } from '../core/driving'
 import {
   CHANNEL_DARK,
-  CHANNEL_HALF,
   CHANNEL_MID,
   HALF_MEM,
-  drawGatedChannel,
   drawLipids,
   mix,
 } from './bilayer'
@@ -461,18 +465,43 @@ export function drawChamber(ctx: CanvasRenderingContext2D, view: ChamberView): v
   const gapFrom = w / 2 - CHANNEL_HALF
   const gapTo = w / 2 + CHANNEL_HALF
 
+  // ⚠ THE WALL IS ONLY CUT WHERE THERE IS SOMETHING IN IT (2026-08-30). The
+  // gap used to be cut whether or not the door was open, which left a hole in
+  // the bilayer with nothing standing in it — the same fault the gating bench
+  // had.
   drawLipids(ctx, { midY, from: 0, to: w, gaps: [[gapFrom, gapTo]] })
 
   // ------------------------------------------------------------- the channel
+  //
+  // ⚠ A LEAK CHANNEL, AND ONLY WHEN THIS ION HAS ONE (user, 2026-08-30, who
+  // asked for the newest drawings everywhere and for pushback on mistakes).
+  //
+  // This bench has no CAUSE. Its door is toggled by hand, and the app's own
+  // standing rule is that no button opens a channel directly — so the door was
+  // never really a gate. What the toggle actually varies is whether the
+  // membrane is PERMEABLE to this ion, which is exactly the variable an
+  // equilibrium-potential experiment turns, and a channel that is simply a way
+  // through is a leak channel. Drawing it with a gated silhouette that swings
+  // open at a button press was teaching a gating mechanism this bench does not
+  // have and cannot show a cause for.
+  //
+  // ⚠ AND IT IS ALWAYS DRAWN (user, 2026-08-30: "'Equilibrium potential' is
+  // now missing channels, fix"). A previous round drew it only while the door
+  // was open, on the reasoning that what this bench really varies is whether
+  // the membrane is PERMEABLE to the ion — which is true of the physics and
+  // wrong on the screen: a chamber with nothing in its wall reads as a chamber
+  // that has lost its channel, not as one that never had a way through. The
+  // wall is cut and the protein stands in it whatever the door is doing, and
+  // what open and shut change is the TRAFFIC, which is the thing the child is
+  // being asked to watch anyway.
   const cx = w / 2
-  drawGatedChannel(ctx, {
+  drawLeakChannel(ctx, {
     cx,
     midY,
-    open: open ? 1 : 0,
-    mid: tint.mid,
-    dark: tint.dark,
     species: species.mid,
+    speciesDark: species.dark,
   })
+  void tint
 
   // -------------------------------------------------------- the charge itself
   drawFaceCharge(ctx, w, midY, view.vm)

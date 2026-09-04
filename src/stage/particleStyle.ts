@@ -33,13 +33,23 @@ export function glossySphere(
 // therefore get gold/violet/green/pink BODIES; charge will be shown by glow
 // and ± badges when ions become simulation objects (Milestone 2).
 
+/** The species this palette can paint: the four signalling ions, plus the
+ *  proton — not an `IonKind` (it carries no concentration model here), but a
+ *  drawable species for D06's pump-and-trade. */
+export type GlossyKind = IonKind | 'h'
+
 export const GLOSSY_COLORS: Record<
-  IonKind,
+  GlossyKind,
   { light: string; mid: string; dark: string; glow: string }
 > = {
   na: { light: '#fef9c3', mid: '#facc15', dark: '#a16207', glow: '250, 204, 21' },
   k: { light: '#ede9fe', mid: '#a78bfa', dark: '#6d28d9', glow: '167, 139, 250' },
   cl: { light: '#dcfce7', mid: '#4ade80', dark: '#15803d', glow: '74, 222, 128' },
+  // ⚠ THE ATOMIC PLAYGROUND'S OWN PROTON INK (its particleStyle.ts `protons`
+  // entry), verbatim (user, 2026-09-04: "atomic-playground color-codes
+  // protons in a different way — find out how, change"). Red = the + charge
+  // colour both apps reserve, and a proton IS a bare + charge.
+  h: { light: '#ffd4d0', mid: '#f87171', dark: '#dc2626', glow: '248, 113, 113' },
   ca: { light: '#fce7f3', mid: '#f472b6', dark: '#be185d', glow: '244, 114, 182' },
 }
 
@@ -77,12 +87,21 @@ export const MUTED_ION = {
   glow: '100, 116, 139',
 }
 
+// ⚠ A `TRANSMITTER` COLOUR USED TO LIVE HERE, and it is gone (2026-08-30).
+//
+// It was a spare orange for the gating bench's messenger, on the reasoning
+// that a colour belonging to no species says "not one of the four". Too subtle
+// to survive contact: a single glossy ball IS what this app means by "ion",
+// whatever colour it is painted, so a spare colour just made a fifth ion — and
+// it was read as the chloride the channel passes. The messenger is drawn from
+// bonded ATOMS now, in the element colours the water molecules use, which is a
+// difference of KIND rather than of shade.
 /** A glossy fill centred on the ORIGIN, so one gradient serves a whole crowd:
  *  move the context per particle instead of rebuilding the gradient. Hundreds
  *  of ions per frame otherwise means hundreds of gradient objects. */
 export function ionGradient(
   native: CanvasRenderingContext2D,
-  kind: IonKind,
+  kind: GlossyKind,
   radius: number,
   muted = false,
 ): CanvasGradient {
@@ -99,7 +118,7 @@ export function ionGradient(
 /** Same look for raw-canvas scene functions (waves, crowds, release). */
 export function drawGlossyIon(
   native: CanvasRenderingContext2D,
-  kind: IonKind,
+  kind: GlossyKind,
   x: number,
   y: number,
   radius: number,

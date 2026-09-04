@@ -48,8 +48,18 @@ export const CHANNEL_MID = '#9a8b6a'
 export const CHANNEL_DARK = '#5f5540'
 export const PORE = 'rgba(2, 6, 23, 0.6)'
 
-/** Half-width of a channel protein, px. */
-export const CHANNEL_HALF = 21
+// ⚠ `CHANNEL_HALF = 21` USED TO LIVE HERE, and it is gone (2026-08-30).
+//
+// It was the half-width of the ONE generic channel drawing, and every view cut
+// its gap in the bilayer to it. That drawing is deleted and each channel is now
+// its own traced protein with its own width — the traced leak is 13.1 half-wide
+// against this 21 — so the constant went on cutting holes eight pixels wider
+// than the thing standing in them, either side, in every bench that still used
+// it. The user saw them as "visual gaps between channels and lipids".
+//
+// There is no replacement, on purpose. A shared width is exactly the mistake:
+// ask the drawing (`leakHalfWidth`, `voltageHalfWidth`, `ligandHalfWidth`,
+// `mechanicalHalfWidth`) so the gap and the picture in it are ONE number.
 
 /** What one screen pixel is worth, in nanometres, at this drawing's proportions.
  *
@@ -350,147 +360,104 @@ export function drawLipids(ctx: CanvasRenderingContext2D, run: LipidRun): void {
   }
 }
 
-export interface GatedChannel {
-  cx: number
-  midY: number
-  /** How far open, 0→1. A fraction rather than a flag, because a voltage-gated
-   *  door spends most of a spike part-way. */
-  open: number
-  /** The protein's own colours, already tinted with what it passes. */
-  mid: string
-  dark: string
-  /** Full-strength species colour for the lit rim and the selectivity filter. */
-  species: string
-  halfWidth?: number
-  /** The ball-and-chain that hangs off a voltage-gated sodium channel into the
-   *  cytoplasm — the piece that swings up and plugs its own pore, which is what
-   *  INACTIVATION is. Off by default: only some channels have one, and drawing
-   *  it on all of them would be a lie about the rest. */
-  /** How far the protein reaches either side of the middle. Defaults to the
-   *  bilayer's own half-thickness; smaller where the membrane is drawn as a band
-   *  rather than as molecules, so the door still straddles its own wall. */
-  halfHeight?: number
+// ⚠ `GatedChannel` / `drawGatedChannel` USED TO LIVE HERE, and they are gone
+// (2026-08-30).
+//
+// One lobed silhouette stood in for every channel in the app: the leak, both
+// voltage-gated doors, the ligand-gated receptor, the aquaporin. Colour and a
+// caption were all that told them apart, which quietly taught that a channel
+// is one object with different labels — the exact misconception the traced
+// drawings exist to dismantle. Every caller has moved to the protein it is
+// actually drawing (`leakChannel`, `voltageChannel`, `ligandChannel`,
+// `mechanicalChannel`, `aquaporin`), and the generic one was left with no user
+// but its own test.
+//
+// Deleted rather than kept "just in case", for the same reason the `sensor`
+// and `gate` options were: a shared drawing that will accept anything is what
+// the next caller reaches for, and then there are two visual languages again.
+
+// ─────────────────────────────────────────── PAVING A MEMBRANE WITH MOLECULES
+//
+// ⚠ EXTRACTED, NOT COPIED (2026-08-31). The whole-neuron scene had this loop
+// privately, and the synapse needed the same thing along a different kind of
+// wall. A second copy of it would have been a second membrane — different
+// jitter, different taper, drifting apart the first time either was touched —
+// against this app's own rule that a structure looks the same everywhere it
+// appears because there is one code path.
+
+/** A point on a wall: where it is, which way it runs, and which way is in. */
+export interface WallPoint {
+  at: { x: number; y: number }
+  tangent: { x: number; y: number }
+  inward: { x: number; y: number }
 }
 
-/** One channel protein straddling the bilayer, with a pore that flares open.
+/** Deterministic 0–1 value per molecule: the crowd must look irregular without
+ *  shimmering every frame, and the index is the molecule's own place along the
+ *  membrane so it does not change as the camera moves. */
+export function lipidJitter(index: number, salt: number): number {
+  const h = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453
+  return h - Math.floor(h)
+}
+
+export interface PaveOptions {
+  /** The molecule's size, and how far the wall's two leaflets stand apart. */
+  geom: LipidGeom
+  /** Index of the FIRST sample in the wall's own absolute numbering, so each
+   *  molecule keeps its jitter however much of the wall is on screen. */
+  first: number
+  /** How far a molecule may wander, as a fraction of its own size. */
+  jitter?: number
+  /** How many samples at each end fade out. Zero for a CLOSED wall — a
+   *  vesicle's ring has no ends to taper, and tapering it puts a bald patch on
+   *  a complete object. */
+  taperOver?: number
+  /** Places a protein sits, with the radius it displaces lipids over. */
+  displacedBy?: { at: { x: number; y: number }; half: number }[]
+}
+
+/** Lay the molecules along a sampled wall.
  *
- *  Always drawn, however shut it is: a closed channel has not gone anywhere, and
- *  a membrane that loses its doors when they shut teaches that permeability is
- *  about how many channels there are rather than what they are doing. */
-export function drawGatedChannel(ctx: CanvasRenderingContext2D, c: GatedChannel): void {
-  const half = c.halfWidth ?? CHANNEL_HALF
-  const reach = c.halfHeight ?? HALF_MEM
-  const { cx, midY, open } = c
-  const lit = open > 0.02
-  const overhang = 4 * (reach / HALF_MEM)
-  const top = midY - reach - overhang
-  const bottom = midY + reach + overhang
+ *  The taper is not decoration: a run of wall is capped in length, so without it
+ *  the molecular membrane STOPS at a hard edge mid-picture. Fading the last
+ *  stretch turns a cut into detail running out. */
+export function paveMembrane(
+  ctx: CanvasRenderingContext2D,
+  samples: readonly WallPoint[],
+  opts: PaveOptions,
+): void {
+  const { geom, first } = opts
+  const jitter = opts.jitter ?? 0.2
+  const taperOver = opts.taperOver ?? Math.max(1, samples.length * 0.14)
+  const displaced = opts.displacedBy ?? []
+  const outer = leafletPaint(ctx, geom, -1)
+  const inner = leafletPaint(ctx, geom, 1)
+  const span = samples.length
 
-  // ── THE SILHOUETTE ────────────────────────────────────────────────────────
-  //
-  // TWO FACING SUBUNITS with a real gap between them, not one body with a slot
-  // cut in it (user, 2026-08-28, against a reference figure: "the shapes are
-  // not even close"). They were right, and the difference is not cosmetic — a
-  // channel IS several separate protein subunits standing in a ring, and the
-  // gap between them IS the way through. A single outline with a hole in it
-  // draws a channel as a bead with a hole drilled in it.
-  //
-  // Each subunit is lobed the way the figure's are: wide at both mouths,
-  // pinched at the waist where the membrane's greasy middle squeezes it, with
-  // rounded caps. The rounding is done by stroking the same path in the same
-  // paint with a round join — cheaper than building fillets, and it gives the
-  // soft blob edge the figure has.
-  const poreWaist = half * (0.07 + 0.2 * open)
-  const poreMouth = poreWaist * 1.9 + half * 0.04
-  const outerWaist = half * 0.78
-  const round = Math.max(1, half * 0.16)
+  samples.forEach((w, i) => {
+    // A protein displaces the lipids around it. Drawing them straight through
+    // would make it look pasted on top of the membrane rather than built into
+    // it.
+    if (displaced.some((p) => Math.hypot(p.at.x - w.at.x, p.at.y - w.at.y) < p.half)) return
 
-  const bodyGrad = ctx.createLinearGradient(cx - half, 0, cx + half, 0)
-  bodyGrad.addColorStop(0, c.dark)
-  bodyGrad.addColorStop(0.38, c.mid)
-  bodyGrad.addColorStop(1, c.dark)
-
-  for (const side of [-1, 1] as const) {
-    ctx.beginPath()
-    // Down the OUTER edge: out at the top mouth, in at the waist, out again.
-    ctx.moveTo(cx + side * (half - round), top + round)
-    ctx.bezierCurveTo(
-      cx + side * half,
-      top + reach * 0.5,
-      cx + side * outerWaist,
-      midY - reach * 0.25,
-      cx + side * outerWaist,
-      midY,
-    )
-    ctx.bezierCurveTo(
-      cx + side * outerWaist,
-      midY + reach * 0.25,
-      cx + side * half,
-      bottom - reach * 0.5,
-      cx + side * (half - round),
-      bottom - round,
-    )
-    // Across the intracellular cap.
-    ctx.lineTo(cx + side * (poreMouth + round), bottom - round)
-    // Up the PORE edge: the funnel, wide at both mouths and narrow at the
-    // waist, which is where a selectivity filter actually sits.
-    ctx.bezierCurveTo(
-      cx + side * poreMouth,
-      midY + reach * 0.55,
-      cx + side * poreWaist,
-      midY + reach * 0.3,
-      cx + side * poreWaist,
-      midY,
-    )
-    ctx.bezierCurveTo(
-      cx + side * poreWaist,
-      midY - reach * 0.3,
-      cx + side * poreMouth,
-      midY - reach * 0.55,
-      cx + side * (poreMouth + round),
-      top + round,
-    )
-    ctx.closePath()
-    ctx.fillStyle = bodyGrad
-    ctx.strokeStyle = bodyGrad
-    ctx.lineJoin = 'round'
-    ctx.lineCap = 'round'
-    ctx.lineWidth = round * 2
-    ctx.stroke()
-    ctx.fill()
-    // The lit rim, when it is passing something.
-    if (lit) {
-      ctx.strokeStyle = c.species
-      ctx.lineWidth = 1 + 0.8 * open
-      ctx.stroke()
-    }
-  }
-
-  // ⚠ THE GATE FLAP AND THE VOLTAGE SENSOR USED TO BE DRAWN HERE, and both
-  // are gone (2026-08-29). The voltage-gated channel is a TRACED drawing now
-  // — see `voltageChannel.ts` — with its own flap and its own inactivation
-  // ball, so a second, invented pair on the generic gate had no user left.
-  // Dead options on a shared drawing are worse than dead code: the next
-  // caller reaches for them.
-
-  // ⚠ THE BINDING SOCKET USED TO BE CUT HERE, and it is gone (2026-08-29).
-  // The ligand-gated channel is a traced drawing now with a socket of its
-  // own, cut into a subunit that SLIDES — so the socket has to move with it,
-  // which a notch on the generic gate could not do. Dead options on a shared
-  // drawing are worse than dead code: the next caller reaches for them.
-
-  const mouth = poreMouth
-  // The selectivity filter, at full species strength: the narrowest ring of the
-  // pore, and the part that actually does the choosing.
-  if (lit) {
-    ctx.strokeStyle = c.species
-    ctx.lineWidth = 2 * Math.min(1, reach / HALF_MEM)
-    ctx.lineCap = 'round'
-    for (const side of [-1, 1] as const) {
-      ctx.beginPath()
-      ctx.moveTo(cx + side * mouth * 0.85, midY - (3 * reach) / HALF_MEM)
-      ctx.lineTo(cx + side * mouth * 0.85, midY + (3 * reach) / HALF_MEM)
-      ctx.stroke()
-    }
-  }
+    const fade = taperOver <= 0 ? 1 : Math.min(1, Math.min(i, span - 1 - i) / taperOver)
+    if (fade <= 0.02) return
+    const k = first + i
+    const along = (lipidJitter(k, 1) - 0.5) * geom.headR * 2 * jitter
+    const across = (lipidJitter(k, 2) - 0.5) * geom.halfMem * 2 * jitter * 0.3
+    ctx.save()
+    // ⚠ MULTIPLIED, never assigned — a caller's own fade has to survive this.
+    ctx.globalAlpha *= fade
+    ctx.translate(w.at.x, w.at.y)
+    ctx.rotate(Math.atan2(w.tangent.y, w.tangent.x))
+    // After rotating, local +y must point at the cytoplasm for the leaflet
+    // paints to land on the right sides.
+    const localY = { x: -w.tangent.y, y: w.tangent.x }
+    if (w.inward.x * localY.x + w.inward.y * localY.y < 0) ctx.scale(1, -1)
+    ctx.translate(along, across)
+    drawLipidAt(ctx, -1, geom, outer)
+    drawLipidAt(ctx, 1, geom, inner)
+    ctx.restore()
+  })
 }
+

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { strictCanvas } from './strictCanvas'
 import { VM_MAX, VM_MIN } from '../core/voltage'
 import { ION_KINDS, IONS, particlesFor } from '../core/ions'
 import type { IonCounts } from '../state/ionStore'
 import { TRAIN_WINDOW_MS } from '../core/spikeTrain'
 import {
   GUTTER,
+  drawNeuronInset,
   guideMv,
   insetBox,
   electrodeHit,
@@ -161,5 +163,28 @@ describe('the electrode is a door', () => {
     expect(electrodeHitAt(box, at, h!.x + h!.w / 2, h!.y + h!.h / 2)).toBe(true)
     // …and somewhere else on the cell is not.
     expect(electrodeHitAt(box, at, h!.x - 40, h!.y + h!.h + 40)).toBe(false)
+  })
+})
+
+describe('the ring and the pipette are two claims', () => {
+  it('can say "you are here" without drawing apparatus', () => {
+    // ⚠ D05's locator asks for the miniature with no electrode: nothing is
+    // clamped in the passive-spread exhibit, and a probe drawn there would be
+    // a piece of equipment the picture does not have (2026-08-31).
+    const at = { x: 700, y: 400 }
+    const box = insetBox(300, 136)
+
+    const withProbe = strictCanvas()
+    drawNeuronInset(withProbe.ctx, box, 'axon', 0.6, at)
+    const without = strictCanvas()
+    drawNeuronInset(without.ctx, box, 'axon', 0.6, at, null, { probe: false })
+
+    // The dashed ring survives either way — it is the "where", not the probe.
+    const dashed = (c: { calls: string[] }) => c.calls.filter((k) => k.startsWith('setLineDash'))
+    expect(dashed(withProbe).length).toBeGreaterThan(0)
+    expect(dashed(without).length).toBe(dashed(withProbe).length)
+
+    // But the probe's own ink is gone: fewer strokes, and no magnifier.
+    expect(without.calls.length).toBeLessThan(withProbe.calls.length)
   })
 })

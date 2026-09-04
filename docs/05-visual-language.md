@@ -570,3 +570,258 @@ trace's own two heights — not a legend, not a sentence.
 so adding-up reads downward. Its ceiling comes from the model (mean plus a few
 standard deviations), so the line has room to wobble without the scale jumping
 between voltages.
+
+## Spec: S12 — the synapse, leg 1 (bouton handover of 2026-08-31)
+
+**1. Goal & home.** One chemical synapse, whole: the spike arrives at the
+terminal, the active zone's calcium doors open, the four-site sensor fills, a
+vesicle fuses, the gap fills with transmitter and the receptors opposite catch
+it. Home is the `outgoing-synapse` zoom target — a **place**, drawn on its own
+layer like the two axon views, not a drawer.
+
+**2. Reference.** `presynaptic-bouton.svg` (user, 2026-08-31): two paths, a
+bouton on its stalk and a wavy lower surface. Traced, not redrawn — the outline
+is the user's.
+
+**3. Composition.** ⚠ **The whole bouton is on the page**, stalk and all — the
+user's ruling of 2026-08-31, reversing this document's earlier 42 / 6 / 42 slab
+composition (see Reconciliation #1). The terminal is a real object with a real
+boundary, so drawing all of it invents nothing; what leaves the frame is the
+axon above it and the dendrite below, both of which genuinely continue.
+
+Vertically: stalk from the top edge, bulb through the upper middle, cleft, spine,
+dendritic shaft running off the bottom edge. The camera arrives with the app's
+usual `turn` so the synapse lies the way it lies on the cell.
+
+**4. Layer order.** dendritic shaft → spine → postsynaptic membrane → cleft
+transmitter → receptors on the spine head → bouton body → bouton membrane →
+vesicle pool → active zone (Ca²⁺ channels interleaved with docked vesicles) →
+the fusing vesicle → the calcium the sensor sees → names.
+
+**5. Objects.** Membranes from the scene's own bilayer module, both walls
+wandering. Vesicles are **bilayer rings**, never hollow circles. Transmitter is
+the glossy particle at its smallest. Ca²⁺ channels are the app's own traced
+channel in calcium's colour. Every one reads a model value: gate opening from
+`sampleSynapse(run,'open')`, terminal calcium from `'caUm'`, what the sensor
+sees from `'caLocalUm'`, which vesicles went from `run.vesicles`, transmitter
+from `sampleCleft(cleft,'mM')`, receptor state from `'bound'` / `'open'` /
+`'desensitized'`. Nothing freelances.
+
+**6. Proportions.** Real: bouton ≈ 1 µm (`BOUTON_DIAMETER_UM`), cleft 20 nm
+(`CLEFT_NM`), vesicle ≈ 40 nm. So a true-to-scale vesicle is **twice** the
+cleft's width, and both are a fortieth of the bouton. Drawn, the cleft is
+exaggerated so that what crosses it can be seen at all; the exaggeration is
+declared beside the real number in the info block, `synapseScaleNote` pattern.
+
+**7. Distribution.** The vesicle pool is a seeded, count-independent jittered
+placement — adding one must not make the others walk. Docked vesicles sit on the
+active zone interleaved with the calcium channels. Transmitter particles are
+placed by density, not by count, so a concentration reading is what varies.
+
+**8. Animation hooks.** One clock, the run's own, `u` 0→1 across
+`SYNAPSE_MS`. Fusion **may be watched**; the crossing **may not** — transmitter
+appears already spread and thins (the ~0.61 µs crossing against a ~2.7 ms
+release delay). The leg ends at binding.
+
+**9. Honesty notes.** The cleft's exaggeration, declared with the real 20 nm.
+The crossing time, and why it is not animated. Release is **probabilistic** —
+five docked vesicles, seeded independent draws, so a run where nothing goes is a
+real outcome and the describer must say so rather than hide it. And the standing
+⚠: one synapse's EPSP does not fire a neuron.
+
+**10. Reconciliation.**
+
+1. **⚠ "No invented far surface / terminal fades out at the frame" → overridden
+   by the user (2026-08-31), deliberately.** The earlier ruling described a
+   *close-up of the cleft*, where the terminal's far side is off the page and
+   drawing it would be invention. This handover is a *wider* view in which the
+   whole bouton fits, so its boundary is observed rather than imagined. The rule
+   is unchanged for close-ups; this scene is not one. Cost accepted: at this
+   zoom the cleft is thin and the vesicles are small.
+2. **⚠ Science: the reference's lower shape is altered.** It dips AWAY beneath
+   the terminal and rises on either side. Put to the user, who asked for it to be
+   validated against the transmitter: **glutamate synapses land on dendritic
+   spines** (Gray's type I; inhibitory GABAergic contacts are the ones on shafts
+   and somata). The app's own plan depends on it — S13 has "Ca²⁺ enters **the
+   spine**" and P04 has the spine enlarging with LTP. So the lower shape becomes
+   the dendritic **shaft**, and a **spine** rises from it to meet the bouton.
+   The reference's wavy surface is kept as the shaft's own uneven profile.
+3. **Vertical re-proportioning.** At the reference's numbers the gap between the
+   bouton's lowest point and the lower shape is 4.3 units against a 50-unit
+   bouton — no room for a spine. The shaft is moved down and runs off the frame
+   (a real surface leaving the page, not an invented one), which is the
+   "align points where necessary" the handover asked for.
+4. Kept without conflict: both silhouettes, the stalk, the bulb's proportions,
+   the lower surface's wander.
+
+### Redraw of 2026-08-31 — the active end
+
+Five changes, on the user's instruction, after seeing it built.
+
+6. **The neck is CROPPED, not squashed.** The reference gives the stalk 46% of
+   the bouton's own height, which came to 182 px of empty tube above a 214 px
+   bulb. Only 44 px of it is on the page now and the rest runs off the top —
+   honest, because the axon really does continue up out of frame, where
+   compressing the traced outline would be redrawing the user's own shape.
+7. **The scale is SOLVED from a budget, not chosen.** The scene declares what it
+   needs below the foot (cleft, spine head, neck, shaft) and `fitBouton` returns
+   whatever scale makes the rest fit. Before this, the neck's share came
+   straight off the bulb, and "make the active area twice as large" had no
+   answer because whatever the bulb gained the head lost.
+8. **⚠ A literal 2× on both structures does not fit 660 px**, so what was
+   reached is measured and declared rather than asserted: active zone
+   **×1.96**, spine head **×1.74**, bulb ×1.32, neck **182 px → 44 px**. The
+   active zone is now a fraction of the BULB'S half-width — it used to be a
+   fraction of the canvas, which is why giving the bouton more room had left it
+   exactly the same size.
+9. **The spine head is an ellipse**, wider than tall. That is what a real
+   mushroom spine is, and it is also what makes the active area affordable: a
+   circular head twice as wide is twice as tall, and the frame has width to
+   spare and no height at all.
+10. **⚠ Reconciliation #4 is REVERSED at the user's request**: vesicles are
+    circles again, with the lumen painted in the extracellular ink — *the same
+    constant*, not a colour chosen to match. It is not a step backwards. **A
+    vesicle's lumen is topologically outside the cell**, which is the whole
+    reason exocytosis works: nothing is carried through a wall, a pocket of
+    outside that was folded in is unfolded again. And what #4 was protecting —
+    "the material is the point, two bilayers can join and become one" — is
+    carried better by two new rules: exocytosis **tears** the wall (a real gap,
+    clipped out, not a vesicle drawn over an intact line), and a vesicle
+    **loses its outline** where it overlaps the membrane. An outline that stops
+    where the walls meet says *same material* more directly than a ring did.
+    The molecular ring survives in D06, where it is resolvable.
+11. Vesicles are sized off the bouton now, at a declared 2.2× exaggeration
+    beside the real 40 nm — they were a fixed 11 px, so doubling the active zone
+    had made them look half the size.
+5. Carried over from the 2026-08-27 figure and unchanged: seeded unevenness,
+   glossy particles, bilayer-ring vesicles, membranes as liquids, **Ca²⁺
+   channels in the active zone beside the docked vesicles** (the reference has
+   none; their absence beside a fusing vesicle was step 19b's error).
+
+### Corrections of 2026-09-01 — "the animation looks broken"
+
+12. **The bouton takes two thirds of the frame**, the postsynaptic face and its
+    shaft the last third. Solved rather than nudged: the scale is whatever puts
+    the foot on the two-thirds line, so the picture is pushed down by growing
+    into the room. Measured: the foot lands at 0.652 of the height.
+13. **⚠ Everything in the terminal is placed ON THE BOUTON'S OWN WALL.** The
+    active zone was a straight row at the outline's lowest point, and the foot
+    of a bouton is a curve — measured, the outer vesicles sat 47 and 88 px
+    *below* the membrane, outside the cell in the cleft. `boutonFloorAt` asks
+    the traced outline where its floor is at an x, and the docked vesicles, the
+    reserve pool, the calcium doors, the tear and the transmitter all read it.
+14. **The postsynaptic face is APPOSED, not an ellipse.** Its membrane follows
+    the bouton's wall one cleft below, so the gap is 26 px all the way across
+    instead of opening out at the ends. Receptors sit on that curve, opposite
+    the active zone — which is what makes a synapse a synapse rather than two
+    membranes that happen to be near each other.
+15. **The run's clock has legs.** Measured: transmitter is in the gap for 0.87
+    ms of a 60 ms window — 4.6% of the run — so "no neurotransmitters are
+    visibly released" was true *and* the model was right. The payload stretch
+    now gets 58% of the screen; on screen the transmitter is visible for 27% of
+    the run against 4.6% before. Inside a leg nothing changes pace.
+16. **Vesicles carry visible cargo**, in the same ink as the transmitter in the
+    gap — so what comes out is visibly what was in. It empties as the bubble
+    opens.
+
+
+## D06 — vesicle & SNARE machinery: the upstream cast (2026-09-03)
+
+The drawer now opens on the catching machinery, before the SNAREs touch. One
+palette rule: **no catcher wears a puller's colour** — the SNARE strands keep
+their three (`SNARE_STRANDS`, owned once in `synapseScene.ts`: synaptobrevin
+`#f0abfc`, syntaxin `#7dd3fc`, SNAP-25 `#bef264`), and the upstream cast is
+disjoint from them:
+
+| part | ink | shape |
+| --- | --- | --- |
+| tether (Rab effector) | `#8b5cf6` | long wavy arm on the wall; waves pay out as it stretches to hold |
+| Rab | `#f97316` | small body on the vesicle's upper-left shoulder |
+| GTP badge (lit) | `#fde047` + glow `253,224,71` | dot on the Rab; dims to `#475569` (GDP) across docking |
+| Munc18 | `#94a3b8` | ellipse clasping syntaxin's folded tip |
+| Munc13 | `#2dd4bf` | arm lying on the wall; stands up at docking to open syntaxin |
+| complexin | `#fbbf24` | rod lying across the half-wound rope |
+
+Grammar carried over: pre-docking SNAREs are three separate stubs in the
+rope's own strand colours and wiggle, converging across docking — stubs and
+rope never both on screen. The sensor rides its own vesicle until the rope
+exists. Labels on the still only, eight of them, all below the transport
+plate. The wall sits at 0.85 of the height; the vesicle starts at `highY`
+(top of frame, below the plate) and the refill lift returns there, closing
+the loop where it opened.
+
+Corrections of 2026-09-03 (step 20ax):
+
+- **The whole cast is drawn TWICE, mirrored about the centre line** — a
+  section through the ring the real machinery stands in. One geometry,
+  reflected (`side: 1 | -1`); labels name the right copy only; the left
+  sensor's calcium comes from beyond the left edge. The info block declares
+  the ring and its unsettled count.
+- **The run breathes**: 20 s, and the dock/prime/trigger/zipper/pore legs
+  carry a `hold` — action in the first (1 − hold) of the leg, a still beat
+  after. Flights land on model moments via `uAtThrough`, never re-derived.
+- **The lumen is `OUTSIDE`, the same string** — one paint, so fusion opens
+  with no seam. The lumen arc never crosses the wall line, so the washes
+  never stack.
+- **The rope lives in its membranes**: syntaxin's end shifts with the wall,
+  synaptobrevin's end unrolls with the omega — after fusion the rope lies
+  flat (cis-complex) and travels with the flow, fading over the collapse.
+  NSF's disassembly is declared in words, not drawn.
+- **The copies keep a clear channel at the centre** (step 20ay): v-SNARE ring
+  anchor at 1.1 rad (±0.45 r), syntaxin's stand at ±0.81 r (derived as
+  cos(anchor) + cis-length so the flat hand-over stays seamless), tethers at
+  ±1.85 r. Everything of one copy stays ≥ 0.3 r from the centre line.
+- **The bubble returns EMPTY** (step 20az): refilling is off-stage work in the
+  crowd, said in words; the full bubble a run opens with was filled between
+  turns. No cargo fades back in on the lift.
+- **The lumen's mouth is solved on the lumen's radius** (`lumenArc`, step
+  20az): its closing chord lies exactly on the wall line — lumen wash and
+  outside wash meet edge to edge, and a submerged lumen paints nothing.
+- **The reuse pipeline is on stage** (step 20bc): clathrin coat `#22d3ee`
+  (studs on the bud's cytosolic face, assembled across retrieval, shed across
+  the taking-apart), NSF `#ef4444` (red barrel with a bore, lands on the
+  spent flat rope in the new 'Taken apart' leg), proton pump `#6366f1` with
+  H⁺ dots `#fde047` riding the lift. Nothing machinery-wide fades any more:
+  the strands, sensor and minders WALK back to their posts, so the end still
+  is the start still (minus the Rab badge, re-armed off-stage). Wall proteins
+  ride `wallShift` like the wall's own lipids (`wallRideX`) — except the
+  rope's wall end, governed by its v-SNARE side once fusing.
+- **Five labelled stills** (steps 20be/20bf): opening cast (8 names) →
+  release stop at the fourth calcium (SNARE complex, calcium, transmitter,
+  complexin) → recycling stop (NSF, clathrin) → exchange stop mid-trade
+  (transmitter, transporter, proton pump, protons) → closing cast — the SAME
+  eight names as the opening, because the closing frame IS the opening frame.
+  The player pauses 3 s at each mid-run stop with labels up; labels are
+  tappable-to-speak at every still and never while the picture moves. The
+  stops sit on the transport bar as amber DIAMONDS (step 20bg) — press one to
+  glide there and see its labels — and a 🏷 labels switch beside ▶ turns the
+  whole naming layer off: no pauses, no labels, no diamonds. The switch wears
+  the aquaporin toggle's track-and-knob grammar (sky-500 on, sliding knob —
+  step 20bh). The new load queues at the transporter's outside and enters
+  ONLY through its bore — the pass is piecewise through the barrel's outer
+  and inner mouths (step 20bi; the earlier quadratic could cross beside it),
+  guarded at 0.2 r of the door. The proton exits run WITH the filling, so the
+  exchange still always has a proton on stage to name.
+- **Protons wear the atomic playground's own ink** (step 20bf):
+  `GLOSSY_COLORS.h` = glossy red (#ffd4d0/#f87171/#dc2626, glow 248,113,113) —
+  red is the shared + charge colour — at radius 2, the smallest ball on
+  stage. NSF moved to fuchsia #c026d3. The transporter is the pump family's
+  indigo in a wider one-bore barrel; it trades protons out for generation-2
+  transmitter in (new molecules from beyond the top edge, each to the seat
+  its predecessor held), and both machines fade when done: declared
+  residents, drawn only while working. The loop closes exactly — full bubble,
+  lit Rab badge, frame-identical to the start.
+- **The rope is bolted to its own lipid at every moment** (step 20bd,
+  superseding 20bc's freeze and cap): the v-SNARE end obeys the lipids' own
+  unroll rule for the whole run — out with the flow, home with the retrieval,
+  up onto the reforming bud — and the sensor keeps a constant offset from the
+  rope from swing to walk-home. Guarded by identity (same ring molecule),
+  not proximity.
+- **The transmitter has identity** (`transmitterAt`, step 20ba): one fixed
+  set of NT_COUNT molecules — seat riding the bubble, own exit moment on the
+  MOUTH's schedule (`uAtMouthOpen`, step 20bb: nothing leaves before the
+  membranes have fused, and every crossing passes inside the ring's open
+  chord), flight pinched through the mouth, seeded drift off the frame. Nothing fades or swaps; the dots that leave are the dots that were
+  inside. Reuptake is deliberately NOT here — it belongs to a future view
+  (glutamate is cleared by astrocytes; see auto-memory) — so the cargo exits
+  the page, collected off-stage.

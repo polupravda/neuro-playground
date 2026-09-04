@@ -3,9 +3,11 @@ import { ION_KINDS, IONS, particlesFor } from './ions'
 import type { IonCounts } from '../state/ionStore'
 import { synapseRun } from './synapse'
 import {
+  AMPA_REVERSAL_MV,
   CLEAR_MS,
   CLEFT_NM,
   K_RESENS,
+  SPINE_REST_MV,
   cleftFacts,
   cleftRun,
   crossingUs,
@@ -53,12 +55,43 @@ describe('the transmitter', () => {
   })
 
   it('peaks the instant a vesicle goes, not later', () => {
-    // If this ever drifts it means something is modelling the crossing as a journey.
-    expect(Math.abs(gap.peakMMAtMs - gap.firstFusionMs!)).toBeLessThan(0.2)
+    // If this ever drifts it means something is modelling the crossing as a
+    // journey. ⚠ Against the NEAREST fusion, not the first: with three
+    // staggered doses (2026-09-01, the middle vesicle joined) the peak sits on
+    // whichever fusion tops the stack — the claim is that it sits ON one of
+    // them, since any journey would land it after all of them.
+    const fusions = terminal.vesicles
+      .map((v) => v.fusedAtMs)
+      .filter((t): t is number => t !== null)
+    const nearest = Math.min(...fusions.map((t) => Math.abs(gap.peakMMAtMs - t)))
+    expect(nearest).toBeLessThan(0.05)
+    expect(gap.peakMMAtMs).toBeGreaterThanOrEqual(gap.firstFusionMs!)
   })
 
   it('is gone long before the receptors have finished', () => {
     expect(gap.transientMs).toBeLessThan(gap.responseMs)
+  })
+
+  it('E5: drives an EPSP — graded, late, decaying, and NEVER past the reversal', () => {
+    // The spine's answer (2026-09-01): a conductance synapse on an RC
+    // membrane, no script. It rises AFTER the receptors' own peak, tops out
+    // strictly between rest and the reversal, and sinks home on the membrane
+    // clock — a nudge, not a spike.
+    expect(gap.peakPostMv).toBeGreaterThan(SPINE_REST_MV + 5)
+    expect(gap.peakPostMv).toBeLessThan(AMPA_REVERSAL_MV)
+    expect(gap.peakPostAtMs).toBeGreaterThan(gap.peakOpenAtMs)
+    for (const v of gap.vmPost) {
+      expect(v).toBeGreaterThanOrEqual(SPINE_REST_MV - 1e-6)
+      expect(v).toBeLessThan(AMPA_REVERSAL_MV)
+    }
+    // Decayed most of the way home by the end of the window.
+    expect(sampleCleft(gap, 'vmPost', 1)).toBeLessThan(SPINE_REST_MV + 3)
+    // And a terminal that released nothing moves the spine not at all.
+    const quiet = integrateCleft({
+      ...terminal,
+      vesicles: terminal.vesicles.map((v) => ({ ...v, fusedAtMs: null })),
+    })
+    for (const v of quiet.vmPost) expect(v).toBeCloseTo(SPINE_REST_MV, 6)
   })
 
   it('clears faster when the gap clears faster', () => {
@@ -132,8 +165,17 @@ describe('what it says about itself', () => {
     expect(text).toContain(String(CLEFT_NM))
   })
 
-  it('says what is not built yet', () => {
+  it('declares the drawn EPSP honestly, now that the consequence IS built', () => {
+    // Until 2026-09-01 this test pinned "nothing is coming through them yet".
+    // The postsynaptic answer is drawn now, so the honest claims changed: the
+    // spine's drive is TYPICAL rather than measured and says so, the peak is
+    // quoted from the run, and the firing decision is placed where it lives —
+    // at the soma, not in this view.
     const text = cleftFacts(gap).map((p) => p.text).join(' ')
-    expect(text).toMatch(/next step/i)
+    expect(text).not.toMatch(/nothing is coming/i)
+    expect(text).toMatch(/NOT MEASURED/)
+    expect(text).toMatch(/soma/)
+    expect(text).toContain(gap.peakPostMv.toFixed(0))
+    expect(text).toMatch(/not an action potential/i)
   })
 })

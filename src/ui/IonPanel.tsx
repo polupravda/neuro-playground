@@ -1,3 +1,4 @@
+import { ResetButton } from './ResetButton'
 import {
   ION_KINDS,
   IONS,
@@ -148,14 +149,11 @@ export function IonPanel() {
             show all
           </button>
         ) : (
-          <button
-            type="button"
+          <ResetButton
             onClick={resetIons}
             title="Put every ion back to its real concentration"
-            className="shrink-0 rounded px-1.5 py-0.5 text-[11px] text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
-          >
-            ↺ real
-          </button>
+            className="px-2 text-[11px]"
+          />
         )}
       </div>
 

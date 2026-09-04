@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { PARTS, entriesIn, notBuiltYet, type Entry, type PartId } from '../core/contents'
+import { PARTS, builtIn, entriesIn, notBuiltYet, type Entry, type PartId } from '../core/contents'
 import { goTo } from '../state/contentsNav'
 
 // THE CONTENTS RAIL — a slim strip of icons down the left edge that GROWS into
@@ -28,13 +28,28 @@ const OPEN_W = 320
 /** Long enough to read as movement, short enough not to be in the way. */
 const SLIDE_MS = 230
 
+// ⚠ ONE ROW COMPONENT FOR BOTH KINDS (user, 2026-08-31: "make it look as
+// similar to active chapters as the plan allows, but make it inactive"). A
+// separate component for the planned rows would have drifted into a different
+// row — different padding, different type size — and the whole point is that a
+// Part reads as ONE list of what it will contain.
+//
+// What separates them is: dimmed, no hover, `disabled`, and a small `planned`
+// tag. And it is genuinely inert — `entry.to` is null, so there is nothing for
+// it to navigate to even if something did press it. A greyed-out button that
+// still works is the worst of both.
 function Row({ entry, onGo }: { entry: Entry; onGo: () => void }) {
+  const planned = entry.planned === true
   return (
     <button
       type="button"
-      onClick={onGo}
-      title={entry.asks}
-      className="flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-700/70"
+      disabled={planned}
+      aria-disabled={planned || undefined}
+      onClick={planned ? undefined : onGo}
+      title={planned ? `${entry.asks} — planned, not built yet` : entry.asks}
+      className={`flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition ${
+        planned ? 'cursor-default opacity-40' : 'hover:bg-slate-700/70'
+      }`}
     >
       <span aria-hidden className="mt-0.5 shrink-0 text-lg leading-none">
         {entry.icon}
@@ -44,6 +59,11 @@ function Row({ entry, onGo }: { entry: Entry; onGo: () => void }) {
             same split every button in this app uses. */}
         <span className="block text-[13px] font-medium leading-snug text-slate-100">
           {entry.title}
+          {planned && (
+            <span className="ml-1.5 align-middle text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+              planned
+            </span>
+          )}
         </span>
         <span className="block text-[11px] leading-snug text-slate-400">{entry.asks}</span>
       </span>
@@ -77,6 +97,7 @@ export function ContentsRail() {
   }
 
   const go = (entry: Entry) => {
+    if (entry.to === null) return
     if (nav.current) clearTimeout(nav.current)
     nav.current = goTo(entry.to)
     setOpen(false)
@@ -124,7 +145,10 @@ export function ContentsRail() {
             ☰
           </span>
           {PARTS.map((part) => {
-            const first = entriesIn(part.id)[0]
+            // ⚠ THE FIRST BUILT ONE. Every Part has rows now, so an icon taken
+            // from the whole list would light up a Part with nothing in it yet
+            // and the spine would stop saying how far the app reaches.
+            const first = builtIn(part.id)[0]
             return (
               <button
                 key={part.id}
@@ -182,15 +206,19 @@ export function ContentsRail() {
                   Part {part.id} — {part.title}
                 </h3>
                 <p className="mb-1 px-1 text-[11px] leading-snug text-slate-500">{part.gist}</p>
-                {rows.length === 0 ? (
-                  <p className="px-1 pb-2 text-[11px] italic leading-snug text-slate-600">
+                {/* ⚠ THE ONE CLAIM ABOUT WHAT EXISTS still stands, above the
+                    planned rows rather than instead of them: a Part with
+                    nothing built says so, and then shows what is coming. That
+                    keeps `FRONTIER` the single source of "how far does this
+                    app go" while the rows below say what the PLAN is. */}
+                {builtIn(part.id).length === 0 && (
+                  <p className="px-1 pb-1 text-[11px] italic leading-snug text-slate-600">
                     {notBuiltYet()}
                   </p>
-                ) : (
-                  rows.map((entry) => (
-                    <Row key={entry.id} entry={entry} onGo={() => go(entry)} />
-                  ))
                 )}
+                {rows.map((entry) => (
+                  <Row key={entry.id} entry={entry} onGo={() => go(entry)} />
+                ))}
               </section>
             )
           })}

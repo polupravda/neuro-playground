@@ -25,6 +25,14 @@ export interface ChannelType {
   passes: IonKind[]
   /** How fast ions cross when it is open, relative to a leak channel. */
   conductance: number
+  /** How wide the protein is, nm.
+   *
+   *  ⚠ THIS NO LONGER SETS WHAT IS DRAWN (2026-08-30). Each channel is now its
+   *  own traced protein with a real shape, so the scene asks the DRAWING how
+   *  wide it stands (`channelHalf` in `stage/proteins.ts`) — otherwise the
+   *  membrane gap and the picture in it would be two different widths. This
+   *  stays as a stated fact about the channel; do not reach for it to size
+   *  anything. */
   widthNm: number
   facts: TeachingPara[]
 }
