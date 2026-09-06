@@ -13,6 +13,7 @@ import {
 } from './spokenLabels'
 import { THRESHOLD } from '../core/integration'
 import {
+  ASTRO_INK,
   AXON_POLYLINE,
   AXON_W,
   BILAYER_SCALE,
@@ -1458,9 +1459,9 @@ function drawAstrocyteCell(
   ctx.closePath()
   // Corrections 2026-09-04: a FILLED body (the 0.10 wash read as hollow) and
   // a heavier outline at the scene's register.
-  ctx.fillStyle = 'rgba(134, 184, 158, 0.4)'
+  ctx.fillStyle = `rgba(${ASTRO_INK}, 0.4)`
   ctx.fill()
-  ctx.strokeStyle = 'rgba(134, 184, 158, 0.75)'
+  ctx.strokeStyle = `rgba(${ASTRO_INK}, 0.85)`
   ctx.lineWidth = 2.5
   ctx.stroke()
   for (const pl of shape.processes) {
@@ -1553,9 +1554,9 @@ function outgoingAnatomy(ctx: CanvasRenderingContext2D, alpha: number): void {
     ctx.arc(tip.x, tip.y, rT, th + Math.PI / 2, th - Math.PI / 2)
     ctx.arc(base.x, base.y, rB, th - Math.PI / 2, th + Math.PI / 2)
     ctx.closePath()
-    ctx.fillStyle = 'rgba(134, 184, 158, 0.18)'
+    ctx.fillStyle = `rgba(${ASTRO_INK}, 0.2)`
     ctx.fill()
-    ctx.strokeStyle = 'rgba(134, 184, 158, 0.7)'
+    ctx.strokeStyle = `rgba(${ASTRO_INK}, 0.8)`
     ctx.lineWidth = 1
     ctx.stroke()
   }

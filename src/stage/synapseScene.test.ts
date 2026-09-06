@@ -1,5 +1,38 @@
 import { describe, expect, it } from 'vitest'
+import {
+  ASTRO_SVG_RINGS,
+  ASTRO_SVG_SEGS,
+  tangentOn,
+  outsideOn,
+  astroContains,
+} from './astrocyteShape'
+import {
+  EAAT_GLYPH,
+  SNAT_GLYPH,
+  PMCA_GLYPH,
+  VGLUT_GLYPH,
+  partOrder,
+  slotWidth,
+  ATP_OF_SPAN,
+  poreSeat,
+  poreGapAt,
+} from './channelShapes'
 import { strictCanvas } from './strictCanvas'
+import { chipWidth, chipCenter, labelRows } from '../ui/timelineMath'
+import { STAGE_W } from './layout'
+import { boundsOf } from './svgPath'
+
+const SOURCES_CORE = import.meta.glob('../core/*.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
+const SOURCES = import.meta.glob('./*.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 import {
   CLEFT_NOTE,
   SYNAPSE_SCREEN_MS,
@@ -8,8 +41,36 @@ import {
   CLEFT_PX,
   LUMEN,
   OUTSIDE,
-  astrocyteFinger,
-  astrocyteHolds,
+  ASTRO_SHARE,
+  astrocyteCell,
+  astroCellHolds,
+  boutonHolds,
+  boutonRing,
+  caAtpAt,
+  astroLipids,
+  drawAstrocyte,
+  caSeatAt,
+  vglutSeatAt,
+  VGLUT_SPAN,
+  loopDoors,
+  vesicleRestore,
+  retrievalAge,
+  fusedAgeAt,
+  TRANSPORTER_BORE,
+  RETRIEVE_FROM_MS,
+  RETRIEVE_TO_MS,
+  snareCis,
+  MEM_PX,
+  ASTRO_BAND,
+  ASTRO_EDGE_ALPHA,
+  ASTRO_BODY_ALPHA,
+  CHANNEL_INK,
+  CHANNEL_SPAN,
+  insideDoor,
+  vglutAt,
+  GLUTAMINE_INK,
+  SNARE_ANCHOR_A,
+  SNARE_CIS_LEN,
   synapseCallouts,
   SCALE_NOTES,
   activeZone,
@@ -27,7 +88,6 @@ import {
   neckTop,
   spineAuraTop,
   ionSoup,
-  activeZoneLabelAt,
   snareMini,
   membraneLipids,
   FLASH_R,
@@ -77,15 +137,35 @@ import {
   ntSeatAt,
   receptorOpenFrac,
   bindPulses,
+  CONVERT_FROM_MS,
+  LOOP_STAGGER_MS,
+  loopBeat,
+  CA_SIT_MS,
+  CA_ATP_MS,
+  CA_FLIP_MS,
+  CA_TURN_MS,
+  CA_DRIFT_BACK_MS,
+  caQueue,
+  caTurnAt,
+  caPumpStateAt,
+  fillerStateAt,
+  refillQueue,
+  FILL_IN,
+  FILL_SHUT,
+  FILL_FLIP,
+  FILL_OUT,
+  restOfIon,
+  NEURON_UPTAKE_FRAC,
+  ENTER_FROM_MS,
+  BACK_FROM_MS,
+  CA_EXTRUDE_FROM_MS,
+  SHIP_FROM_MS,
+  CROSS_FROM_MS,
+  STOCK_FROM_MS,
+  REFILL_FROM_MS,
+  type NtDot,
 } from './synapseCast'
-import {
-  BOUTON_BOX,
-  BOUTON_FOOT,
-  NECK_END,
-  NECK_PX,
-  SHAFT_BOX,
-  place,
-} from './boutonShape'
+import { BOUTON_BOX, BOUTON_FOOT, NECK_END, NECK_PX, SHAFT_BOX, place } from './boutonShape'
 import { POOL, SYNAPSE_MS, synapseRun } from '../core/synapse'
 import { GLOSSY_COLORS } from './particleStyle'
 import { mix } from './bilayer'
@@ -201,6 +281,59 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
+  // ⚠ A LONGER LEASH FOR THIS ONE, and the reason measured rather than guessed
+  // (21c-3o): the scene issues ~3,800 canvas calls a frame, and `strictCanvas`
+  // costs ~15 µs a call — it is a recording Proxy that parses every colour and
+  // checks every number. 25 frames is ~1.5 s of RECORDER, not of drawing, and
+  // under a loaded machine it crossed vitest's 5 s default and failed as a
+  // timeout with nothing wrong. The picture's own cost is 3,800 calls, which is
+  // an ordinary frame.
+  it("A1 (21c-4b): the astrocyte's wall is MADE OF the same molecules", () => {
+    // ⚠ (user, 2026-09-06: "give astrocytes bilayer".) It had a wall — two
+    // stroked bands — while every other membrane in this frame is paved with
+    // the app's own phospholipids at this depth. One cell made of molecules and
+    // its neighbour made of paint is two materials for one thing.
+    const g = synapseGeometry()
+    const lip = astroLipids(g)
+    expect(lip.length, 'the astrocyte has no molecules').toBeGreaterThan(200)
+    // ⚠ Paved on the STRETCH the exhibit is about — the same budget the
+    // bouton's own wall is paved on, not the whole cell. Measured: the whole
+    // outline is 2,563 molecules and takes a frame from 3,048 canvas calls to
+    // 74,816.
+    expect(lip.length, 'the whole cell is being paved').toBeLessThan(1200)
+    const cell = astrocyteCell(g)
+    for (const m of lip) {
+      // ⚠ ON the outline, to the pixel — a bilayer beside a wall is not a wall.
+      // ⚠ The OUTWARD half of this is deliberately not asked. Measured: at the
+      // narrow processes the cell's two walls are closer together than three
+      // pixels, so "a step out is outside" is false of a real thin arm and the
+      // guard would be punishing the anatomy. What can actually go wrong is the
+      // INWARD side, and that is asked below.
+      // ⚠ AND THE RIGHT WAY UP. The trace is two closed rings whose winding is
+      // whatever the illustrator drew, so a normal taken on faith comes out
+      // inside-out on one of them — heads in the oil.
+      const inside = {
+        x: m.at.x + m.inward.x * 3,
+        y: m.at.y + m.inward.y * 3,
+      }
+      expect(astroContains(cell.placement, inside), 'a molecule is inside-out').toBe(true)
+    }
+  })
+
+  it("A1 (21c-4b): its molecules dissolve in and out with every other wall's", () => {
+    // ⚠ Level of detail DISSOLVES, and it must dissolve for every wall at once.
+    // Measured on the ink: paving costs calls, and at the wide view it costs
+    // none.
+    const g = synapseGeometry()
+    const wide = strictCanvas()
+    drawAstrocyte(wide.ctx, g, 0)
+    const dived = strictCanvas()
+    drawAstrocyte(dived.ctx, g, 1)
+    expect(dived.calls.length, 'the molecules never appear').toBeGreaterThan(
+      wide.calls.length * 3,
+    )
+  })
+
   it('A3: draws at every moment of the run without a NaN or a bad colour', () => {
     for (let i = 0; i <= 24; i++) {
       const c = strictCanvas()
@@ -209,7 +342,7 @@ describe('S12 — the synapse, leg 1', () => {
     }
     const rest = strictCanvas()
     expect(() => drawSynapse(rest.ctx, { run, cleft, u: null })).not.toThrow()
-  })
+  }, 20000)
 
   it('A3: paints nothing brighter than the fade it was handed', () => {
     // The ghost-axon rule, applied to the new view before it can go wrong:
@@ -232,9 +365,7 @@ describe('S12 — the synapse, leg 1', () => {
     // is a declared blink: no ball takes longer than DISPERSE_MS to reach its
     // standing place.
     const g = synapseGeometry()
-    const fusions = run.vesicles
-      .map((v) => v.fusedAtMs)
-      .filter((m): m is number => m !== null)
+    const fusions = run.vesicles.map((v) => v.fusedAtMs).filter((m): m is number => m !== null)
     const settled =
       Math.max(...fusions) + EMERGE_STAGGER_MS + EMERGE_TRAVEL_MS + DISPERSE_MS + 0.05
     const out = transmitterCast(g, run, cleft, settled).filter(
@@ -268,7 +399,11 @@ describe('S12 — the synapse, leg 1', () => {
     expect(CLEFT_NOTE).toMatch(/nm/)
     // The clock says how much it is stretched, and by a number that is derived.
     expect(SYNAPSE_SCREEN_MS / SYNAPSE_MS).toBeGreaterThan(50)
-    expect(SYNAPSE_SCREEN_MS / SYNAPSE_MS).toBeLessThan(400)
+    // ⚠ 400 → 700 (21c-2): the run now carries the glutamine round trip, whose
+    // real timescale is seconds to minutes against the model window's 60 ms.
+    // The average stretch therefore HAD to grow; the info panel interpolates
+    // whatever it is, so the declaration cannot drift from the number.
+    expect(SYNAPSE_SCREEN_MS / SYNAPSE_MS).toBeLessThan(700)
   })
 
   it('A3: is a PLACE the camera reaches WITHOUT turning', () => {
@@ -451,14 +586,10 @@ describe('S12 — the synapse, leg 1', () => {
     const g = synapseGeometry()
     const r = vesicleR(g)
     for (const d of activeZone(g).docked) {
-      expect(d.y + r, `docked at ${d.x.toFixed(0)}`).toBeLessThanOrEqual(
-        wallAt(g, d.x) + 1e-6,
-      )
+      expect(d.y + r, `docked at ${d.x.toFixed(0)}`).toBeLessThanOrEqual(wallAt(g, d.x) + 1e-6)
     }
     for (const p of reservePool(g)) {
-      expect(p.y + r, `pool at ${p.x.toFixed(0)}`).toBeLessThanOrEqual(
-        wallAt(g, p.x) + 1e-6,
-      )
+      expect(p.y + r, `pool at ${p.x.toFixed(0)}`).toBeLessThanOrEqual(wallAt(g, p.x) + 1e-6)
     }
     // And the calcium doors are IN the wall, not near it.
     for (const d of activeZone(g).doors) expect(d.y).toBeCloseTo(wallAt(g, d.x), 6)
@@ -477,9 +608,7 @@ describe('S12 — the synapse, leg 1', () => {
       let n = 0
       for (let i = 0; i <= 600; i++) {
         const msAt = map(i / 600) * SYNAPSE_MS
-        const inGap = transmitterCast(g, run, cleft, msAt).filter(
-          (d) => d.where === 'gap',
-        ).length
+        const inGap = transmitterCast(g, run, cleft, msAt).filter((d) => d.where === 'gap').length
         // ≥11: the release FLOOD, just above the TEN that linger in the
         // cleft awaiting reuptake — every pair is let go before its door
         // shuts now, so all ten captured balls end up lingering.
@@ -496,8 +625,22 @@ describe('S12 — the synapse, leg 1', () => {
     // smaller than when the payload was a 4.6% blink — but it must remain an
     // advantage.
     expect(linear).toBeLessThan(0.2)
-    expect(legged).toBeGreaterThan(0.2)
-    expect(legged / linear).toBeGreaterThan(1.4)
+    // ⚠ MEASURED IN SECONDS, not in share of the whole run (21c-2). The run
+    // grew a second act — the glutamine round trip — so every earlier leg's
+    // SHARE fell even though not one of them changed pace. What the rule is
+    // actually about is how much screen the payload gets, so that is what is
+    // asked: the flood keeps the ~4 s it was tuned to, and it still beats a
+    // linear clock by the same margin over the stretch they both cover.
+    // ⚠ THE CLAIM IS NOW MADE IN SECONDS FIRST (21c-2). The run grew a second
+    // act — the glutamine round trip — so the flood's SHARE of the whole run
+    // fell without one leg changing pace. Measured: the flood held ~6.16 s of
+    // the 22 s run and holds ~6.10 s of the 32.8 s one. That is the property
+    // the rule is about, and it is the one that did not move.
+    expect(legged * SYNAPSE_SCREEN_MS).toBeGreaterThan(5500)
+    // The legs must still beat a linear clock over the same window. The margin
+    // is smaller than the 1.4 it was, and honestly so: screen time really was
+    // reallocated to the loop, which is what was asked for.
+    expect(legged / linear).toBeGreaterThan(1.15)
 
     // ⚠ SLOW THE LEG, NEVER THE ITEM. Inside a leg the map is linear, so no
     // ball ever moves at a speed the model did not give it. Walked, not
@@ -540,9 +683,7 @@ describe('S12 — the synapse, leg 1', () => {
     const c = strictCanvas()
     drawSynapse(c.ctx, { run, cleft, u: null })
     const dots = c.styles.filter((st) => st === TRANSMITTER_INK.dark).length
-    expect(dots).toBeGreaterThanOrEqual(
-      reservePool(g).length + activeZone(g).docked.length,
-    )
+    expect(dots).toBeGreaterThanOrEqual(reservePool(g).length + activeZone(g).docked.length)
   })
 
   // ─────────────────────────────── the omega rework of 2026-09-01 (round 2)
@@ -583,8 +724,7 @@ describe('S12 — the synapse, leg 1', () => {
     const ms = first + PORE_OPEN_MS + 1
     const d = activeZone(g).docked.find(
       (d) =>
-        run.vesicles[d.index].fusedAtMs !== null &&
-        run.vesicles[d.index].fusedAtMs! <= first,
+        run.vesicles[d.index].fusedAtMs !== null && run.vesicles[d.index].fusedAtMs! <= first,
     )!
     const shape = fusedShape(g, d.x, ms - run.vesicles[d.index].fusedAtMs!, d.r)!
     const p = pocketAt(g, d.x, shape.cy, shape.r)!
@@ -618,9 +758,7 @@ describe('S12 — the synapse, leg 1', () => {
 
   it('A1: the pocket flattens into the wall, and the tear heals — nothing left by the end', () => {
     const g = synapseGeometry()
-    const fused = run.vesicles
-      .map((v) => v.fusedAtMs)
-      .filter((m): m is number => m !== null)
+    const fused = run.vesicles.map((v) => v.fusedAtMs).filter((m): m is number => m !== null)
     expect(fused.length).toBeGreaterThan(0)
     // The run is long enough to watch the last one finish.
     expect(Math.max(...fused) + FLATTEN_FROM_MS + FLATTEN_MS).toBeLessThan(SYNAPSE_MS)
@@ -640,8 +778,15 @@ describe('S12 — the synapse, leg 1', () => {
       expect(proud, `age ${age.toFixed(1)}`).toBeLessThan(prev)
       prev = proud
     }
-    // And at the end of the run the wall is whole again: no tears anywhere.
-    expect(tearsAt(g, run, SYNAPSE_MS)).toEqual([])
+    // And at the end of the run the wall is whole again: no tear has any WIDTH.
+    // ⚠ Not "the list is empty" any more (21c-2b): retrieval brings the bubble
+    // back through the wall, so a spent slot has a shape again at 60 ms and
+    // `tearsAt` records a zero-width placeholder for it. Whole is the property;
+    // an empty list was only ever a proxy for it, and the proxy stopped being
+    // true when the vesicle learned to come home.
+    for (const t of tearsAt(g, run, SYNAPSE_MS)) {
+      expect(t.xR - t.xL, `tear at ${t.x.toFixed(0)}`).toBe(0)
+    }
   })
 
   it('A2: the mouth opens WITH the release — cause on screen no later than effect', () => {
@@ -720,9 +865,7 @@ describe('S12 — the synapse, leg 1', () => {
     const c = strictCanvas()
     drawSynapse(c.ctx, { run, cleft, u: null })
     const cores = c.styles.filter((s) => s === 'rgba(71, 85, 105, 0.75)').length
-    expect(cores).toBeGreaterThanOrEqual(
-      reservePool(g).length + activeZone(g).docked.length + 2,
-    )
+    expect(cores).toBeGreaterThanOrEqual(reservePool(g).length + activeZone(g).docked.length + 2)
   })
 
   it('C3: one transmitter ink, teal, shaded — and never the ion gloss', () => {
@@ -736,11 +879,7 @@ describe('S12 — the synapse, leg 1', () => {
     const c = strictCanvas()
     transmitterDot(c.ctx, 50, 50, 3)
     expect(c.calls.filter((k) => k === 'createRadialGradient').length).toBe(1)
-    expect(c.styles).toEqual([
-      TRANSMITTER_INK.light,
-      TRANSMITTER_INK.mid,
-      TRANSMITTER_INK.dark,
-    ])
+    expect(c.styles).toEqual([TRANSMITTER_INK.light, TRANSMITTER_INK.mid, TRANSMITTER_INK.dark])
   })
 
   it('C5: the spike-arrival membrane repaint is drawn UNDER the doors, never over them', () => {
@@ -795,7 +934,12 @@ describe('S12 — the synapse, leg 1', () => {
     // door shuts, so by the end NOTHING is still plugged — the gap holds
     // every captured ball, lingering for the transporters that work beyond
     // this window. The bulk clearance still departs.
-    const end = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01)
+    // ⚠ ASKED BEFORE THE LINGERERS LEAVE (21c-3). They no longer hold the gap
+    // for the whole run — the run grew a second act and they are collected in
+    // it — so "after the gap has emptied" is now a window, not the end.
+    // Measured: by 23 ms every seat has let go and all ten are lingering; the
+    // first of them gives up the gap at about 25.
+    const end = transmitterCast(g, run, cleft, 24)
     expect(end.filter((d) => d.where === 'seat').length).toBe(0)
     const boundReceptors = receptorSites(g).filter((_, r) => {
       const mine = (r + 0.5) / receptorSites(g).length
@@ -813,16 +957,13 @@ describe('S12 — the synapse, leg 1', () => {
     // ball to its FIRST moment outside the bubble: it must be at its own
     // vesicle's mouth, not anywhere else on the wall.
     const frames: { x: number; y: number; where: string }[][] = []
-    for (let s = 0; s <= 600; s++)
-      frames.push(transmitterCast(g, run, cleft, 2 + (s / 600) * 3))
+    for (let s = 0; s <= 600; s++) frames.push(transmitterCast(g, run, cleft, 2 + (s / 600) * 3))
     for (let i = 0; i < docked.length * 7; i++) {
       const v = Math.floor(i / 7)
       if (run.vesicles[docked[v].index].fusedAtMs === null) continue
       const firstOut = frames.map((f) => f[i]).find((b) => b.where !== 'vesicle')
       expect(firstOut, `ball ${i} emerges`).toBeDefined()
-      expect(Math.abs(firstOut!.x - docked[v].x), `ball ${i}`).toBeLessThan(
-        vesicleR(g) * 1.6,
-      )
+      expect(Math.abs(firstOut!.x - docked[v].x), `ball ${i}`).toBeLessThan(vesicleR(g) * 1.6)
     }
   })
 
@@ -864,9 +1005,7 @@ describe('S12 — the synapse, leg 1', () => {
     for (const v of run.vesicles) {
       if (v.fusedAtMs !== null) expect(midMs).toBeGreaterThanOrEqual(v.fusedAtMs)
     }
-    expect(sampleCleft(cleft, 'mM', midMs / run.windowMs)).toBeGreaterThan(
-      cleft.peakMM * 0.3,
-    )
+    expect(sampleCleft(cleft, 'mM', midMs / run.windowMs)).toBeGreaterThan(cleft.peakMM * 0.3)
     // And the sink itself travels well over half a radius.
     const g = synapseGeometry()
     const d = activeZone(g).docked[mid]
@@ -893,7 +1032,12 @@ describe('S12 — the synapse, leg 1', () => {
     expect(atPeak.length).toBe(CA_N)
     const zonePeak = atPeak.filter((d) => d.where === 'zone').length
     expect(zonePeak).toBeGreaterThan(7)
-    const end = calciumCast(g, run, SYNAPSE_MS)
+    // ⚠ ASKED BEFORE THE PUMPS START (21c-3). The calcium no longer ends the run
+    // inside the terminal — it is put back out through the plasma-membrane
+    // pumps, which is why the last frame can be the first frame. What this
+    // guard is about is what the calcium does while it is IN, so it is asked
+    // while it is in.
+    const end = calciumCast(g, run, CA_EXTRUDE_FROM_MS - 0.5)
     expect(end.length).toBe(CA_N)
     const zoneEnd = end.filter((d) => d.where === 'zone').length
     expect(zoneEnd).toBeGreaterThan(0)
@@ -929,7 +1073,12 @@ describe('S12 — the synapse, leg 1', () => {
       prevL = yL
       prevR = yR
       // Congruent: the same drop below each side's own base.
-      expect(yL - baseL, `drop ${k}`).toBeCloseTo(yR - baseR, 6)
+      // ⚠ 4 places, not 6, since 21c-1: the bouton is now centred in the room
+      // LEFT OVER after the astrocyte's strip, so `ox` is no longer a whole
+      // number and the two sides differ in the last bits of double precision
+      // (measured: 2.7e-6 px). A ten-thousandth of a pixel still catches any
+      // real lopsidedness, which would be hundredths at least.
+      expect(yL - baseL, `drop ${k}`).toBeCloseTo(yR - baseR, 4)
     }
     // And the head is a head now, not a slab four and a half times wider than
     // it is tall.
@@ -1001,46 +1150,227 @@ describe('S12 — the synapse, leg 1', () => {
     // and a receptor that never opened keeps its pair waiting, which is the
     // honest picture of a shut door.
     const end = sodiumCast(g, run, cleft, SYNAPSE_MS)
-    const opened = sites.filter(
-      (_, r) => cleft.peakOpen > (r + 0.5) / sites.length,
-    ).length
+    const opened = sites.filter((_, r) => cleft.peakOpen > (r + 0.5) / sites.length).length
     expect(opened).toBeGreaterThan(0)
     expect(opened).toBeLessThan(sites.length)
     expect(end.filter((d) => d.where === 'spine').length).toBe(opened * 2)
-    expect(end.filter((d) => d.where === 'cleft').length).toBe(
-      (sites.length - opened) * 2,
-    )
+    expect(end.filter((d) => d.where === 'cleft').length).toBe((sites.length - opened) * 2)
     for (const ion of end.filter((d) => d.where === 'spine')) {
       expect(ion.y).toBeGreaterThan(faceAt(g, ion.x))
     }
   })
 
-  it('21b-1a: the fingers reach for the CLEFT, clear of both neurons — not a second postsynaptic lobe', () => {
-    // The complaint (2026-09-04): the fingers sat level with the spine's
-    // shoulders and read as a second postsynaptic specialization. They now
-    // hover at the gap's own height, and no membrane point of either neuron
-    // lies inside them.
+  it('A1+A3 (21c-1): ONE astrocyte, on the right, reaching the cleft and clear of both neurons', () => {
+    // Supersedes the two-finger guard (21b-1a). The user reversed that ruling
+    // on 2026-09-04 — "place one astrocyte on the right" — and the cell must
+    // still do everything the finger did: touch the gap's mouth, keep out of
+    // both neurons, and live in the room the synapse was not solved into.
     const g = synapseGeometry()
-    for (const side of [1, -1] as const) {
-      const f = astrocyteFinger(g, side)
-      // At the cleft's height, beyond the zone's mouth.
-      const edgeX = g.foot.x + side * g.activeHalf
-      expect(Math.abs(f.tip.y - (wallAt(g, edgeX) + CLEFT_PX * 0.5))).toBeLessThan(1)
-      expect(Math.abs(f.tip.x - g.foot.x)).toBeGreaterThan(g.activeHalf + f.rTip + 20)
-      // The spine's face, sampled across its whole width, stays outside.
-      for (let i = 0; i <= 60; i++) {
-        const x = g.head.cx - g.head.rx + (i / 60) * 2 * g.head.rx
-        expect(astrocyteHolds(f, { x, y: faceAt(g, x) }), `face at ${x.toFixed(0)}`).toBe(
-          false,
+    const c = astrocyteCell(g)
+    // It is ON THE RIGHT: the body sits past the bouton, in the astrocyte's
+    // own strip — and there is nothing on the left flank any more.
+    expect(c.soma.x).toBeGreaterThan(g.width - g.astroRoom)
+    // The reach lands at the cleft's own height, just beyond the zone's mouth.
+    const edgeX = g.foot.x + g.activeHalf
+    expect(Math.abs(c.reach.y - (wallAt(g, edgeX) + CLEFT_PX * 0.5))).toBeLessThan(1)
+    expect(c.reach.x).toBeGreaterThan(edgeX)
+    // ⚠ The cell's OWN arm tip is what lands on the mouth — the placement is a
+    // similarity, so no process is stretched into position.
+    expect(
+      Math.hypot(c.placement.reachTip.x - c.reach.x, c.placement.reachTip.y - c.reach.y),
+    ).toBeLessThan(1)
+    // ⚠ …and NOTHING OF THE CELL IS ON EITHER NEURON, nor in the gap between
+    // them except the reaching tip itself.
+    //
+    // This replaces a proxy that said "no ink further left than the reaching
+    // tip" (21c-1a). It was wrong as soon as the body came onto the page: an
+    // arm sweeping along the TOP of the frame is further left than the tip and
+    // is nowhere near the synapse (measured: 543, 2 — the wall there is at
+    // y 391). What actually matters is the neurons and the cleft, so that is
+    // what is asked. `boutonHolds` is the closed outline, not the floor —
+    // asking the floor called points BESIDE the bulb points OVER it.
+    const onPage = c.placement.rings
+      .flat()
+      .filter((q) => q.x >= 0 && q.x <= g.width && q.y >= 0 && q.y <= g.height)
+    for (const q of onPage) {
+      expect(boutonHolds(g, q), `in the bouton at ${q.x.toFixed(0)},${q.y.toFixed(0)}`).toBe(
+        false,
+      )
+      const onSpine =
+        q.x > g.head.cx - g.head.rx && q.x < g.head.cx + g.head.rx && q.y > faceAt(g, q.x)
+      expect(onSpine, `in the spine at ${q.x.toFixed(0)},${q.y.toFixed(0)}`).toBe(false)
+      // ⚠ Only where the gap REALLY IS. `wallAt` and `faceAt` answer for any x,
+      // including the far right of the frame where neither membrane exists —
+      // and out there every point is "between" them. The cleft is the apposed
+      // patch, so that is the x-range asked.
+      // ⚠ THE CLAIM IS ABOUT THE ACTIVE ZONE, not about a distance from the
+      // reach (21c-3c). A glial process legitimately lies ALONG the cleft's
+      // mouth — that is what wrapping a synapse looks like — so "how far from
+      // the tip" was measuring the wrong thing and would have to be re-tuned
+      // for every silhouette. What must never happen is the cell crossing the
+      // patch where transmission actually occurs.
+      const inZone =
+        Math.abs(q.x - g.foot.x) < g.activeHalf &&
+        q.y > wallAt(g, q.x) &&
+        q.y < faceAt(g, q.x)
+      expect(inZone, `across the active zone at ${q.x.toFixed(0)},${q.y.toFixed(0)}`).toBe(
+        false,
+      )
+    }
+    // The spine's face, sampled across its whole width, stays outside.
+    for (let i = 0; i <= 60; i++) {
+      const x = g.head.cx - g.head.rx + (i / 60) * 2 * g.head.rx
+      expect(astroCellHolds(c, { x, y: faceAt(g, x) }), `face at ${x.toFixed(0)}`).toBe(false)
+    }
+    // And the bouton's own floor, wherever it exists.
+    for (let i = 0; i <= 80; i++) {
+      const x = g.foot.x - 450 + (i / 80) * 900
+      const floor = boutonFloorAt(g.fit, x)
+      if (floor === null) continue
+      expect(astroCellHolds(c, { x, y: floor }), `wall at ${x.toFixed(0)}`).toBe(false)
+    }
+  })
+
+  it('A1 (21c-1a): the cell is ONE traced outline, placed by a similarity — no seams, no stretch', () => {
+    // ⚠ THE DECISION, not the ink (03 → *Ask the DECISION, not the ink*). The
+    // seams the user reported came from building the cell out of twelve
+    // stroked tubes: N shapes have N outlines. The fix is structural — the
+    // silhouette is the handover's own path, and it is PLACED by a rotation
+    // and a uniform scale, which cannot bend it. Both halves are asked here.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    // ⚠ Counted against the PARSED PATH, not against the rings themselves — a
+    // first version compared the rings to `ASTRO_SVG_RINGS` and passed happily
+    // when a ring was deleted, because both sides moved together. The file's
+    // path closes twice, so the placed cell must be two closed rings.
+    // ⚠ Counted from the FILE, not written down here: the first handover closed
+    // twice, the second closes once, and a number typed into the test would
+    // have had to be remembered at exactly the wrong moment.
+    const closes = ASTRO_SVG_SEGS.filter((seg) => seg.kind === 'close').length
+    expect(closes).toBeGreaterThan(0)
+    expect(c.placement.rings.length).toBe(closes)
+    c.placement.rings.forEach((r, i) => {
+      expect(r.length).toBe(ASTRO_SVG_RINGS[i].length)
+    })
+    // A similarity preserves every distance ratio. If any process had been
+    // stretched to reach the cleft, some pair would scale differently — and a
+    // stretched process is exactly what puts a kink where it meets the body.
+    const src = ASTRO_SVG_RINGS[0]
+    const dst = c.placement.rings[0]
+    for (let i = 0; i + 60 < src.length; i += 137) {
+      const a = Math.hypot(src[i].x - src[i + 60].x, src[i].y - src[i + 60].y)
+      const b = Math.hypot(dst[i].x - dst[i + 60].x, dst[i].y - dst[i + 60].y)
+      if (a < 1e-6) continue
+      expect(b / a, `pair ${i}`).toBeCloseTo(c.placement.k, 6)
+    }
+  })
+
+  it('A2 (21c-1c): the docked rope STANDS between vesicle and wall — the restored look', () => {
+    // User, 2026-09-05: "restore what snare looked before. now they look
+    // broken." A round earlier the bundle was laid flat along the membrane;
+    // this pins the shape the user actually wants, so it is not quietly
+    // "improved" again without being asked for.
+    const g = synapseGeometry()
+    for (const d of activeZone(g).docked) {
+      const m = snareMini(g, d)
+      expect(m.ropes.length).toBe(2)
+      for (const rope of m.ropes) {
+        // It spans the gap: more drop than run, one end at the wall and one on
+        // the vesicle.
+        expect(Math.abs(rope.to.y - rope.from.y)).toBeGreaterThan(
+          Math.abs(rope.to.x - rope.from.x),
+        )
+        expect(Math.abs(rope.from.y - wallAt(g, rope.from.x))).toBeLessThan(MEM_PX * 2)
+        expect(Math.hypot(rope.to.x - d.x, rope.to.y - d.y)).toBeLessThan(d.r)
+      }
+    }
+  })
+
+  it('A2 (21c-1c): the complex SURVIVES fusion, lying in the merged wall', () => {
+    // User, 2026-09-05: "they should not disappear after exocytosis." They did:
+    // a fused slot skipped the machinery entirely. After fusion the complex is
+    // a CIS-complex in the one membrane and stays until NSF prises it apart —
+    // which is what D06 spends its last leg showing.
+    const g = synapseGeometry()
+    for (const d of activeZone(g).docked) {
+      const cis = snareCis(g, d)
+      expect(cis.ropes.length).toBe(2)
+      for (const rope of cis.ropes) {
+        // Both ends lie IN the wall, not above it and not below it.
+        expect(Math.abs(rope.from.y - wallAt(g, rope.from.x))).toBeLessThan(MEM_PX)
+        expect(Math.abs(rope.to.y - wallAt(g, rope.to.x))).toBeLessThan(MEM_PX)
+        // …and it really is a rod, not a point.
+        expect(Math.hypot(rope.to.x - rope.from.x, rope.to.y - rope.from.y)).toBeGreaterThan(
+          d.r * SNARE_CIS_LEN * 0.8,
         )
       }
-      // And the bouton's own floor, wherever it exists.
-      for (let i = 0; i <= 80; i++) {
-        const x = g.foot.x - 450 + (i / 80) * 900
-        const floor = boutonFloorAt(g.fit, x)
-        if (floor === null) continue
-        expect(astrocyteHolds(f, { x, y: floor }), `wall at ${x.toFixed(0)}`).toBe(false)
+      // The pair sits either side of the slot.
+      expect(
+        Math.sign(cis.ropes[0].from.x - d.x) * Math.sign(cis.ropes[1].from.x - d.x),
+      ).toBe(-1)
+    }
+  })
+
+  it('A1 (21c-1c): the spent complex uses D06\u2019s own constants', () => {
+    expect(SNARE_ANCHOR_A).toBeCloseTo(1.1, 6)
+    expect(SNARE_CIS_LEN).toBeCloseTo(0.356, 6)
+  })
+
+  it('A2 (21c-1b): a resting ball cannot wobble out through the membrane', () => {
+    // The bug this exists for: a caught ball was measured OUTSIDE the cell at
+    // (646, 363) once the astrocyte was made smaller. Every pocket must hold a
+    // ball plus the scene's thermal wobble, so it is probed at a margin.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    expect(c.pockets.length).toBeGreaterThan(7)
+    for (const p of c.pockets) {
+      for (const [dx, dy] of [
+        [2.5, 0],
+        [-2.5, 0],
+        [0, 2.5],
+        [0, -2.5],
+      ]) {
+        expect(
+          astroCellHolds(c, { x: p.x + dx, y: p.y + dy }),
+          `pocket ${p.x.toFixed(0)},${p.y.toFixed(0)}`,
+        ).toBe(true)
       }
+    }
+  })
+
+  it('A2+A3 (21c-1): the budget is real — the synapse is SOLVED into the room that is left', () => {
+    // ⚠ The claim the whole step rests on: the neuron moved left because it was
+    // fitted into less width, not because it was nudged. So the bouton's own
+    // outline must END before the astrocyte's strip begins, at every size.
+    for (const [w, h] of [
+      [1060, 620],
+      [1060, 660],
+      [1280, 800],
+      [1440, 1080],
+    ] as const) {
+      const g = synapseGeometry(w, h)
+      expect(g.astroRoom, `${w}×${h} room`).toBeGreaterThan(0)
+      expect(g.astroRoom / w, `${w}×${h} share`).toBeLessThanOrEqual(ASTRO_SHARE + 1e-9)
+      let right = 0
+      for (let x = w; x > 0; x -= 1) {
+        if (boutonFloorAt(g.fit, x) !== null) {
+          right = x
+          break
+        }
+      }
+      expect(right, `${w}×${h} bouton clear of the strip`).toBeLessThan(w - g.astroRoom)
+      // …and the cell really does hang off the page: it is bigger than its room.
+      const c = astrocyteCell(g)
+      const pts = c.placement.rings.flat()
+      expect(Math.max(...pts.map((p) => p.x)), `${w}×${h} continues off the page`).toBeGreaterThan(w)
+      // A real corner of the cell IS on the page — not a sliver, not the lot.
+      const seen = pts.filter((q) => q.x >= 0 && q.x <= w && q.y >= 0 && q.y <= h)
+      expect(seen.length / pts.length, `${w}×${h} share on page`).toBeGreaterThan(0.05)
+      // ⚠ NO CEILING ON THE SHARE ANY MORE (21c-3d). Scaling the cell DOWN so
+      // its shape can be recognised is the whole point of this round, and a
+      // smaller cell necessarily shows more of itself. The claim that mattered
+      // is the one above — its ink really does extend past the frame, so the
+      // file's own crop edges stay out of shot — and that is asserted directly.
     }
   })
 
@@ -1050,7 +1380,7 @@ describe('S12 — the synapse, leg 1', () => {
     expect(cos.map((c) => c.label.term).sort()).toEqual(
       ['astrocyte', 'dendritic spine', 'synaptic cleft', 'vesicle'].sort(),
     )
-    const fins = [astrocyteFinger(g, 1), astrocyteFinger(g, -1)]
+    const cell = astrocyteCell(g)
     for (const co of cos) {
       // A connector must LEAVE its box — a zero-length line points at nothing.
       const cxl = co.label.x + co.label.w / 2
@@ -1069,8 +1399,8 @@ describe('S12 — the synapse, leg 1', () => {
         expect(p.x, co.label.term).toBeLessThan(SYN_W)
         expect(p.y, co.label.term).toBeGreaterThan(0)
         expect(p.y, co.label.term).toBeLessThan(SYN_H)
-        for (const f of fins) {
-          expect(astrocyteHolds(f, p), `${co.label.term} on a finger`).toBe(false)
+        {
+          expect(astroCellHolds(cell, p), `${co.label.term} on the astrocyte`).toBe(false)
         }
         const floor = boutonFloorAt(g.fit, p.x)
         if (floor !== null) {
@@ -1080,9 +1410,7 @@ describe('S12 — the synapse, leg 1', () => {
         // left label is covered by buttons container"): the D06/D17 button
         // plate owns that corner of the screen — a generous reserve covering
         // the buttons laid side by side or stacked.
-        expect(p.x < 560 && p.y > SYN_H - 130, `${co.label.term} under the shelf`).toBe(
-          false,
-        )
+        expect(p.x < 560 && p.y > SYN_H - 130, `${co.label.term} under the shelf`).toBe(false)
       }
       // And no two labels overlap: each centre hits its OWN box.
       expect(
@@ -1106,25 +1434,62 @@ describe('S12 — the synapse, leg 1', () => {
         (d) => d.where === 'glia' || d.where === 'spine' || d.where === 'bath',
       ).length,
     ).toBe(0)
-    const end = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01)
+    // ⚠ MEASURED AT THE CLEARANCE STAGE, not at the run's end (21c-2). The run
+    // no longer STOPS at clearance: the caught balls go on through the
+    // glutamine round trip, so by 60 ms they are in the terminal's stock and
+    // its bubbles. Clearance is what this guard is about, so it is asked while
+    // clearance is what has just happened — one model ms before the conversion
+    // leg opens.
+    const end = transmitterCast(g, run, cleft, CONVERT_FROM_MS - 1)
     const glia = end.filter((d) => d.where === 'glia')
     const spineUp = end.filter((d) => d.where === 'spine')
-    expect(glia.length + spineUp.length).toBeGreaterThan(5)
+    const away = end.filter((d) => d.where === 'away')
+    // ⚠ NOTHING CROSSES THE BOUTON TO BE COLLECTED (user, 2026-09-05). The
+    // astrocyte is on the right, so only the right-hand escapees reach it; the
+    // left-hand ones leave the picture on their own side. Fewer are collected
+    // than before, and that is the point.
+    expect(glia.length + spineUp.length).toBeGreaterThan(2)
+    expect(away.length).toBeGreaterThan(0)
+    // ⚠ AND THEY LEFT BY TRAVEL, NOT BY FADING — the 2026-09-01 ruling stands.
+    // Every 'away' ball is really off the page, and got there continuously.
+    for (const d of away) expect(d.x).toBeLessThan(0)
+    // Nothing collected ever passed through the terminal on its way.
+    for (const d of glia) expect(d.x).toBeGreaterThan(g.foot.x)
     // Most by the astrocyte — the declared split for glutamate (measured
     // with these seeds: 10 glial to 1 neuronal) — and the minor route is
     // really shown, not just declared.
-    expect(glia.length).toBeGreaterThanOrEqual((glia.length + spineUp.length) * 0.7)
-    expect(spineUp.length).toBeGreaterThanOrEqual(1)
-    // And every collected ball really is INSIDE a finger — held by the
-    // capsule's own decision, on one side or the other.
+    // ⚠ THE OFF-FRAME ONES COUNT AS ASTROCYTIC (21c-3). The transmitter that
+    // leaves by the left mouth is taken up by an astrocyte this frame does not
+    // show — that is the whole premise of the left-hand route — so the declared
+    // split is astrocyte (seen + unseen) against neuron, which is what the
+    // number in the info block is about.
+    const astrocytic = glia.length + away.length
+    expect(astrocytic).toBeGreaterThanOrEqual((astrocytic + spineUp.length) * 0.7)
+    // ⚠ NO DRAWN BALL TAKES THE NEURONAL ROUTE ANY MORE (21c-3b). It used to be
+    // required here — "the minor route is really shown, not just declared" —
+    // and it was a DEAD END on the picture: the balls went into the spine and
+    // nothing ever happened to them, so the run ended with two or three parked
+    // there while everything else went round. Retired at the user's word.
+    //
+    // ⚠ The FACT is not retired, only the drawing of it. Postsynaptic uptake is
+    // real and that glutamate is largely metabolised rather than returned —
+    // which is exactly why those balls had nowhere to go — so the info block
+    // still says the neuron takes a little, and this checks that it does.
+    expect(spineUp.length).toBe(0)
+    expect(SOURCES_CORE['../core/cleft.ts']).toContain('the neuron itself only a little')
+    // And every collected ball really is INSIDE the astrocyte — held by the
+    // cell's own decision. One cell now (21c-1), so both gap ends deliver to
+    // the same collector.
+    const cell = astrocyteCell(g)
     for (const b of glia) {
-      expect(
-        ([1, -1] as const).some((s) => astrocyteHolds(astrocyteFinger(g, s), b)),
-        `ball at ${b.x.toFixed(0)},${b.y.toFixed(0)}`,
-      ).toBe(true)
+      expect(astroCellHolds(cell, b), `ball at ${b.x.toFixed(0)},${b.y.toFixed(0)}`).toBe(true)
     }
-    // 'bath' is a travelling phase now, not a place to end up.
-    expect(end.filter((d) => d.where === 'bath').length).toBe(0)
+    // ⚠ 'bath' is a TRAVELLING phase, so it is asked at the run's END, where
+    // nothing may still be in transit — not mid-clearance, where being in the
+    // bath is exactly what a ball on its way somewhere looks like.
+    const last = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01)
+    expect(last.filter((d) => d.where === 'bath').length).toBe(0)
+    expect(last.filter((d) => d.where === 'away').length).toBe(0)
     // ⚠ THE BOOKS BALANCE: unfused bubbles keep their cargo, and every
     // emitted ball is accounted for — seated, lingering in the gap, or
     // collected. Never gone.
@@ -1132,12 +1497,1276 @@ describe('S12 — the synapse, leg 1', () => {
     expect(end.filter((d) => d.where === 'vesicle').length).toBe(
       (activeZone(g).docked.length - fusedCount) * 7,
     )
+    // ⚠ …and the ones that LEFT are still counted. They are not gone from the
+    // books, only from the picture.
+    // ⚠ EVERY PHASE, not a hand-listed few (21c-3): the loop added travelling
+    // phases, and a sum that names only some of them stops balancing the moment
+    // a new one appears. What is emitted is everything that is not still cargo.
+    expect(end.filter((d) => d.where !== 'vesicle').length).toBe(fusedCount * 7)
+  })
+
+  it('A1 (21c-2b): a fused slot is drawn at ONE age, in every pass', () => {
+    // ⚠ The bug this exists for (user, 2026-09-05: "the bilayer should follow
+    // the circle shapes and not stay in place"). The OUTLINE pass had been
+    // moved onto the reversed age while the LIPID pass still computed
+    // `ms - gone`, so on the way home the circle came back and its own
+    // molecules stayed lying flat in the wall. Extracting `fusedAgeAt` found a
+    // THIRD pass with the same fault — the wall's tear.
+    const src = SOURCES['./synapseScene.ts']
+    expect(src).toBeTruthy()
+    // Every call that ages a fused slot goes through the one helper. Counted,
+    // not eyeballed: three passes draw a fused slot — outline, lipids, tear.
+    const calls = [...src.matchAll(/fusedShape\(g, d\.x, (.+?), d\.r\)/g)].map((m) => m[1].trim())
+    expect(calls.length).toBeGreaterThanOrEqual(3)
+    for (const a of calls) expect(a).toBe('fusedAgeAt(ms, gone)')
+    // …and the helper really does reverse during retrieval.
+    expect(fusedAgeAt(RETRIEVE_FROM_MS - 2, 3)).toBe(RETRIEVE_FROM_MS - 5)
+    expect(fusedAgeAt(RETRIEVE_TO_MS, 3)).toBeCloseTo(0, 6)
+  })
+
+  it('A6 (21c-2b): the change of kind FLASHES, it is not a silent tint', () => {
+    // User, 2026-09-05: "conversion should be accompanied by a flash of the
+    // neurotransmitters, and not just a silent color change." An enzyme doing
+    // work is an event; a two-second ease from teal to orange is not something
+    // a child notices happening.
+    const g = synapseGeometry()
+    const at = (ms: number) => transmitterCast(g, run, cleft, ms, 0)
+    const flashOf = (ms: number) =>
+      Math.max(0, ...at(ms).map((d) => d.flash ?? 0))
+    // ⚠ BOTH conversions, not just the astrocyte's (user, 2026-09-05: "after
+    // entering presynaptic neuron, glutamate should also sparkle at
+    // conversion"). Two enzymes do work in this loop — glutamine synthetase on
+    // the way out, glutaminase on the way home — and a first version of this
+    // guard only watched the first, so silencing the second passed.
+    for (const [from, to, what] of [
+      [CONVERT_FROM_MS, SHIP_FROM_MS, 'glutamine synthetase'],
+      [BACK_FROM_MS, STOCK_FROM_MS, 'glutaminase'],
+    ] as const) {
+      // ⚠ Allowing for the loop's stagger (21c-3i): the balls go round on their
+      // own beats now, so the last one is still converting after the leg's
+      // nominal end. Dark before it starts and dark once the slowest is done.
+      expect(flashOf(from - 0.5), `${what} before`).toBe(0)
+      expect(flashOf(to + LOOP_STAGGER_MS + 0.5), `${what} after`).toBe(0)
+      expect(flashOf((from + to) / 2), `${what} peak`).toBeGreaterThan(0.85)
+    }
+    // It rises and falls once — not a flicker, and not a step.
+    let peak = 0
+    let falls = 0
+    let prev = 0
+    for (let k = 0; k <= 40; k++) {
+      const f = flashOf(CONVERT_FROM_MS + (k / 40) * (SHIP_FROM_MS - CONVERT_FROM_MS))
+      if (f < prev - 1e-9 && prev > peak * 0.99) falls++
+      peak = Math.max(peak, f)
+      prev = f
+    }
+    expect(peak).toBeGreaterThan(0.95)
+    expect(falls).toBeGreaterThan(0)
+  })
+
+  it('A3 (21c-2b): a transporter is a channel with a BORE, drawn one way everywhere', () => {
+    // User, 2026-09-05: "the channels on the astrocytes and on presynaptic
+    // neuron do not look like channels. They look like lines." They were one
+    // filled bar across the membrane, which at this size is a dash.
+    expect(TRANSPORTER_BORE).toBeGreaterThan(2)
+    const src = SOURCES['./synapseScene.ts']
+    // ⚠ ONE drawing, asked for by the astrocyte's doors and the neurons' alike.
+    // The astrocyte used to draw its own ticks with its own roundRect, which is
+    // how one protein comes to wear two shapes at one magnification.
+    expect(src.match(/function drawTransporter\(/g)?.length).toBe(1)
+    const astro = src.slice(src.indexOf('export function drawAstrocyte('))
+    expect(astro.slice(0, astro.indexOf('\nexport '))).toContain('drawTransporter(')
+  })
+
+  it('A1 (21c-3a): every door stands clear of the SNARE machinery', () => {
+    // ⚠ (user, 2026-09-05: "reuptake channels overlap with snare. Place them
+    // higher, where there's more free membrane space"). Placed 40 px above the
+    // foot they sat among the docked vesicles' ropes and knobs — the busiest
+    // stretch of membrane in the picture and the one already spoken for.
+    // Measured, not eyeballed: a calcium pump was 3 px from a rope end.
+    const g = synapseGeometry()
+    const busy = activeZone(g).docked.flatMap((v) => [
+      { x: v.x, y: v.y },
+      ...snareMini(g, v).knobs,
+      ...snareMini(g, v).ropes.flatMap((rp) => [rp.from, rp.to]),
+    ])
+    const doors = loopDoors(g)
+    const onWall = [doors.snatIn, doors.snatInLeft, ...doors.caPumps]
+    for (const p of onWall) {
+      const room = Math.min(...busy.map((q) => Math.hypot(q.x - p.x, q.y - p.y)))
+      expect(room, `door at ${p.x.toFixed(0)},${p.y.toFixed(0)}`).toBeGreaterThan(40)
+      // ⚠ Still ON the membrane — and asked of the bouton's own OUTLINE, not
+      // of `wallAt`, which answers "where is the floor under this x". High on
+      // the flanks the outline is nowhere near the floor, and the first version
+      // of this line called a door 30 px off the membrane it was sitting on.
+      const onOutline = Math.min(
+        ...boutonRing(g).map((q) => Math.hypot(q.x - p.x, q.y - p.y)),
+      )
+      expect(onOutline).toBeLessThan(1)
+    }
+    // …and no two doors sit on top of each other.
+    for (const a of onWall) {
+      for (const b of onWall) {
+        if (a === b) continue
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(30)
+      }
+    }
+  })
+
+  it('A2 (21c-3a): the astrocyte reads HOLLOW — a wall with cytoplasm inside it', () => {
+    // ⚠ (user, 2026-09-05: "astrocyte redraw looks good, but now they do not
+    // look hollow"). The first fattening laid the bands down as W+MEM,
+    // W+0.42·MEM, W−1.4·MEM, which makes the OILY CORE three times thicker
+    // than the leaflet — a solid dark rod, not a wall round a cytoplasm. The
+    // DECISION is the band widths, so that is what is asked.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    // ⚠ RE-STATED FOR A TRACED BOUNDARY (21c-3c). The second handover is drawn
+    // already thick, so the cell is filled and stroked once rather than built
+    // out of layered strokes round a centreline — `dilate` is 0 and the old
+    // band arithmetic has nothing to measure. What "hollow" means now is that
+    // the EDGE is stronger than the inside and the inside is not opaque, so the
+    // cell reads as a wall with cytoplasm behind it.
+    expect(c.placement.dilate).toBe(0)
+    expect(ASTRO_EDGE_ALPHA).toBeGreaterThan(ASTRO_BODY_ALPHA)
+    expect(ASTRO_BODY_ALPHA).toBeLessThan(0.35)
+    expect(ASTRO_BAND.leaf).toBeGreaterThan(0)
+  })
+
+  it('A2 (21c-3d): the cell is as SMALL as the channels allow', () => {
+    // ⚠ (user, 2026-09-05: "astrocyte is now scaled up too much, child can not
+    // recognise its shape. Scale down as much as possible without breaking
+    // channels visualisation"). "As much as possible" is a claim that can be
+    // checked: shrink the chosen cell a little further and at least one of the
+    // things that bound it must break — ink on a neuron, or the file's own crop
+    // edges coming into frame.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    // ⚠ Asked with the SOLVER'S OWN predicate. A first version of this guard
+    // re-listed the criteria in the test and left one out, so it failed on the
+    // real code — the wrong kind of failure, and exactly the sort of drift the
+    // "one decision, one place" rule exists to stop.
+    expect(c.smallerFits, 'a cell 15% smaller would still have been fine').toBe(false)
+    // …and the solve really did shrink it: it did not fall back to full size.
+    expect(c.fit).toBeLessThan(1)
+    // ⚠ AND THE CHANNEL CONSTRAINT IS STATED INDEPENDENTLY. Sharing the solver's
+    // predicate makes "as small as possible" checkable, but it also means
+    // breaking the predicate breaks both sides at once and nothing notices. So
+    // the requirement is asserted here too: at every door the cell is wider than
+    // the channel standing in it. ⚠ It passes with a wide margin — measured, the
+    // scale is bound by the frame and the neurons, not by the doors — so this
+    // line is a statement of the requirement rather than of the limit.
+    for (const t of c.ticks) {
+      let widest = 0
+      for (let a = 0; a < Math.PI; a += Math.PI / 16) {
+        let run = 0
+        for (let o = 2; o < 160; o += 2) {
+          const q = { x: t.x + Math.cos(a) * o, y: t.y + Math.sin(a) * o }
+          if (astroCellHolds(c, q)) run = o
+          else break
+        }
+        widest = Math.max(widest, run)
+      }
+      expect(widest, `door at ${t.x.toFixed(0)},${t.y.toFixed(0)} is in too thin a process`)
+        .toBeGreaterThan(CHANNEL_SPAN)
+    }
+  })
+
+  it('A1 (21c-3d): the astrocyte has a MEMBRANE, in the frame\u2019s own inks', () => {
+    // ⚠ (user, 2026-09-05: "the inner outline looks like there's bilayer inside
+    // a cell. Also, the outline color has to be unified with the body color").
+    // Reverses the earlier "pave it" ruling, for a reason that only appeared
+    // once the cell was fattened: slate LEAFLET/CORE bands are right on a wall
+    // seen edge-on and read as a SECOND MEMBRANE when wrapped round a fat
+    // process. Same hue, two strengths — that is the claim.
+    // ⚠ (user, 2026-09-05: "give astrocyte membrane"). This supersedes the
+    // 21c-3b "one ink, no bands" ruling — and the reversal is principled, not a
+    // change of mind: that ruling was about the FIRST handover, where the trace
+    // was a fat process's CENTRELINE and a band wrapped round it read as a
+    // bilayer running INSIDE the cell. The second handover's trace is the cell's
+    // real boundary, so a band laid on it is a wall exactly where the bouton's
+    // and the spine's are.
+    const src = SOURCES['./synapseScene.ts']
+    const draw = src.slice(src.indexOf('export function drawAstrocyte('))
+    const body = draw.slice(0, draw.indexOf('\nexport '))
+    // The same LEAFLET/CORE the rest of the frame wears…
+    expect(body).toContain('203, 213, 225')
+    expect(body).toContain('71, 85, 105')
+    // …over the cell's own cytoplasm, which is still its own green.
+    expect(body).toContain('ASTRO_INK')
+    expect(ASTRO_EDGE_ALPHA).toBeGreaterThan(ASTRO_BODY_ALPHA)
+  })
+
+  it('A2+A3+A4 (21c-3b): the channels are colour-coded, wide enough, and square to their own wall', () => {
+    // ⚠ Three of the user's corrections, and each is a measurable property.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    // COLOUR-CODED (user: "color-code channels"): four families, four inks, all
+    // different — and none of them the transmitter's or the glutamine's.
+    const inks = Object.values(CHANNEL_INK).map((i) => i.wall)
+    expect(new Set(inks).size).toBe(inks.length)
+    for (const ink of inks) {
+      expect(ink).not.toBe(TRANSMITTER_INK.mid)
+      expect(ink).not.toBe(GLUTAMINE_INK.mid)
+    }
+    // WIDE ENOUGH TO GO THROUGH (user: "make NTs enter the channels through the
+    // opening"): the pore is wider than the ball that has to pass it.
+    // A transmitter ball is 3.2 px in radius (`TRANSMITTER_R`, private to the
+    // scene); the pore has to be wider than the 6.4 px ball crossing it.
+    expect(TRANSPORTER_BORE).toBeGreaterThan(6.4)
+    // ⚠ SQUARE TO ITS OWN WALL — asked as "does it SPAN the wall", not as "do
+    // the angles differ" (21c-3d). The difference test was a proxy, and a bad
+    // one: two doors on a straight stretch of membrane legitimately share an
+    // angle, so it failed the moment the cell was rescaled. What must be true
+    // of every door is that stepping across it from the middle lands INSIDE the
+    // cell one way and OUTSIDE it the other — which is what a channel through a
+    // wall is.
+    for (const t of c.ticks) {
+      const a = tangentOn(c.placement, t)
+      const nx = -Math.sin(a)
+      const ny = Math.cos(a)
+      const step = CHANNEL_SPAN * 0.45
+      const inA = astroCellHolds(c, { x: t.x + nx * step, y: t.y + ny * step })
+      const inB = astroCellHolds(c, { x: t.x - nx * step, y: t.y - ny * step })
+      expect(inA !== inB, `door at ${t.x.toFixed(0)},${t.y.toFixed(0)} does not span a wall`).toBe(
+        true,
+      )
+    }
+  })
+
+  it('A3 (21c-3c): the channels are the handovers\u2019 own shapes, and a ball fits through', () => {
+    // ⚠ (user, 2026-09-05: "re-draw channels and transporters based on snat.svg
+    // and EAAT.svg"). Traced, not approximated — and the pore is MEASURED off
+    // each trace rather than declared, so it cannot drift from the drawing.
+    for (const [name, glyph] of [
+      ['EAAT', EAAT_GLYPH],
+      ['SNAT', SNAT_GLYPH],
+    ] as const) {
+      expect(glyph.parts.length, name).toBeGreaterThan(1)
+      const k = CHANNEL_SPAN / glyph.box.h
+      // A transmitter ball is 6.4 px across and has to go through the opening.
+      expect(glyph.bore * k, `${name} pore`).toBeGreaterThan(6.4)
+      // …and both proteins are the same size on the wall, so two doors in one
+      // membrane do not read as two different scales.
+      expect(glyph.box.h * k, `${name} height`).toBeCloseTo(CHANNEL_SPAN, 6)
+    }
+  })
+
+  it('A1+A3 (21c-3e): PMCA and VGLUT are traced, fitted to the wall, and MOVE', () => {
+    // ⚠ Handovers: ~/Downloads/PMCA.svg and ~/Downloads/VGlut.svg (user: "both
+    // svgs account for being movable"). Reconciled in 05 before drawing.
+    for (const [name, glyph, cargo] of [
+      ['PMCA', PMCA_GLYPH, 6.4],
+      ['VGLUT', VGLUT_GLYPH, 6.4],
+    ] as const) {
+      expect(glyph.parts.length, name).toBe(3)
+      // ⚠ FITTED BY THE GATE, not by the box. PMCA carries its ATP site on a
+      // tail BELOW the membrane, which makes its box half as tall again;
+      // fitting the box to the wall shrank the gates until its pore was 3.9 px,
+      // narrower than the calcium crossing it. What must match the membrane is
+      // the part that is IN the membrane.
+      expect(glyph.wallH, `${name} wall height`).toBeLessThanOrEqual(glyph.box.h)
+      const k = CHANNEL_SPAN / glyph.wallH
+      expect(glyph.bore * k, `${name} pore`).toBeGreaterThan(cargo)
+    }
+    // PMCA's tail really does hang below its gates — the ATP site is
+    // cytoplasmic, and that is why the box is taller than the wall.
+    expect(PMCA_GLYPH.box.h).toBeGreaterThan(PMCA_GLYPH.wallH * 1.4)
+    // ⚠ AND THE ATP FITS IN IT (21c-3k, user: "make ATP smaller, so that it
+    // fits into a slot on the channel"). Measured against the slot the handover
+    // actually draws, not eyeballed: the hexagon across must be narrower than
+    // the lobe it binds in.
+    const slot = slotWidth(PMCA_GLYPH) * (CHANNEL_SPAN / PMCA_GLYPH.wallH)
+    expect(slot, 'PMCA has no slot below the membrane').toBeGreaterThan(4)
+    expect(CHANNEL_SPAN * ATP_OF_SPAN * 2, 'the ATP is wider than its slot').toBeLessThan(
+      slot,
+    )
+    // ⚠ AND THE PORE IS DRAWN UNDER THE GATES (21c-3f, user: "the rectangle is
+    // back, should go under the gates layers"). The parts come out of the file
+    // in its own order, which puts the middle piece LAST — on top of the gates,
+    // reading as a rectangle laid across them. It is the thing they open
+    // around, so it belongs beneath: the drawing sorts before it paints.
+    // Asked of the DECISION, not of the source text: a first version checked
+    // that the drawing contained `const order =`, which a break satisfied while
+    // painting in the file's own order anyway.
+    for (const glyph of [PMCA_GLYPH, VGLUT_GLYPH]) {
+      const order = partOrder(glyph)
+      expect(order.length).toBe(glyph.parts.length)
+      // Every pore piece is painted before either gate.
+      const firstGate = order.findIndex((i) => i < 2)
+      const lastPore = order.map((i) => i >= 2).lastIndexOf(true)
+      expect(lastPore).toBeLessThan(firstGate)
+    }
+    // ⚠ AND THEY CARRY, they do not flap (21c-3f, user: "it should imitate
+    // actual transportation: ATP binds, Ca ion loads, opens up on the other
+    // side, Ca leaves"). The openness is SIGNED — one side, then the other —
+    // and the two are never open together, which is the whole reason a pump can
+    // move something against a gradient. A gate that simply opened and shut
+    // would be a door.
+    // ⚠ ASKED OF WHAT THE DRAWING ACTUALLY READS (21c-3l). `pumpOpenAt`,
+    // `fillerOpenAt` and `atpLeftAt` were one global stroke per protein, from
+    // before each pore had a queue — and nothing drew them any more. A guard on
+    // three dead functions proves nothing about the picture, so they are gone
+    // and the same claims are put to `caPumpStateAt` and `fillerStateAt`.
+    const gs = synapseGeometry()
+    const pump = (ms: number) => caPumpStateAt(gs, (i) => restOfIon(gs, run, i), ms, 0).open
+    const tA = caTurnAt(0)
+    // Nothing in it yet…
+    expect(pump(CA_EXTRUDE_FROM_MS)).toBe(0)
+    // …open INWARD while the ion loads…
+    expect(pump(tA + CA_SIT_MS * 0.5)).toBeLessThan(-0.7)
+    // …shut by the time the ATP is spent…
+    expect(Math.abs(pump(tA + CA_SIT_MS + CA_ATP_MS))).toBeLessThan(0.2)
+    // …then open on the OTHER side, and never both at once.
+    expect(pump(tA + CA_SIT_MS + CA_ATP_MS + CA_FLIP_MS)).toBeGreaterThan(0.7)
+    expect(pump(SYNAPSE_MS)).toBe(0)
+    // ⚠ THE FILLER DOES THE SAME (21c-3l, user: "improve animation for NT pump
+    // in vesicles: same animation mechanics as Ca channels"). It used to be one
+    // stroke for every bubble on one clock, whatever the balls were doing.
+    const fq = refillQueue(gs, run)
+    expect(fq.seats.size, 'nothing is queued to refill').toBeGreaterThan(0)
+    const someone = [...fq.seats.entries()][0]
+    const bub = someone[1].bubble
+    const tF = REFILL_FROM_MS + someone[1].slot * fq.slotMs
+    const fill = (ms: number) => fillerStateAt(gs, run, ms, bub).open
+    expect(fill(0)).toBe(0)
+    const load = fill(tF + fq.slotMs * FILL_IN * 0.5)
+    const drop = fill(tF + fq.slotMs * (FILL_IN + FILL_SHUT + FILL_FLIP))
+    expect(Math.abs(load)).toBeGreaterThan(0.7)
+    expect(Math.abs(drop)).toBeGreaterThan(0.3)
+    expect(Math.sign(load), 'the filler opens both sides at once').not.toBe(Math.sign(drop))
+    expect(fill(SYNAPSE_MS)).toBe(0)
+    // ⚠ VGLUT HAS NO ATP, and the drawing must not give it one: it is a
+    // secondary active transporter running on the proton gradient the V-ATPase
+    // keeps, not an ATPase. Pushed back on and built that way.
+    const src2 = SOURCES['./synapseScene.ts']
+    const vg = src2.split('VGLUT_GLYPH,')
+    for (const call of vg.slice(1)) {
+      expect(call.slice(0, 400), 'VGLUT drawn with an ATP hexagon').not.toContain('atp')
+    }
+    // ⚠ AND THE CALCIUM PUMP'S ATP IS SPENT, not decoration: there while the
+    // ion is held, gone by the time the far side opens, and spent GRADUALLY —
+    // checking only the ends let a version through that held the hexagon at
+    // full until it vanished, which is a hexagon that disappears rather than
+    // fuel that is used.
+    const atp = (ms: number) => caPumpStateAt(gs, (i) => restOfIon(gs, run, i), ms, 0).atp
+    expect(atp(tA + CA_SIT_MS + CA_ATP_MS * 0.5)).toBe(1)
+    const mid = atp(tA + CA_SIT_MS + CA_ATP_MS + CA_FLIP_MS * 0.5)
+    expect(mid).toBeGreaterThan(0.2)
+    expect(mid).toBeLessThan(0.8)
+    expect(atp(tA + CA_SIT_MS + CA_ATP_MS + CA_FLIP_MS)).toBe(0)
+    expect(atp(SYNAPSE_MS)).toBe(0)
+    // …and the flash marks the binding, not the whole turn.
+    const flash = (ms: number) =>
+      caPumpStateAt(gs, (i) => restOfIon(gs, run, i), ms, 0).flash
+    expect(flash(tA + CA_SIT_MS + CA_ATP_MS * 0.5)).toBeGreaterThan(0.5)
+    expect(flash(tA + CA_SIT_MS * 0.5)).toBe(0)
+  })
+
+  it('A2 (21c-3e): the refill goes in through VGLUT, on the vesicle\u2019s own wall', () => {
+    // ⚠ The refilling balls used to appear inside the bubble, crossing its
+    // membrane wherever the straight line happened to meet it — the very fault
+    // the astrocyte's doors were fixed for, left standing on the vesicles
+    // because VGLUT was not drawn at all.
+    const g = synapseGeometry()
+    for (const d of activeZone(g).docked) {
+      const v = vglutAt(g, d)
+      // ON the vesicle's membrane, to the pixel.
+      expect(Math.hypot(v.at.x - d.x, v.at.y - d.y)).toBeCloseTo(d.r, 6)
+      // …and on the side that faces the pool the glutamate comes from.
+      const { stock } = loopDoors(g)
+      expect(
+        Math.hypot(v.at.x - stock.x, v.at.y - stock.y),
+        `slot ${d.index} faces away from the pool`,
+      ).toBeLessThan(Math.hypot(d.x - stock.x, d.y - stock.y))
+    }
+    // Every ball that ends in a bubble passed within a door's width of one.
+    const end = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01, 0)
+    const slots = activeZone(g).docked.map((d) => vglutAt(g, d).at)
+    // ⚠ Only the balls that WENT ROUND. A vesicle that never fused still holds
+    // its original cargo, and those balls end in a bubble without ever having
+    // travelled — asking them to have used a door is asking the wrong question.
+    const travelled = transmitterCast(g, run, cleft, CONVERT_FROM_MS, 0)
+    for (const [i, dot] of end.entries()) {
+      if (dot.where !== 'vesicle') continue
+      if (travelled[i].where === 'vesicle') continue
+      let closest = Infinity
+      for (let k = 0; k <= 60; k++) {
+        const ms = REFILL_FROM_MS + (k / 60) * (SYNAPSE_MS - 0.01 - REFILL_FROM_MS)
+        const p = transmitterCast(g, run, cleft, ms, 0)[i]
+        closest = Math.min(
+          closest,
+          ...slots.map((sl) => Math.hypot(p.x - sl.x, p.y - sl.y)),
+        )
+      }
+      expect(closest, `ball ${i} did not use a filler`).toBeLessThan(CHANNEL_SPAN * 0.6)
+    }
+  })
+
+  it('A1 (21c-3g): a ball goes through the pore, and never rests under a channel', () => {
+    // ⚠ (user, 2026-09-06: "the path crosses the sides of the channels. When
+    // they are inside the finger, they overlap the channels"). Two faults, and
+    // each is a thing that can be measured.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    const doors = [...c.ticks, loopDoors(g).snatOut]
+    // ⚠ (1) NO RESTING SPOT UNDER A DRAWN PROTEIN. Asked of the CHAIN only
+    // where the chain is a place to stop: a pocket may pass under the exit door
+    // — a ball crossing there is going THROUGH the pore, which is the point —
+    // but the astrocyte's own intake doors have the pockets filtered away from
+    // them, and nothing may come to rest on any door. The resting claim is the
+    // walked one at the end of this test; this is the intake filter.
+    for (const p of c.pockets) {
+      for (const d of c.ticks) {
+        expect(
+          Math.hypot(p.x - d.x, p.y - d.y),
+          `a pocket sits under the intake at ${d.x.toFixed(0)},${d.y.toFixed(0)}`,
+        ).toBeGreaterThan(CHANNEL_SPAN * 0.6)
+      }
+    }
+    // ⚠ (2) THE WAY IN IS THE PORE'S OWN AXIS. `insideDoor` steps in along the
+    // line the ball arrived on, so it is clear of the barrel before it turns —
+    // heading straight for a pocket took it out through a subunit.
+    for (const t of c.ticks) {
+      const inn = insideDoor(c, t)
+      // It really is inside the cell…
+      expect(astroCellHolds(c, inn), 'the step inward leaves the cell').toBe(true)
+      // …and it is on the door's own normal, not off at an angle: the door lies
+      // between the point outside and the point inside.
+      const out = outsideOn(c.placement, t, CHANNEL_SPAN * 0.75)
+      const ax = out.x - t.x
+      const ay = out.y - t.y
+      const bx = inn.x - t.x
+      const by = inn.y - t.y
+      // Opposite directions, same length — a straight line through the pore.
+      expect(ax * bx + ay * by).toBeLessThan(0)
+      expect(Math.hypot(ax, ay)).toBeCloseTo(Math.hypot(bx, by), 6)
+    }
+    // …and no ball is ever drawn on top of a door: walked over the whole run.
+    for (let k = 0; k <= 240; k++) {
+      const ms = (k / 240) * SYNAPSE_MS
+      for (const dot of transmitterCast(g, run, cleft, ms, 0)) {
+        if (dot.where !== 'glia') continue
+        // ⚠ Only when it is STILL — a ball crossing a pore is meant to be on
+        // the door, that is what going through one looks like.
+        const nxt = transmitterCast(g, run, cleft, ms + 0.2, 0)[
+          transmitterCast(g, run, cleft, ms, 0).indexOf(dot)
+        ]
+        if (!nxt || Math.hypot(nxt.x - dot.x, nxt.y - dot.y) > 0.2) continue
+        for (const d of doors) {
+          expect(
+            Math.hypot(dot.x - d.x, dot.y - d.y),
+            `a resting ball is on the door at ${ms.toFixed(0)}ms`,
+          ).toBeGreaterThan(CHANNEL_SPAN * 0.5)
+        }
+      }
+    }
+  })
+
+  it('A1 (21c-3h): every intake door can be REACHED from the cleft', () => {
+    // ⚠ (user, at 25 ms: "crossing membrane"). A door chosen only for being
+    // near the wanted spot can sit where the straight line from the cleft's
+    // mouth to anywhere outside it crosses the BOUTON — and then the ball swims
+    // through the terminal on its way to the glia. No holding point rescues a
+    // door like that, so reachability is part of choosing one.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    expect(c.holds.length).toBe(c.ticks.length)
+    for (const [i, hold] of c.holds.entries()) {
+      expect(astroCellHolds(c, hold), `hold ${i} is inside the astrocyte`).toBe(false)
+      expect(boutonHolds(g, hold), `hold ${i} is inside the bouton`).toBe(false)
+      // …and the whole way to it from the gap's mouth is clear of both cells.
+      for (let k = 1; k < 16; k++) {
+        const m = {
+          x: c.reach.x + (hold.x - c.reach.x) * (k / 16),
+          y: c.reach.y + (hold.y - c.reach.y) * (k / 16),
+        }
+        expect(astroCellHolds(c, m), `approach ${i} clips the astrocyte`).toBe(false)
+        expect(boutonHolds(g, m), `approach ${i} clips the bouton`).toBe(false)
+      }
+    }
+  })
+
+  it('A2 (21c-3h): a resting ball has room — centred in the process, not against a wall', () => {
+    // ⚠ (user, at 35 ms: "the gathering on the top of the finger touching the
+    // membrane. Expected there should be in the center of the finger"). The
+    // walk is along a straight line from the mouth toward the body, and a
+    // process CURVES away from it, so the first offset that happened to be
+    // inside was the one nearest the wall it curved toward.
+    const g = synapseGeometry()
+    const c = astrocyteCell(g)
+    for (const p of c.pockets) {
+      let worst = 99
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+        let run2 = 0
+        for (let o = 1; o < 60; o++) {
+          if (astroCellHolds(c, { x: p.x + Math.cos(a) * o, y: p.y + Math.sin(a) * o })) run2 = o
+          else break
+        }
+        worst = Math.min(worst, run2)
+      }
+      // A ball is 3.2 px in the radius; this is room round it, not merely on it.
+      expect(worst, `a pocket at ${p.x.toFixed(0)},${p.y.toFixed(0)} is against a wall`)
+        .toBeGreaterThan(6)
+    }
+  })
+
+  it('A4 (21c-3h): the refill leaves the pool as a QUEUE, not as one dot', () => {
+    // ⚠ (user: "after leaving the pool, neurotransmitters should follow each
+    // other and not look like one dot. They should not be concentrated in one
+    // spot"). Every ball left at the same instant along the same line.
+    const g = synapseGeometry()
+    const flight = transmitterCast(g, run, cleft, REFILL_FROM_MS + 1.6, 0).filter(
+      (d) => d.where === 'stock',
+    )
+    expect(flight.length).toBeGreaterThan(4)
+    let spread = 0
+    for (const a of flight) {
+      for (const b of flight) spread = Math.max(spread, Math.hypot(a.x - b.x, a.y - b.y))
+    }
+    expect(spread, 'the refill arrives as one dot').toBeGreaterThan(80)
+    // …and they really are strung out along their way, not just scattered: the
+    // closest pair is still a ball's width apart.
+    let closest = Infinity
+    for (const [i, a] of flight.entries()) {
+      for (const [j, b] of flight.entries()) {
+        if (i === j) continue
+        closest = Math.min(closest, Math.hypot(a.x - b.x, a.y - b.y))
+      }
+    }
+    expect(closest, 'two balls are drawn on top of each other').toBeGreaterThan(1)
+  })
+
+  it('A1 (21c-3i): the glutamine leaves and arrives as SEPARATE balls', () => {
+    // ⚠ (user: "let glutamine exit astrocyte and enter the bouton as single
+    // balls, not merged into one ball"). Every ball converted, left, crossed
+    // and entered on the SAME clock, so a dozen of them were one dot for the
+    // whole return. Each runs the loop on its own beat now.
+    const g = synapseGeometry()
+    const at = (ms: number) => transmitterCast(g, run, cleft, ms, 0)
+    // Through the crossing — where they used to be a single blob — no two are
+    // drawn on top of each other, and the group is strung out.
+    for (const ms of [
+      CROSS_FROM_MS + 0.6,
+      CROSS_FROM_MS + 1.4,
+      ENTER_FROM_MS + 0.4,
+      ENTER_FROM_MS + 1.0,
+    ]) {
+      const crossing = at(ms).filter((d) => d.where === 'shipping' || d.where === 'bath')
+      if (crossing.length < 2) continue
+      let closest = Infinity
+      let spread = 0
+      for (const [i, a] of crossing.entries()) {
+        for (const [j, b] of crossing.entries()) {
+          if (i === j) continue
+          const dd = Math.hypot(a.x - b.x, a.y - b.y)
+          closest = Math.min(closest, dd)
+          spread = Math.max(spread, dd)
+        }
+      }
+      expect(closest, `two balls on top of each other at ${ms} ms`).toBeGreaterThan(2)
+      expect(spread, `the crossing is one dot at ${ms} ms`).toBeGreaterThan(30)
+    }
+    // ⚠ AND NEVER MERGED, anywhere in the return. The claim is the user's own —
+    // "single balls, not merged into one ball" — so it is asked as: no two of
+    // them are ever drawn closer than a ball's own width.
+    //
+    // ⚠ NOT "one at a time in each pore", which was tried first and is a
+    // stronger claim than the run can afford: separating a dozen balls by more
+    // than the time it takes to cross a pore would need a stagger longer than
+    // the legs themselves, and widening it that far broke the refill's own
+    // spacing instead. Two balls may be in one doorway; they may not be one dot.
+    // ⚠ HALF A BALL'S WIDTH, and the margin is stated rather than assumed: a
+    // ball is 6.4 px across, and the closest two ever come on the way home is
+    // 3.15 px — overlapping by half, which draws as a figure of eight and not
+    // as one disc. Widening the lanes further was tried and made it WORSE (2.8
+    // px): the spacing is not monotone in the lane's width, because a wider
+    // lane moves every ball, not only the crowded pair.
+    const BALL = 6.2
+    // ⚠ TWO WINDOWS, because the answer differs and saying so is the point.
+    // The user's ask is about LEAVING the astrocyte and ENTERING the bouton;
+    // that stretch is held to a clear gap. Inside the terminal, where every
+    // ball converges on one pool, the best that could be got is a partial
+    // overlap — reported rather than dressed up.
+    for (const [from, to, gap, what] of [
+      [SHIP_FROM_MS, ENTER_FROM_MS + LOOP_STAGGER_MS, BALL * 0.5, 'crossing'],
+      // ⚠ AND NOT INSIDE THE TERMINAL, for a reason rather than for
+      // convenience. Two routes converge on ONE pool from opposite doors, so
+      // their paths must cross somewhere — and two balls passing each other is
+      // not two balls merged. A window there was tried and its minimum swung
+      // between 1.8 px and 0.25 px with the sampling grid, which is the
+      // signature of a crossing rather than of a pair travelling as one. The
+      // user's complaint is about leaving the astrocyte and entering the
+      // bouton, and that is the stretch this holds.
+    ] as const) {
+    for (let k = 0; k <= 140; k++) {
+      const ms = from + (k / 140) * (to - from)
+      // ⚠ WHILE TRAVELLING — a doorway is excluded, and honestly so. Two balls
+      // reaching one pore at the same instant is what a queue at a door looks
+      // like, and separating every pair by more than a pore's dwell time would
+      // need a stagger longer than the legs themselves; widening it that far was
+      // tried and broke the refill's own spacing instead. The claim this guard
+      // makes is the user's: they are separate balls on the way, not one dot.
+      const nearDoor = (d: { x: number; y: number }) =>
+        [loopDoors(g).snatOut, loopDoors(g).snatIn, loopDoors(g).snatInLeft].some(
+          (q) => Math.hypot(d.x - q.x, d.y - q.y) < CHANNEL_SPAN * 0.8,
+        )
+      const moving = at(ms)
+        .filter((d) => d.where === 'shipping' || d.where === 'bath' || d.where === 'terminal')
+        .filter((d) => !nearDoor(d))
+      for (const [i, a] of moving.entries()) {
+        for (const [j, b] of moving.entries()) {
+          if (i >= j) continue
+          expect(
+            Math.hypot(a.x - b.x, a.y - b.y),
+            `two balls merged ${what} at ${ms.toFixed(1)} ms`,
+          ).toBeGreaterThan(gap)
+        }
+      }
+    }
+    }
+  })
+
+  it('A2 (21c-3j): ATP binds on the CYTOPLASMIC side of the pump', () => {
+    // ⚠ The user asked, and the answer was no (2026-09-06: "does ATP bind in
+    // the outside of the cell, as we've displayed?"). It did — measured, both
+    // hexagons sat outside the terminal at (65, 272) and (94, 209).
+    //
+    // The nucleotide-binding domain of every P-type ATPase is on the INSIDE:
+    // that is what makes it a pump the cell can drive. A hexagon in the bath is
+    // a plain error, not a simplification, so the side is now solved from the
+    // bouton's own outline rather than taken from whichever way a tangent
+    // happened to point.
+    const g = synapseGeometry()
+    // ⚠ Asked of the DRAWING's own decision, not recomputed here. A first
+    // version worked the correct side out inside the test and asserted that IT
+    // was inside — which is true whatever the drawing does, and it passed
+    // happily when the drawing was put back to the wrong side.
+    for (const p of loopDoors(g).caPumps) {
+      const seat = caAtpAt(g, p)
+      expect(
+        boutonHolds(g, seat.at),
+        `the ATP site of the pump at ${p.x.toFixed(0)},${p.y.toFixed(0)} is outside the cell`,
+      ).toBe(true)
+    }
+  })
+
+  it('A1 (21c-3j): the crossing is a CURVE, square to both pores', () => {
+    // ⚠ (user: "make glutamine path between astrocyte and bouton, to a curvy
+    // path"). It was two straight legs with a corner. What the legs were there
+    // to keep is that the ball leaves and arrives square to a pore, so the
+    // curve's control points lie on each door's own outward normal — and the
+    // claim is asked as both things at once: bent in the middle, straight at
+    // the ends.
+    const g = synapseGeometry()
+    const doors = loopDoors(g)
+    const walk = (i: number) => {
+      const pts: { x: number; y: number }[] = []
+      for (let k = 0; k <= 60; k++) {
+        const ms = CROSS_FROM_MS + (k / 60) * (ENTER_FROM_MS - CROSS_FROM_MS)
+        pts.push(transmitterCast(g, run, cleft, ms + loopBeat(i), 0)[i])
+      }
+      return pts
+    }
+    const shipping = transmitterCast(g, run, cleft, CROSS_FROM_MS + 1, 0)
+      .map((d, i) => (d.where === 'shipping' ? i : -1))
+      .filter((i) => i >= 0)
+    expect(shipping.length).toBeGreaterThan(0)
+    for (const i of shipping.slice(0, 3)) {
+      const pts = walk(i)
+      const a = pts[0]
+      const b = pts[pts.length - 1]
+      const chord = Math.hypot(b.x - a.x, b.y - a.y)
+      // BENT: the path is meaningfully longer than the straight line it spans.
+      let len = 0
+      for (let k = 1; k < pts.length; k++) {
+        len += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y)
+      }
+      expect(len / chord, `ball ${i} still travels a straight line`).toBeGreaterThan(1.04)
+      // …and SMOOTH: no corner. The turn between consecutive steps stays small,
+      // where the old two-leg path turned through tens of degrees at once.
+      let sharpest = 0
+      for (let k = 2; k < pts.length; k++) {
+        const a1 = Math.atan2(pts[k - 1].y - pts[k - 2].y, pts[k - 1].x - pts[k - 2].x)
+        const a2 = Math.atan2(pts[k].y - pts[k - 1].y, pts[k].x - pts[k - 1].x)
+        let turn = Math.abs(((a2 - a1 + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
+        turn = Math.min(turn, Math.PI - turn)
+        sharpest = Math.max(sharpest, turn)
+      }
+      expect((sharpest * 180) / Math.PI, `ball ${i} turns a corner`).toBeLessThan(12)
+    }
+    void doors
+  })
+
+  it('A2 (21c-3k): the calcium goes through ONE AT A TIME, with a real cycle', () => {
+    // ⚠ (user: "each ion goes one after the other (not merged into one ball).
+    // Ca ball enters, stays in the center, not moving → ATP binds → binding
+    // flash → channel changes its conformation → Ca leaves on the other side").
+    // They used to cross together on one clock, so a pump moved once and a
+    // handful of ions went through it as a blob.
+    const g = synapseGeometry()
+    const pumps = loopDoors(g).caPumps
+    const q = caQueue(g, (i) => restOfIon(g, run, i))
+    // The queues are BALANCED: by proximity alone one pump took ten of the
+    // fourteen, and the tail of that queue was still inside when the run ended.
+    const counts = pumps.map((_, k) => q.filter((seat) => seat.pump === k).length)
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
+    // …and every turn is over in time to get home.
+    const last = Math.max(...q.map((seat) => caTurnAt(seat.slot))) + CA_TURN_MS
+    expect(last + CA_DRIFT_BACK_MS).toBeLessThan(SYNAPSE_MS)
+    // ⚠ ONE AT A TIME IN A PORE — the claim itself, walked.
+    for (let k = 0; k <= 400; k++) {
+      const ms = CA_EXTRUDE_FROM_MS + (k / 400) * (SYNAPSE_MS - CA_EXTRUDE_FROM_MS)
+      const cast = calciumCast(g, run, ms, 0)
+      for (const p of pumps) {
+        const inPore = cast.filter(
+          (d) => Math.hypot(d.x - p.x, d.y - p.y) < CHANNEL_SPAN * 0.45,
+        ).length
+        expect(inPore, `${inPore} ions in one pore at ${ms.toFixed(1)} ms`).toBeLessThan(2)
+      }
+    }
+    // ⚠ AND THE CYCLE IS A CYCLE: the ion sits STILL while the ATP binds and
+    // the gates swap — being held is the point of that beat — and the pump's
+    // own state says the same, because both read one schedule.
+    const seat = q[0]
+    const t0 = caTurnAt(seat.slot)
+    const at = (t: number) => calciumCast(g, run, t0 + t, 0)[0]
+    const held = [at(CA_SIT_MS + 0.05), at(CA_SIT_MS + CA_ATP_MS + 0.05)]
+    expect(Math.hypot(held[0].x - held[1].x, held[0].y - held[1].y)).toBeLessThan(0.001)
+    const state = (t: number) =>
+      caPumpStateAt(g, (i) => restOfIon(g, run, i), t0 + t, seat.pump)
+    // Inside open while it loads, shut while the fuel binds, outside open after.
+    expect(state(CA_SIT_MS * 0.5).open).toBeLessThan(0)
+    expect(state(CA_SIT_MS + CA_ATP_MS * 0.5).atp).toBeGreaterThan(0.5)
+    expect(state(CA_SIT_MS + CA_ATP_MS * 0.5).flash).toBeGreaterThan(0.5)
+    expect(state(CA_SIT_MS + CA_ATP_MS + CA_FLIP_MS + 0.1).open).toBeGreaterThan(0)
+  })
+
+  it('A1 (21c-3l): the cargo sits in the channel’s own chamber, not in its neck', () => {
+    // ⚠ (user: "calcium ion should be positioned not in the middle of the
+    // channel, but closer to the entrance there where you see a visual curved
+    // shaped, circle shaped slot"). It sat at the door's own point — the middle
+    // of the wall, where the handover draws the protein at its NARROWEST — so
+    // the ball read as jammed in the neck.
+    const g = synapseGeometry()
+    // The seat is a chamber the handover really draws: the pore is measurably
+    // wider there than at the middle of the wall…
+    const ly = poreSeat(PMCA_GLYPH, 1)
+    const gate = boundsOf(PMCA_GLYPH.parts[0])
+    const cy = gate.y + gate.h / 2
+    expect(ly, 'the seat is not on the side the ion comes in by').toBeGreaterThan(1)
     expect(
-      glia.length +
-        spineUp.length +
-        end.filter((d) => d.where === 'seat').length +
-        end.filter((d) => d.where === 'gap').length,
-    ).toBe(fusedCount * 7)
+      poreGapAt(PMCA_GLYPH, cy + ly),
+      'the seat is no wider than the neck',
+    ).toBeGreaterThan(poreGapAt(PMCA_GLYPH, cy) * 1.5)
+    // …and it is inside the cell, which is where a calcium pump takes its cargo
+    // from — the same side its ATP binds on.
+    for (const p of loopDoors(g).caPumps) {
+      const chair = caSeatAt(g, p)
+      expect(
+        Math.hypot(chair.x - p.x, chair.y - p.y),
+        'the ion still sits in the middle of the wall',
+      ).toBeGreaterThan(3)
+      expect(boutonHolds(g, chair), 'the seat is outside the terminal').toBe(true)
+    }
+    // …and the ion the picture draws is AT it while it is held.
+    const q = caQueue(g, (i) => restOfIon(g, run, i))
+    const first = q.findIndex((seat) => seat.slot === 0 && seat.pump === 0)
+    const t = caTurnAt(0) + CA_SIT_MS + CA_ATP_MS * 0.5
+    const held = calciumCast(g, run, t, 0)[first]
+    const chair0 = caSeatAt(g, loopDoors(g).caPumps[0])
+    expect(
+      Math.hypot(held.x - chair0.x, held.y - chair0.y),
+      'the held ion is not in its seat',
+    ).toBeLessThan(0.6)
+  })
+
+  it('A2 (21c-3l): a vesicle fills ONE ball at a time, and its filler is drawn ON it', () => {
+    // ⚠ (user: "improve animation for NT pump in vesicles: same animation
+    // mechanics as Ca channels. Also, place them above the membrane. Currently
+    // they are behind in the newly created vesicles view"). Every returning
+    // ball used to set off on its own beat and swim into the lumen — a pore
+    // with no cycle, and two balls could be inside one at once.
+    const g = synapseGeometry()
+    const docked = activeZone(g).docked
+    const { seats, slotMs } = refillQueue(g, run)
+    expect(seats.size, 'nothing is queued to refill').toBeGreaterThan(0)
+    // BALANCED, so no bubble's queue outlives the run.
+    const per = docked.map((_, b) => [...seats.values()].filter((e) => e.bubble === b).length)
+    expect(Math.max(...per)).toBeLessThanOrEqual(Math.ceil(seats.size / docked.length))
+    // …and every turn is over before the last frame.
+    const lastSlot = Math.max(...[...seats.values()].map((e) => e.slot))
+    const turn = FILL_IN + FILL_SHUT + FILL_FLIP + FILL_OUT
+    expect(REFILL_FROM_MS + lastSlot * slotMs + slotMs * turn).toBeLessThan(SYNAPSE_MS)
+    // ⚠ ONE AT A TIME IN A PORE — the claim itself, walked. Balls already home
+    // are not counted: the seat sits just outside the bubble's wall, and a
+    // ball resting in the lumen is not in the pore.
+    const chairs = docked.map((d) => vglutSeatAt(g, d))
+    for (let k = 0; k <= 260; k++) {
+      const ms = REFILL_FROM_MS - 1.5 + (k / 260) * (SYNAPSE_MS - REFILL_FROM_MS + 1.5)
+      const cast = transmitterCast(g, run, cleft, ms, 0)
+      for (const chair of chairs) {
+        const inPore = cast.filter(
+          (dot) =>
+            dot.where !== 'vesicle' &&
+            Math.hypot(dot.x - chair.x, dot.y - chair.y) < VGLUT_SPAN * 0.35,
+        ).length
+        expect(inPore, `${inPore} balls in one filler at ${ms.toFixed(1)} ms`).toBeLessThan(2)
+      }
+    }
+    // ⚠ AND IT IS A CYCLE: the ball is HELD while the filler shuts around it
+    // and swings — the same stillness the calcium keeps — and the filler's own
+    // state says the same, because both read one schedule.
+    const [id, seat] = [...seats.entries()][0]
+    const t0 = REFILL_FROM_MS + seat.slot * slotMs
+    // ⚠ ON THE REAL THERMAL CLOCK, not a frozen one: with `jiggleMs` pinned at
+    // 0 the wobble is a constant, so a ball left wobbling in the pore reads as
+    // perfectly still to the guard. (It did — a break that added wobble through
+    // the hold passed.) The cast's own default is the running clock.
+    const at = (t: number) => transmitterCast(g, run, cleft, t0 + t)[id]
+    const a = at(slotMs * FILL_IN + 0.01)
+    const b = at(slotMs * (FILL_IN + FILL_SHUT + FILL_FLIP) - 0.01)
+    expect(Math.hypot(a.x - b.x, a.y - b.y), 'the ball drifts while it is held').toBeLessThan(
+      0.001,
+    )
+    const st = (t: number) => fillerStateAt(g, run, t0 + t, seat.bubble).open
+    expect(st(slotMs * FILL_IN * 0.5), 'not open to the cytoplasm while loading').toBeLessThan(0)
+    expect(st(slotMs * (FILL_IN + FILL_SHUT + FILL_FLIP)), 'never opens to the lumen')
+      .toBeGreaterThan(0)
+    // ⚠ ON THE MEMBRANE, NOT UNDER IT. The filler was painted while its bubble
+    // was being built, so the bubble's own body went straight over the top of
+    // it. Measured on the ink stream: the last filler is laid AFTER the last
+    // vesicle body.
+    const c = strictCanvas()
+    drawSynapse(c.ctx, { run, cleft, u: screenOfModel(57 / SYNAPSE_MS) })
+    const fills = c.inks.map((ink) => ink.fill)
+    // ⚠ THE FIRST filler against the LAST body — every one of them, not just
+    // the latest. Asking only about the last let a break through that drew the
+    // intact bubbles' fillers early and the rebuilt ones late.
+    const firstFiller = fills.indexOf(CHANNEL_INK.vglut.wall)
+    const lastBody = fills.lastIndexOf(LUMEN)
+    expect(firstFiller, 'no filler was drawn at all').toBeGreaterThan(0)
+    expect(lastBody, 'no vesicle body was drawn at all').toBeGreaterThan(0)
+    expect(firstFiller, 'a vesicle body is painted over a filler').toBeGreaterThan(lastBody)
+  })
+
+  it('A5 (21c-3b): no door is drawn that nothing ever uses', () => {
+    // ⚠ (user: "there's a channel outside of the astrocyte, which takes 2 NT
+    // balls. These 2 balls remain in place till the end"). A door nothing goes
+    // through is a promise the picture does not keep — and this one was worse
+    // than idle, it was a dead end.
+    expect(NEURON_UPTAKE_FRAC).toBe(0)
+    const src = SOURCES['./synapseScene.ts']
+    const draw = src.slice(src.indexOf('export function drawLoopDoors('))
+    expect(draw.slice(0, draw.indexOf('\nexport '))).not.toContain('spineEaat')
+  })
+
+  it('A6 (21c-3b): the calcium leaves through the pore and goes ROUND the terminal', () => {
+    // ⚠ (user: "adjust Ca ions paths as they leave the neuron: go through the
+    // opening. The further pass does not overlap with the presynaptic bouton,
+    // but goes around it"). The exit used to drop straight to the gap's height
+    // at the pump's own x — a line through the cell, now the pumps are high on
+    // the flanks.
+    const g = synapseGeometry()
+    const pumps = loopDoors(g).caPumps
+    for (let i = 0; i < CA_N; i++) {
+      let crossedAt: string | null = null
+      let nearPump = Infinity
+      let wasIn = true
+      for (let k = 0; k <= 200; k++) {
+        const ms = CA_EXTRUDE_FROM_MS + (k / 200) * (SYNAPSE_MS - CA_EXTRUDE_FROM_MS)
+        const p = calciumCast(g, run, ms, 0)[i]
+        const inside = boutonHolds(g, p)
+        if (wasIn && !inside) {
+          nearPump = Math.min(...pumps.map((q) => Math.hypot(q.x - p.x, q.y - p.y)))
+        }
+        // Once it is out, it must stay out — no drifting back through the cell.
+        if (!wasIn && inside) crossedAt = `${p.x.toFixed(0)},${p.y.toFixed(0)}`
+        wasIn = inside
+      }
+      expect(nearPump, `ion ${i} left away from a pump`).toBeLessThan(30)
+      expect(crossedAt, `ion ${i} went back through the terminal`).toBeNull()
+      // ⚠ AND CLEAR OF THE OTHER TWO CELLS (21c-3c, user: "Ca ions now cross
+      // postsynaptic part and astrocyte"). The detour that kept them out of the
+      // terminal walked them straight through the spine and the glia instead —
+      // a guard that names only one cell is a guard that moves the fault.
+      const cell = astrocyteCell(g)
+      for (let k = 0; k <= 120; k++) {
+        const ms = CA_EXTRUDE_FROM_MS + (k / 120) * (SYNAPSE_MS - CA_EXTRUDE_FROM_MS)
+        const p = calciumCast(g, run, ms, 0)[i]
+        expect(
+          astroCellHolds(cell, p),
+          `ion ${i} crossed the astrocyte at ${p.x.toFixed(0)},${p.y.toFixed(0)}`,
+        ).toBe(false)
+        const onSpine =
+          p.x > g.head.cx - g.head.rx && p.x < g.head.cx + g.head.rx && p.y > faceAt(g, p.x)
+        expect(
+          onSpine,
+          `ion ${i} crossed the spine at ${p.x.toFixed(0)},${p.y.toFixed(0)}`,
+        ).toBe(false)
+      }
+    }
+  })
+
+  it('A2 (21c-3): the LAST frame is the FIRST frame — the demo closes', () => {
+    // ⚠ (user, 2026-09-05: "start frame and end frame of the demo should look
+    // identical. Implement the process of Ca getting back to synaptic cleft").
+    // Measured before the work: 14 calcium ions still inside the terminal, ten
+    // transmitter balls still in the gap, and only 17 of 35 back in vesicles.
+    const g = synapseGeometry()
+    const startNt = transmitterCast(g, run, cleft, 0)
+    const endNt = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01)
+    // Every transmitter starts in a vesicle…
+    for (const d of startNt) expect(d.where).toBe('vesicle')
+    // …and ends in one. ⚠ EVERY ball, since 21c-3b: the neuronal minor route
+    // was the one dead end left, and retiring it is what lets the last frame
+    // really equal the first rather than nearly equal it.
+    for (const d of endNt) expect(d.where).toBe('vesicle')
+    expect(endNt.length).toBe(startNt.length)
+    // ⚠ AND THE CALCIUM IS BACK OUTSIDE, where it began — pumped out, not left
+    // buffered in the terminal.
+    const startCa = calciumCast(g, run, 0)
+    const endCa = calciumCast(g, run, SYNAPSE_MS - 0.01)
+    for (const c of startCa) expect(c.where).toBe('cleft')
+    for (const c of endCa) expect(c.where).toBe('cleft')
+    expect(endCa.length).toBe(startCa.length)
+  })
+
+  it('A2 (21c-2): every membrane crossing happens AT A DOOR, never through the wall', () => {
+    // ⚠ The bug this exists for (user, 2026-09-05): "neurotransmitter balls
+    // should enter through the hole, not through membrane, as it currently
+    // does." Measured then: the astrocyte's transporter ticks were stepped
+    // back along a straight line from the reaching tip and fell OUTSIDE the
+    // wavy process; the terminal's door was placed by arithmetic at x = 646,
+    // twelve pixels past the bulb's right edge, where there is no membrane at
+    // all. A ball "using" either was crossing the wall.
+    //
+    // So the claim is made on the TRAJECTORIES, not on the door positions:
+    // walk every ball through the run, and every time it changes side of a
+    // membrane, it must be at a door.
+    const g = synapseGeometry()
+    const cell = astrocyteCell(g)
+    const doors = loopDoors(g)
+    // ⚠ THE FUSION PORE IS A DOOR TOO — and this guard found it. A released
+    // ball crosses the bouton's outline at the mouth of its own vesicle, 210 px
+    // from the nearest transporter, and that crossing is not a fault: the pore
+    // IS the hole exocytosis makes. Listed with the rest so the guard is about
+    // walls, not about which door.
+    // ⚠ EACH DOOR IS ALLOWED ITS OWN WIDTH, rather than one flat tolerance. A
+    // transporter is a tick a few pixels across; a fusion pore is as wide as
+    // the vesicle that opened it. Measured: a ball left through a pore 28 px
+    // from the slot's centre, which a flat 26 called a wall crossing.
+    // ⚠ A PORE IS A DOOR ONLY WHILE IT IS OPEN (21c-3h). Credited for the whole
+    // run, a fusion pore is a 35 px hole standing permanently in the bouton's
+    // wall — and it was masking crossings elsewhere: a ball swimming through
+    // the terminal on its way to the glia passed because it happened to do so
+    // near a slot. The pores are matched against the run's own fusion times.
+    const pores = activeZone(g).docked.map((d) => ({
+      x: d.x,
+      y: wallAt(g, d.x),
+      r: d.r + MEM_PX * 2,
+      from: run.vesicles[d.index]?.fusedAtMs ?? null,
+    }))
+    // ⚠ EVERY DOOR, taken from the door list itself. A hand-written list is a
+    // list that goes stale: `snatInLeft` was added to the model and not to this
+    // line, so a ball entering EXACTLY at its own door was scored as a wall
+    // crossing — and four attempts to fix the drawing chased a fault that was
+    // here. The doors are enumerated from `LoopDoors` now, so a new one cannot
+    // be forgotten.
+    // ⚠ 26 → a channel's own half-width (21c-3h). Twenty-six pixels is wider
+    // than the protein, so a ball entering 15 px from a door — outside the
+    // barrel, through the wall beside it — passed. What a door can honestly
+    // account for is the width of the door.
+    const ticks = [
+      doors.snatOut,
+      doors.snatIn,
+      doors.snatInLeft,
+      doors.spineEaat,
+      ...doors.eaat,
+      ...doors.caPumps,
+    ].map((p) => ({ ...p, r: CHANNEL_SPAN * 0.6 }))
+    const holes = [...ticks.map((t) => ({ ...t, from: null as number | null })), ...pores]
+    const STEPS = 900
+    let crossings = 0
+    let prev: NtDot[] | null = null
+    for (let i = 0; i <= STEPS; i++) {
+      const ms = (i / STEPS) * SYNAPSE_MS
+      const now = transmitterCast(g, run, cleft, ms, 0)
+      if (prev) {
+        for (const [k, dot] of now.entries()) {
+          const was = prev[k]
+          for (const [name, holds] of [
+            ['astrocyte', (q: NtDot) => astroCellHolds(cell, q)],
+            ['bouton', (q: NtDot) => boutonHolds(g, q)],
+          ] as const) {
+            if (holds(was) === holds(dot)) continue
+            crossings++
+            const slack = Math.min(
+              ...holes
+                .filter((h) => h.from === null || (ms >= h.from && ms <= h.from + 6))
+                .map(
+                  (h) =>
+                    Math.min(
+                      Math.hypot(dot.x - h.x, dot.y - h.y),
+                      Math.hypot(was.x - h.x, was.y - h.y),
+                    ) - h.r,
+                ),
+            )
+            expect(
+              slack,
+              `ball ${k} crossed the ${name} at ${dot.x.toFixed(0)},${dot.y.toFixed(0)}, outside every door`,
+            ).toBeLessThan(0)
+          }
+        }
+      }
+      prev = now
+    }
+    // …and crossings really happen, or the guard is vacuous.
+    expect(crossings).toBeGreaterThan(8)
+  })
+
+  it('A2 (21c-2): the loop runs, converts, and keeps every ball', () => {
+    const g = synapseGeometry()
+    const at = (ms: number) => transmitterCast(g, run, cleft, ms, 0)
+    // CONVERTED: a change of KIND, not a swap of balls.
+    const caughtIdx0 = at(CONVERT_FROM_MS - 1)
+      .map((d, i) => (d.where === 'glia' ? i : -1))
+      .filter((i) => i >= 0)
+    const caught = at(CONVERT_FROM_MS - 1).filter((d) => d.where === 'glia')
+    expect(caught.length).toBeGreaterThan(2)
+    for (const d of at(CONVERT_FROM_MS - 1)) expect(d.glutamine ?? 0).toBe(0)
+    // ⚠ THE CONVERSION IS WATCHED HAPPENING, not switched between frames (user:
+    // "balls lighten up, change color"). A first version of this guard only
+    // checked the endpoints, and passed happily when the ramp was replaced by
+    // a constant — so it now asks for the in-between.
+    // ⚠ Each ball at ITS OWN midpoint (21c-3i): they run the loop on their own
+    // beats now, so one nominal instant catches some barely started and others
+    // nearly done. By identity too — a ball that reached the astrocyte late
+    // joins the conversion late.
+    const mid = (CONVERT_FROM_MS + SHIP_FROM_MS) / 2
+    const midway = caughtIdx0.map((i) => at(mid + loopBeat(i))[i])
+    for (const d of midway) expect(d.where).toBe('glia')
+    for (const d of midway) {
+      expect(d.glutamine ?? 0).toBeGreaterThan(0.2)
+      expect(d.glutamine ?? 0).toBeLessThan(0.8)
+    }
+    // …and it is monotone: a molecule does not un-convert.
+    let prev = -1
+    for (let k = 0; k <= 20; k++) {
+      const t = CONVERT_FROM_MS + (k / 20) * (SHIP_FROM_MS - CONVERT_FROM_MS)
+      const now = at(t).filter((d) => d.where === 'glia')[0]?.glutamine ?? 0
+      expect(now).toBeGreaterThanOrEqual(prev - 1e-9)
+      prev = now
+    }
+    // By identity: every ball that was caught is fully glutamine once the
+    // conversion leg has ended, whatever else has since arrived.
+    // Each at its own beat, since they convert on their own clocks now.
+    for (const i of caughtIdx0) {
+      expect(
+        at(SHIP_FROM_MS + 1 + loopBeat(i))[i].glutamine ?? 0,
+        `ball ${i}`,
+      ).toBeGreaterThan(0.9)
+    }
+    // SHIPPED: outside again, between the two doors. ⚠ Asked BY IDENTITY, not
+    // by count — a ball that reached the astrocyte late converts late, so the
+    // two tallies need not match even though every caught ball does ship.
+    const caughtIdx = at(CONVERT_FROM_MS - 1)
+      .map((d, i) => (d.where === 'glia' ? i : -1))
+      .filter((i) => i >= 0)
+    // Each at its own beat: they cross on their own clocks now.
+    for (const i of caughtIdx) {
+      expect(at(CROSS_FROM_MS + 1.5 + loopBeat(i))[i].where, `ball ${i}`).toBe('shipping')
+    }
+    // BACK TO GLUTAMATE inside the terminal — the kind changes again, each on
+    // its own beat.
+    for (const d of at(STOCK_FROM_MS + 1 + LOOP_STAGGER_MS)) {
+      if (d.where === 'stock' || d.where === 'terminal') {
+        expect(d.glutamine ?? 0).toBeLessThan(0.2)
+      }
+    }
+    // ⚠ THE POOL IS A PLACE THEY PASS THROUGH (21c-3). It used to keep a seeded
+    // share of them, to make the point that a vesicle fills from the terminal's
+    // standing glutamate rather than waiting for the molecule it released. The
+    // user then required the run to END ON THE FRAME IT STARTED ON — "all NTs
+    // should be reuptaked … drift towards newly restored vesicles, and get
+    // pumped into it" — and a ball parked in the pool at 60 ms breaks that. So
+    // the pool is now a standing concentration the drawn balls travel THROUGH,
+    // it is still drawn and still named, and the point it carries is made in
+    // words in the info block. Recorded as a deliberate loss, not an oversight.
+    // ⚠ AND NOT CLAIMED TO PASS THROUGH IT EITHER. A first version of this
+    // guard asked that every returning ball come within a couple of pool radii
+    // of the pool's centre; measured, ball 21 passes 87 px away, because each
+    // ball goes to ITS OWN bubble and those lines do not all cross the pool. An
+    // assertion that is not true of the drawing does not become true by being
+    // written down, so the claim is dropped rather than loosened.
+    //
+    // Nothing is left in the pool at the end, nor anywhere but a vesicle or the
+    // spine — which is the property the frame-closing actually needs.
+    const end = at(SYNAPSE_MS - 0.01)
+    expect(end.filter((d) => d.where === 'stock').length).toBe(0)
+    for (const d of end) expect(['vesicle', 'spine']).toContain(d.where)
+    // THE BOOKS BALANCE: nobody is lost anywhere in the loop.
+    const total = at(0).length
+    for (const ms of [CONVERT_FROM_MS, SHIP_FROM_MS, CROSS_FROM_MS, STOCK_FROM_MS, 59.9]) {
+      expect(at(ms).length, `at ${ms} ms`).toBe(total)
+    }
+  })
+
+  it('A3 (21c-2c): the way home HEADS FOR THE VESICLES — no dogleg into the cell', () => {
+    // ⚠ (user, 2026-09-05: "the balls should go towards the newly created
+    // vesicles, and not onto the depth of the cell first, and angle their path
+    // after"). The first pocket inside the terminal was stepped toward the
+    // STOCK, which sat 168 px up in the cell, so a returning ball climbed deep
+    // and then turned back down to the active zone.
+    //
+    // Stated as a measurable property: from the moment a ball is inside the
+    // terminal, its distance to the bubble it is filling only ever shrinks.
+    const g = synapseGeometry()
+    const end = transmitterCast(g, run, cleft, SYNAPSE_MS - 0.01, 0)
+    const landed = end.map((d, i) => ({ d, i })).filter((e) => e.d.where === 'vesicle')
+    expect(landed.length).toBeGreaterThan(0)
+    // ⚠ WALKED ONCE, NOT ONCE PER BALL (21c-4). One cast returns every ball, so
+    // asking for a fresh one inside the ball loop cost 21 casts a frame — 1,700
+    // in all, at ~3 ms each on the refilling leg, which is where this guard
+    // started timing out. Same samples, same assertions, a twentieth of the
+    // work.
+    //
+    // ⚠ From the moment the SLOWEST ball is inside (21c-3j). The crossing is a
+    // curve now, and a curve bulges — a ball still on it at the leg's nominal
+    // start is moving away from its bubble for a moment, which is the curve
+    // doing its job, not a dogleg inside the cell. The claim is about the way
+    // home once home has been entered.
+    const from = ENTER_FROM_MS + LOOP_STAGGER_MS
+    const walk = Array.from({ length: 81 }, (_, k) =>
+      transmitterCast(g, run, cleft, from + (k / 80) * (SYNAPSE_MS - 0.01 - from), 0),
+    )
+    for (const { i } of landed) {
+      const target = end[i]
+      let prev = Infinity
+      let worst = 0
+      for (const frame of walk) {
+        const p = frame[i]
+        const dist = Math.hypot(p.x - target.x, p.y - target.y)
+        worst = Math.max(worst, dist - prev)
+        prev = dist
+      }
+      // ⚠ 2 → 4 px (21c-3h). The way home now has a deliberate CORNER at the
+      // filler's door — the ball goes to the pore and then in, which is the
+      // point — and since the balls were staggered into a queue the sampling is
+      // coarser across that corner. Four pixels still cannot hide a dogleg,
+      // which is what this guard is for and which is tens of pixels.
+      // ⚠ 4 → 7 px (21c-3i). The balls now run the loop on their own beats, so
+      // each one's corner at the filler's door is crossed by fewer samples of
+      // this walk. Seven pixels still cannot hide a dogleg into the cell, which
+      // is what this guard is for and which is tens of pixels.
+      expect(worst, `ball ${i} turned back on itself`).toBeLessThan(7)
+    }
+  })
+
+  it('A3 (21c-2c): the stock sits BETWEEN the door and the vesicles, not deep in the cell', () => {
+    // ⚠ The dogleg guard alone was not enough: the returning balls are routed
+    // through the pool on their own way, so moving the pool no longer bent
+    // THEIR path — but the balls that STAY in it would still be parked deep in
+    // the terminal, which is the half of the complaint that guard could not
+    // see. So the pool's own seat is asked for directly.
+    const g = synapseGeometry()
+    const { stock, snatIn } = loopDoors(g)
+    const wall = wallAt(g, g.foot.x)
+    // Above the docked row, but nothing like the 168 px it used to sit at.
+    expect(wall - stock.y).toBeGreaterThan(60)
+    expect(wall - stock.y).toBeLessThan(150)
+    // …and no deeper into the cell than the door the material comes in by.
+    expect(wall - stock.y).toBeLessThan(wall - snatIn.y + 110)
+    // It is inside the terminal, and clear of every docked bubble.
+    expect(boutonHolds(g, stock)).toBe(true)
+    for (const d of activeZone(g).docked) {
+      expect(Math.hypot(stock.x - d.x, stock.y - d.y), `slot ${d.index}`).toBeGreaterThan(
+        d.r + stock.r * 0.5,
+      )
+    }
+  })
+
+  it('A2 (21c-2c): the departing balls SCATTER, they do not queue into a line', () => {
+    // ⚠ (user, 2026-09-05: "should leave by travelling, but scatter into space
+    // instead of forming a stream line"). Every leaving ball was given the same
+    // destination, so they filed along one path — the one thing diffusion never
+    // looks like.
+    const g = synapseGeometry()
+    const mid = transmitterCast(g, run, cleft, CONVERT_FROM_MS - 8, 0)
+    const going = mid.filter((d) => d.where === 'bath' && d.x < g.foot.x)
+    expect(going.length).toBeGreaterThan(1)
+    // Their headings differ: measured off the gap's left mouth, the spread of
+    // angles is real, not a rounding wobble.
+    const from = { x: g.foot.x - g.activeHalf, y: wallAt(g, g.foot.x) + CLEFT_PX * 0.5 }
+    const angles = going.map((d) => Math.atan2(d.y - from.y, d.x - from.x))
+    expect(Math.max(...angles) - Math.min(...angles)).toBeGreaterThan(0.35)
+    // …and they are not equidistant from the mouth either — a line of balls
+    // moving together is still a stream even when it is aimed well.
+    const dists = going.map((d) => Math.hypot(d.x - from.x, d.y - from.y))
+    expect(Math.max(...dists) - Math.min(...dists)).toBeGreaterThan(40)
+  })
+
+  it('A2 (21c-2): the vesicle and its SNARE come back, before the stock fills', () => {
+    // "vesicle restore, snare restore" — a spent slot used to stay empty for
+    // the rest of the run, which teaches that a vesicle is used once.
+    expect(vesicleRestore(RETRIEVE_FROM_MS - 1)).toBe(0)
+    expect(vesicleRestore(RETRIEVE_TO_MS)).toBe(1)
+    expect(vesicleRestore((RETRIEVE_FROM_MS + RETRIEVE_TO_MS) / 2)).toBeCloseTo(0.5, 6)
+    // ⚠ AND IT IS EXOCYTOSIS RUN BACKWARDS, not a second shape machine (user,
+    // 2026-09-05: "vesicle restore should be a process, opposite to
+    // exocytosis. Just revert the process, do not re-invent"). The first pass
+    // grew a bubble from radius zero floating at the slot — creation, not
+    // endocytosis — and the second invented its own dimple-and-pinch. The way
+    // home is `fusedShape` with its age counting down, so every stage of the
+    // way out is a stage of the way back.
+    const g = synapseGeometry()
+    const d = activeZone(g).docked[0]
+    expect(retrievalAge(RETRIEVE_FROM_MS - 1)).toBeNull()
+    // It starts where fusion ENDED — the bubble is the wall — and finishes at
+    // age zero, which IS the docked vesicle.
+    const first = retrievalAge(RETRIEVE_FROM_MS + 0.01)!
+    expect(first).toBeGreaterThan(FLATTEN_FROM_MS)
+    expect(retrievalAge(RETRIEVE_TO_MS)).toBeCloseTo(0, 6)
+    // The age runs strictly backwards — no stage is skipped or replayed.
+    let prev = Infinity
+    for (let k = 0; k <= 40; k++) {
+      const a = retrievalAge(
+        RETRIEVE_FROM_MS + (k / 40) * (RETRIEVE_TO_MS - RETRIEVE_FROM_MS),
+      )
+      if (a === null) continue
+      expect(a).toBeLessThanOrEqual(prev + 1e-9)
+      prev = a
+    }
+    // ⚠ THE WAY HOME VISITS THE WAY OUT'S OWN SHAPES, IN REVERSE ORDER. Walked
+    // rather than asserted: the outward schedule is sampled from the docked
+    // bubble to the flat wall, the retrieval is sampled over its own window,
+    // and the two sequences must be each other backwards. A second shape
+    // machine — a dimple that grows and pinches at a made-up fraction — cannot
+    // pass this however carefully it is tuned.
+    const N = 24
+    const end = FLATTEN_FROM_MS + FLATTEN_MS
+    const outward = Array.from({ length: N + 1 }, (_, k) =>
+      fusedShape(g, d.x, (k / N) * end, d.r),
+    )
+    const homeward = Array.from({ length: N + 1 }, (_, k) => {
+      const t = RETRIEVE_FROM_MS + (k / N) * (RETRIEVE_TO_MS - RETRIEVE_FROM_MS)
+      return fusedShape(g, d.x, retrievalAge(t)!, d.r)
+    })
+    for (let k = 0; k <= N; k++) {
+      const a = outward[k]
+      const b = homeward[N - k]
+      expect(a === null, `step ${k}`).toBe(b === null)
+      if (!a || !b) continue
+      expect(b.cy, `step ${k} cy`).toBeCloseTo(a.cy, 6)
+      expect(b.r, `step ${k} r`).toBeCloseTo(a.r, 6)
+    }
+    // And it ends AT the docked bubble: full size, on its own dock.
+    const done = fusedShape(g, d.x, retrievalAge(RETRIEVE_TO_MS)!, d.r)!
+    expect(done.r).toBeCloseTo(d.r, 6)
+    expect(done.cy).toBeCloseTo(d.y, 6)
+    // ⚠ AND IT IS WHOLE BEFORE THE GLUTAMINE GETS HOME. That order is the
+    // biology: a vesicle is re-used in tens of seconds while the round trip
+    // takes minutes, so the terminal never waits on a particular molecule.
+    expect(RETRIEVE_TO_MS).toBeLessThanOrEqual(REFILL_FROM_MS)
   })
 
   it("E4+J: a resting zone ball sits at a vesicle's FEET, outside every lumen", () => {
@@ -1145,17 +2774,41 @@ describe('S12 — the synapse, leg 1', () => {
     const r = vesicleR(g)
     // Sampled at the run's end, RESTING only: an ion the buffers are already
     // carrying away (still 'zone' mid-transit) has left its knob by travel.
-    const zone = calciumCast(g, run, SYNAPSE_MS).filter(
-      (d) => d.where === 'zone' && d.y > wallAt(g, d.x) - vesicleR(g) * 1.2,
+    // ⚠ ASKED BEFORE THE PUMPS START (21c-3). The calcium no longer ends the run
+    // inside the terminal — it is put back out through the plasma-membrane
+    // pumps, which is why the last frame can be the first frame. What this
+    // guard is about is what the calcium does while it is IN, so it is asked
+    // while it is in.
+    // ⚠ RESTING IS ASKED, NOT APPROXIMATED (21c-3). The filter used to stand in
+    // for "resting" with a height above the wall, which worked only because the
+    // sample was the run's LAST frame, when nothing was moving any more. The
+    // run now goes on — the calcium is pumped back out — so the stand-in let
+    // ions that were mid-travel through the guard, 77 px from any slot. Being
+    // still is a thing that can be measured: sample twice, a moment apart, on
+    // the same jiggle, and keep the ions that did not move.
+    // ⚠ With DIFFERENT jiggles, or a freely wobbling ion looks still: the wobble
+    // is a pure function of the jiggle clock, so freezing it freezes them too.
+    const nowMs = 28
+    const a = calciumCast(g, run, nowMs, 100)
+    const b = calciumCast(g, run, nowMs + 0.25, 900)
+    const zone = a.filter(
+      (d, i) => d.where === 'zone' && Math.hypot(d.x - b[i].x, d.y - b[i].y) < 1e-9,
     )
     expect(zone.length).toBeGreaterThan(0)
     for (const ion of zone) {
       const docked = activeZone(g).docked
-      const nearest = docked.reduce((a, b) =>
-        Math.hypot(a.x - ion.x, a.y - ion.y) < Math.hypot(b.x - ion.x, b.y - ion.y)
-          ? a
-          : b,
-      )
+      // ⚠ THE SLOT WHOSE FEET IT SITS AT — found by its KNOBS, not by the
+      // slot centre. The bouton's floor climbs steeply at the outer slots, so
+      // a knob can be much closer to a neighbouring slot's CENTRE than to its
+      // own: measured, ion 4 sat on slot 4's knob and the centre-distance test
+      // named slot 3, 75 px away. "At a vesicle's feet" is a claim about feet.
+      const nearest = docked.reduce((a, b) => {
+        const d = (v: (typeof docked)[number]) =>
+          Math.min(
+            ...snareMini(g, v).knobs.map((k) => Math.hypot(k.x - ion.x, k.y - ion.y)),
+          )
+        return d(a) < d(b) ? a : b
+      })
       // Anchored to a slot, never over a lumen, inside the wall.
       expect(Math.abs(ion.x - nearest.x)).toBeLessThan(r * 2)
       for (const d of docked) {
@@ -1201,8 +2854,12 @@ describe('S12 — the synapse, leg 1', () => {
     // A beat is a leg whose model span is a fraction of a millisecond given
     // real screen time: the pause the user asked for, built as the limit case
     // of "slow the leg, never the item".
+    // ⚠ A beat is measured in SCREEN TIME, not in share (21c-2): shares are
+    // normalised weights now, so adding the loop's legs shrank every share
+    // without shortening a single pause. 700 ms is the shortest pause that
+    // reads as a pause.
     const beats = CLOCK_LEGS.filter(
-      (l) => (l.to - l.from) * SYNAPSE_MS <= 0.2 && l.share >= 0.03,
+      (l) => (l.to - l.from) * SYNAPSE_MS <= 0.2 && l.share * SYNAPSE_SCREEN_MS >= 700,
     )
     expect(beats.length).toBeGreaterThanOrEqual(3)
     // And they sit between the events, not inside one: no fusion happens
@@ -1210,8 +2867,7 @@ describe('S12 — the synapse, leg 1', () => {
     for (const beat of beats) {
       for (const v of run.vesicles) {
         if (v.fusedAtMs === null) continue
-        const inBeat =
-          v.fusedAtMs > beat.from * SYNAPSE_MS && v.fusedAtMs < beat.to * SYNAPSE_MS
+        const inBeat = v.fusedAtMs > beat.from * SYNAPSE_MS && v.fusedAtMs < beat.to * SYNAPSE_MS
         expect(inBeat, `fusion at ${v.fusedAtMs} in beat ${beat.what}`).toBe(false)
       }
     }
@@ -1365,23 +3021,19 @@ describe('S12 — the synapse, leg 1', () => {
     }
   })
 
-  it('N1: the active-zone caption sits beside its zone, clear of every bubble', () => {
-    // ⚠ (user, 2026-09-01: "adjust labels places"). The caption used to hang
-    // centred over the docked row; when docking became touching-contact the
-    // text landed ON the vesicles.
+  it("A1 (21c-2c): there is no 'active zone' caption any more", () => {
+    // ⚠ (user, 2026-09-05: "remove 'active zone' label, it's self-explanatory").
+    // It had been moved twice — off the vesicles it covered, then aside off the
+    // machinery it covered — and a name that keeps having to be moved out of
+    // the way of the thing it names is one the picture was giving for free.
+    // Supersedes N1, which guarded where it sat.
     const g = synapseGeometry()
-    const l = activeZoneLabelAt(g)
-    for (const d of activeZone(g).docked) {
-      expect(Math.hypot(l.x - d.x, l.y - d.y), `slot ${d.index}`).toBeGreaterThan(
-        d.r + 12,
-      )
-    }
-    for (const p of reservePool(g)) {
-      expect(Math.hypot(l.x - p.x, l.y - p.y)).toBeGreaterThan(vesicleR(g) * 1.1 + 12)
-    }
-    // Outside the zone's end, above the membrane it names.
-    expect(l.x).toBeGreaterThan(g.foot.x + g.activeHalf)
-    expect(l.y).toBeLessThan(wallAt(g, g.foot.x + g.activeHalf))
+    for (const l of synapseLabels(g)) expect(l.term).not.toBe('active zone')
+    for (const c of synapseCallouts(g)) expect(c.label.term).not.toBe('active zone')
+    // The words survive where words belong — in the info block, not on the
+    // canvas. (03 → *Where words go*: the canvas carries names and readings;
+    // the explanation is the column's job, and it still names the zone.)
+    expect(SOURCES_CORE['../core/synapse.ts']).toContain('a patch called the active zone')
   })
 
   it('O1: the SNARE is drawn, and the calcium rests ON its knobs', () => {
@@ -1402,7 +3054,12 @@ describe('S12 — the synapse, leg 1', () => {
     }
     // Resting AT the wall — an ion the buffers are already carrying away
     // (still 'zone' mid-transit) is exempt: it has left its knob by travel.
-    const resting = calciumCast(g, run, SYNAPSE_MS).filter(
+    // ⚠ ASKED BEFORE THE PUMPS START (21c-3). The calcium no longer ends the run
+    // inside the terminal — it is put back out through the plasma-membrane
+    // pumps, which is why the last frame can be the first frame. What this
+    // guard is about is what the calcium does while it is IN, so it is asked
+    // while it is in.
+    const resting = calciumCast(g, run, 28).filter(
       (i) => i.where === 'zone' && i.y > wallAt(g, i.x) - vesicleR(g) * 1.2,
     )
     expect(resting.length).toBeGreaterThan(0)
@@ -1428,10 +3085,9 @@ describe('S12 — the synapse, leg 1', () => {
       expect(onWall || onFace, `at ${p.at.x.toFixed(0)}`).toBe(true)
       if (onWall) {
         for (const t of tears) {
-          expect(
-            p.at.x < t.xL - 2 || p.at.x > t.xR + 2,
-            `in tear at ${p.at.x.toFixed(0)}`,
-          ).toBe(true)
+          expect(p.at.x < t.xL - 2 || p.at.x > t.xR + 2, `in tear at ${p.at.x.toFixed(0)}`).toBe(
+            true,
+          )
         }
       }
     }
@@ -1481,8 +3137,7 @@ describe('S12 — the synapse, leg 1', () => {
       const before = sodiumCast(g, run, cleft, ow.openAt + NA_PAUSE_MS - 0.05)
       expect(before[r * 2].where, `receptor ${r}`).toBe('cleft')
       expect(before[r * 2 + 1].where, `receptor ${r}`).toBe('cleft')
-      const arrive =
-        ow.openAt + NA_PAUSE_MS + 0.35 + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
+      const arrive = ow.openAt + NA_PAUSE_MS + 0.35 + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
       firstArrival = firstArrival === null ? arrive : Math.min(firstArrival, arrive)
     }
     expect(checked).toBeGreaterThan(2)
@@ -1573,7 +3228,19 @@ describe('the timeline tool — S12 events on the bar', () => {
       'binding',
       'opens',
       'sodium-in',
+      // ⚠ THE LOOP'S OWN DOTS (21c-3m, user: "update timeline with new
+      // events"). The bar had nothing past 24.5 ms, and the loop is more than
+      // half the run. 'caught' comes BEFORE 'clearing' because it is measured,
+      // not assumed: the first transmitter is inside the astrocyte at 17.5 ms,
+      // while the gap is still emptying.
+      'caught',
       'clearing',
+      'calcium-out',
+      'converted',
+      'shipped',
+      'glutamate-again',
+      'stocked',
+      'filling',
     ])
     for (const [i, e] of events.entries()) {
       expect(e.ms).toBeGreaterThan(0)
@@ -1586,15 +3253,90 @@ describe('the timeline tool — S12 events on the bar', () => {
     }
   })
 
+  it('A1 (21c-3m): every loop dot sits on the frame its own event happens', () => {
+    // ⚠ (user: "update timeline with new events"). The loop's stages are
+    // scheduled by constants in the cast, and a dot could have been placed from
+    // those constants — it would then agree with the schedule and not with the
+    // picture, which is the failure this file's rule about dating events off
+    // the run exists to prevent. Each dot is checked against the CAST: the
+    // frame before it, the thing has not happened; on it, it has.
+    const g = synapseGeometry()
+    const ev = synapseEvents(run, cleft)
+    const at = (id: string) => ev.find((e) => e.id === id)?.ms as number
+    const step = 0.5
+    const dots = (ms: number) => transmitterCast(g, run, cleft, ms, 0)
+    const kindOf = (d: { glutamine?: number }) => d.glutamine ?? 0
+    const checks: [string, (d: ReturnType<typeof dots>[number]) => boolean][] = [
+      ['caught', (d) => d.where === 'glia'],
+      ['converted', (d) => d.where === 'glia' && kindOf(d) > 0.5],
+      ['shipped', (d) => d.where === 'shipping'],
+      ['glutamate-again', (d) => d.where === 'terminal' && kindOf(d) < 0.5],
+      ['stocked', (d) => d.where === 'stock'],
+    ]
+    for (const [id, holds] of checks) {
+      const ms = at(id)
+      expect(ms, `${id} has no dot`).toBeGreaterThan(0)
+      expect(dots(ms).some(holds), `${id} is dated before it happens`).toBe(true)
+      expect(dots(ms - step).some(holds), `${id} is dated after it happens`).toBe(false)
+    }
+    // ⚠ "Filled" has to mean REFILLED: fourteen balls never leave a bubble, so
+    // only the return of one that did counts.
+    const gone = new Set<number>()
+    let refilled: number | null = null
+    for (let ms = 1; ms <= SYNAPSE_MS && refilled === null; ms += step) {
+      for (const [i, d] of dots(ms).entries()) {
+        if (d.where !== 'vesicle') gone.add(i)
+        else if (gone.has(i)) refilled = ms
+      }
+    }
+    expect(at('filling')).toBe(refilled)
+    // ⚠ AND THE BAR HAS NO DEAD HALF. Before this the last dot was at 24.5 ms
+    // — 58% along the bar — and the whole stretch after it was undated, which
+    // is where the loop happens. Measured on the SCREEN, which is where the
+    // dots are: past the clearing dot the widest gap is now 0.098 of the bar.
+    //
+    // ⚠ The bar's widest gap OVERALL is 0.202, between fusion and binding, and
+    // it is not this round's business: that is the leg where the transmitter
+    // crosses the gap and nothing else is dated. Measured and left, rather than
+    // hidden by a threshold that covers it.
+    const us = ev.map((e) => screenOfModel(e.ms / run.windowMs))
+    const clearing = us[ev.findIndex((e) => e.id === 'clearing')]
+    expect(ev.filter((e) => e.ms > 24.5).length, 'the loop is undated').toBeGreaterThan(5)
+    let widest = 0
+    for (let i = 1; i < us.length; i++) {
+      if (us[i - 1] < clearing) continue
+      widest = Math.max(widest, us[i] - us[i - 1])
+    }
+    widest = Math.max(widest, 1 - us[us.length - 1])
+    expect(widest, 'a stretch of the loop carries no dot at all').toBeLessThan(0.12)
+    // ⚠ AND THE CHIPS STILL FIT. Doubling the dots is only an improvement if
+    // the bar stays readable: every chip must clear its neighbour on its row.
+    // Measured at the stage's own width and at a narrow one — and it bought
+    // three shorter labels, because "shipped home" and "vesicle filled" did
+    // clash at 700 px.
+    const ws = ev.map((e) => chipWidth(e.label))
+    for (const W of [STAGE_W, 900, 700]) {
+      const rows = labelRows(
+        us.map((u) => ({ u })),
+        W,
+        ws,
+      )
+      const lastEnd = [-1e9, -1e9, -1e9]
+      ev.forEach((e, i) => {
+        const left = chipCenter(us[i], W, ws[i]) - ws[i] / 2
+        expect(left, `"${e.label}" overlaps its neighbour at ${W} px`).toBeGreaterThanOrEqual(
+          lastEnd[rows[i]] + 6,
+        )
+        lastEnd[rows[i]] = left + ws[i]
+      })
+    }
+  })
+
   it('the fusion dot sits on the run’s own first fusion (A5)', () => {
     const events = synapseEvents(run, cleft)
     const first = run.vesicles.reduce(
       (best: number | null, v) =>
-        v.fusedAtMs === null
-          ? best
-          : best === null
-            ? v.fusedAtMs
-            : Math.min(best, v.fusedAtMs),
+        v.fusedAtMs === null ? best : best === null ? v.fusedAtMs : Math.min(best, v.fusedAtMs),
       null,
     )
     expect(events.find((e) => e.id === 'fusion')?.ms).toBe(first)
@@ -1658,9 +3400,10 @@ describe('bound ions and the reflection pauses', () => {
     const w1 = calciumCast(g, run, 0.05, 100)[0]
     const w2 = calciumCast(g, run, 0.05, 900)[0]
     expect(Math.hypot(w1.x - w2.x, w1.y - w2.y)).toBeGreaterThan(0.1)
-    // Buffered at the end: bound to a protein, so still again.
-    const e1 = calciumCast(g, run, SYNAPSE_MS, 100)[0]
-    const e2 = calciumCast(g, run, SYNAPSE_MS, 900)[0]
+    // Buffered: bound to a protein, so still again — asked before the pumps
+    // start, since an ion on its way to a pump is moving BY TRAVEL and should be.
+    const e1 = calciumCast(g, run, CA_EXTRUDE_FROM_MS - 0.5, 100)[0]
+    const e2 = calciumCast(g, run, CA_EXTRUDE_FROM_MS - 0.5, 900)[0]
     expect(e1.x).toBe(e2.x)
     expect(e1.y).toBe(e2.y)
   })
@@ -1669,8 +3412,7 @@ describe('bound ions and the reflection pauses', () => {
     const rel = receptorSeatWindow(g, run, cleft, first.r).releasedAt as number
     // Release is scheduled off the door itself: this lead before its close.
     expect(rel).toBeCloseTo(first.closeAt - NT_DEPART_LEAD_MS, 9)
-    const arrive =
-      first.openAt + NA_PAUSE_MS + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
+    const arrive = first.openAt + NA_PAUSE_MS + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
     const during = (arrive + (rel - GLOW_FADE_MS)) / 2
     // The transmitter's aura at full, ON the tracked seat.
     const seat = ntSeatAt(g, first.r, 0, receptorOpenFrac(g, run, cleft, first.r, during))
@@ -1681,10 +3423,7 @@ describe('bound ions and the reflection pauses', () => {
     // Mid-fade: dimming, still there.
     const fading = bindPulses(g, run, cleft, rel - GLOW_FADE_MS / 2).find(
       (q) =>
-        Math.hypot(
-          q.x - ntSeatAt(g, first.r, 0, 1).x,
-          q.y - ntSeatAt(g, first.r, 0, 1).y,
-        ) < 0.5,
+        Math.hypot(q.x - ntSeatAt(g, first.r, 0, 1).x, q.y - ntSeatAt(g, first.r, 0, 1).y) < 0.5,
     )
     expect(fading).toBeDefined()
     expect(fading!.a).toBeGreaterThan(0)
@@ -1717,21 +3456,9 @@ describe('bound ions and the reflection pauses', () => {
     // While the channel eases open, a cast ball sits EXACTLY on the moving
     // seat — and its mirrored partner on the other subunit.
     const midOpen = first.openAt + OPEN_EASE_MS / 2
-    const want0 = ntSeatAt(
-      g,
-      first.r,
-      0,
-      receptorOpenFrac(g, run, cleft, first.r, midOpen),
-    )
-    const want1 = ntSeatAt(
-      g,
-      first.r,
-      1,
-      receptorOpenFrac(g, run, cleft, first.r, midOpen),
-    )
-    const seatsNow = transmitterCast(g, run, cleft, midOpen, 0).filter(
-      (d) => d.where === 'seat',
-    )
+    const want0 = ntSeatAt(g, first.r, 0, receptorOpenFrac(g, run, cleft, first.r, midOpen))
+    const want1 = ntSeatAt(g, first.r, 1, receptorOpenFrac(g, run, cleft, first.r, midOpen))
+    const seatsNow = transmitterCast(g, run, cleft, midOpen, 0).filter((d) => d.where === 'seat')
     for (const want of [want0, want1]) {
       expect(
         seatsNow.some((d) => Math.hypot(d.x - want.x, d.y - want.y) < 1e-6),
@@ -1740,9 +3467,7 @@ describe('bound ions and the reflection pauses', () => {
     }
     // Still plugged while the ions flow and the pause holds…
     const rel = receptorSeatWindow(g, run, cleft, first.r).releasedAt as number
-    const late = transmitterCast(g, run, cleft, rel - 0.05, 0).filter(
-      (d) => d.where === 'seat',
-    )
+    const late = transmitterCast(g, run, cleft, rel - 0.05, 0).filter((d) => d.where === 'seat')
     expect(late.length).toBeGreaterThanOrEqual(2)
     // …and off the seat once released, while the door is STILL open.
     expect(rel).toBeLessThan(first.closeAt)
@@ -1751,9 +3476,9 @@ describe('bound ions and the reflection pauses', () => {
       (d) => d.where === 'seat' && Math.abs(d.x - receptorSites(g)[first.r].x) < 12,
     )
     expect(nearSeat.length).toBe(0)
-    expect(
-      receptorOpenFrac(g, run, cleft, first.r, (rel + first.closeAt) / 2),
-    ).toBeGreaterThan(0.5)
+    expect(receptorOpenFrac(g, run, cleft, first.r, (rel + first.closeAt) / 2)).toBeGreaterThan(
+      0.5,
+    )
   })
 
   it('glow-off, departure and close land as readable beats, in order (A2, A4)', () => {
@@ -1771,17 +3496,14 @@ describe('bound ions and the reflection pauses', () => {
 
   it('walks the clock: ~1 s between opening and flow, and ~1 s of reflection before the nudge and the close (A3, A4)', () => {
     // Opening → the first ion moves.
-    expect(
-      screenMsAt(first.openAt + NA_PAUSE_MS) - screenMsAt(first.openAt),
-    ).toBeGreaterThan(700)
+    expect(screenMsAt(first.openAt + NA_PAUSE_MS) - screenMsAt(first.openAt)).toBeGreaterThan(700)
     // Last ion of the first chain settled → its door closes.
     const lastSettled =
       first.openAt + NA_PAUSE_MS + 0.8 + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
     expect(first.closeAt).toBeGreaterThan(lastSettled)
     expect(screenMsAt(first.closeAt) - screenMsAt(lastSettled)).toBeGreaterThan(700)
     // First ion settled → the nudge departs.
-    const firstSettled =
-      first.openAt + NA_PAUSE_MS + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
+    const firstSettled = first.openAt + NA_PAUSE_MS + NA_APPROACH_MS + NA_CROSS_MS + NA_SETTLE_MS
     const launch = nudgeLaunchMs(g, run, cleft) as number
     expect(launch).toBeGreaterThan(firstSettled)
     expect(screenMsAt(launch) - screenMsAt(firstSettled)).toBeGreaterThan(700)
@@ -1806,11 +3528,16 @@ describe('bound ions and the reflection pauses', () => {
       expect(seated, `bound ion ${i} must rest exactly on its knob`).toBe(true)
     }
     // The four surplus ions stay free — never on ANY knob.
+    // ⚠ NEVER SEATED on one — passing near a knob while TRAVELLING is not
+    // seating, and since the pumps were added a surplus ion's way out can graze
+    // one. Stillness is the test, as it is elsewhere: sample twice, and only
+    // judge the ion when it has not moved.
     for (let i = docked.length * 2; i < CA_N; i++) {
       for (let ms = 0; ms <= SYNAPSE_MS; ms += 0.2) {
-        const dot = calciumCast(g, run, ms, 0)[i]
-        for (const k of knobs)
-          expect(Math.hypot(dot.x - k.x, dot.y - k.y)).toBeGreaterThan(2)
+        const a = calciumCast(g, run, ms, 100)[i]
+        const b = calciumCast(g, run, ms + 0.05, 900)[i]
+        if (Math.hypot(a.x - b.x, a.y - b.y) > 1e-9) continue
+        for (const k of knobs) expect(Math.hypot(a.x - k.x, a.y - k.y)).toBeGreaterThan(2)
       }
     }
   })

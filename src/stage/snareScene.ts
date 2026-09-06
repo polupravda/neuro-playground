@@ -1,5 +1,6 @@
 import { HALF_MEM, HEAD_R, OILY_CORE, paveMembrane, type LipidGeom, type WallPoint } from './bilayer'
 import { GLOSSY_COLORS, drawGlossyIon } from './particleStyle'
+import { coatFlyAt, coatOrder, coatSettleAt, drawDynamin, drawTriskelion } from './clathrin'
 import { softGlow } from './signal'
 import { drawSpoken, spoken, type SpokenLabel } from './spokenLabels'
 import {
@@ -22,12 +23,20 @@ import {
   tetherHoldAt,
   through,
   uAtLoadFill,
+  STAGE_WEIGHT,
   uAtMouthOpen,
   uAtThrough,
   zipAt,
 } from '../core/vesicleCycle'
 import { HILL_N } from '../core/synapse'
-import { SNARE_STRANDS, transmitterDot } from './synapseScene'
+import {
+  CHANNEL_INK,
+  SNARE_ANCHOR_A,
+  SNARE_CIS_LEN,
+  SNARE_STRANDS,
+  transmitterDot,
+} from './synapseScene'
+import { TURN_IN, VGLUT_GLYPH, drawMovingGlyph, transportOpen } from './channelShapes'
 
 // D06's face — one vesicle, one patch of terminal wall, and the machinery.
 //
@@ -51,9 +60,17 @@ export const SN_W = Math.max(560, Math.min(VIEW_W, 1376) - 40 - 256 - 24 - 32)
 export const SN_H = Math.max(360, VIEW_H - 40 - 8 - 18)
 
 /** The molecule, drawn big — this is the one view where it is resolvable. */
-const LIPID: LipidGeom = { headR: HEAD_R * 1.15, halfMem: HALF_MEM * 1.15 }
+export const LIPID: LipidGeom = { headR: HEAD_R * 1.15, halfMem: HALF_MEM * 1.15 }
 /** How far apart the molecules stand along a wall. */
 const SPACING = LIPID.headR * 2.05
+
+/** ⚠ VGLUT AT THIS MAGNIFICATION (21c-3o). The synapse view draws it several
+ *  times its membrane's drawn thickness — a declared exaggeration, because
+ *  there the membrane is 5 px and the protein would vanish. Here the bilayer is
+ *  resolved molecule by molecule, so no exaggeration is needed or wanted: the
+ *  protein spans the membrane, which is what a transporter does. Sized to the
+ *  barrel it replaces, so nothing else in the frame had to move. */
+const VGLUT_SPAN_SN = LIPID.halfMem * 2.3
 
 const INK = 'rgba(148, 163, 184, 0.85)'
 export const OUTSIDE = 'rgba(30, 41, 59, 0.5)'
@@ -72,8 +89,21 @@ const COMPLEXIN_INK = '#fbbf24'
 // ink, via GLOSSY_COLORS.h). Fuchsia keeps the barrel loud without stealing
 // a reserved meaning.
 const NSF_INK = '#c026d3'
-const CLATHRIN_INK = '#22d3ee'
-const PUMP_INK = '#6366f1'
+// ⚠ Clathrin's ink and shape live in `stage/clathrin.ts` now (21c-10) — one
+// owner, shared with the endocytosis drawer.
+/** ⚠ THE V-ATPase, IN ITS CARGO'S OWN FAMILY (21c-3o, user: "align 'vesicle &
+ *  snare' with elements introduced in 'The synapse: the round trip'"). It wore
+ *  `#6366f1` — which is EAAT's wall exactly, the astrocyte's glutamate
+ *  transporter, in a view that has no astrocyte in it — and it shared that ink
+ *  with the vesicle's own transmitter transporter beside it, so two machines
+ *  doing opposite jobs were one colour.
+ *
+ *  Red, because a channel wears what it passes and this one passes protons.
+ *  ⚠ NOT the protons' own body ink (`GLOSSY_COLORS.h.dark`, `#dc2626`): a
+ *  protein painted in its cargo's exact colour is the fault VGLUT's first teal
+ *  had — it makes "count the cargo's ink" unanswerable. A shade darker, so the
+ *  family reads and the count still works. */
+export const V_ATPASE_INK = '#b91c1c'
 /** ⚠ THE VESICLE'S LUMEN, in the bath's own ink (user, 2026-08-31). It is not a
  *  colour that happens to match the outside — the lumen IS outside, folded in,
  *  and that is exactly why exocytosis works. Painting it so means the moment
@@ -224,11 +254,23 @@ export function vesicleRing(g: SnareGeometry, u: number): WallPoint[] {
  *  material the omega adds: the mouth's chord plus the unrolled arclength.
  *  Zero until the walls have actually merged. */
 export function wallShift(g: SnareGeometry, u: number): number {
-  const cy = fusedCentreY(g, u)
-  const sinStar = (g.wallY - cy) / g.r
+  return wallShiftFor(g, fusedCentreY(g, u), g.r)
+}
+
+/** ⚠ THE SAME SHIFT, ASKED OF A CENTRE (21c-6, user: "cell membrane remains
+ *  solid during animation. Expected: it visually opens up").
+ *
+ *  How far the wall's own molecules must move aside is a fact about where the
+ *  vesicle's centre is, not about where the SNARE cycle has got to — and the
+ *  endocytosis panels drive their vesicles themselves. Same arithmetic, one
+ *  owner: the merging circle's foot is at `r·cos(a*)`, and the arc that has
+ *  already unrolled past it is `r·(π/2 − a*)` long, so together they are the
+ *  room the crowd has to make. */
+export function wallShiftFor(g: SnareGeometry, cy: number, r = g.r): number {
+  const sinStar = (g.wallY - cy) / r
   if (sinStar >= 1) return 0
   const aR = Math.asin(Math.max(-1, Math.min(1, sinStar)))
-  return g.r * Math.cos(aR) + g.r * (Math.PI / 2 - aR)
+  return r * Math.cos(aR) + r * (Math.PI / 2 - aR)
 }
 
 /** Which copy of the ring's machinery: 1 = the right of the vesicle (the
@@ -246,11 +288,11 @@ const reflect = (g: SnareGeometry, p: { x: number; y: number }, side: Side) =>
  *  mirrored copies' rope ends were ±0.05 r from the centre line — on top of
  *  each other. At 1.1 rad the anchor sits at ±0.45 r, so the pair reads as a
  *  ring's section instead of a tangle. */
-const V_ANCHOR_A = 1.1
+const V_ANCHOR_A = SNARE_ANCHOR_A
 
 /** The flat cis-complex's length along the wall, in radii — the distance the
  *  wall end keeps beyond the vesicle molecule once both lie in one membrane. */
-const CIS_LEN = 0.356
+const CIS_LEN = SNARE_CIS_LEN
 
 /** Where syntaxin stands on the wall, in radii from the centre: exactly one
  *  cis-length beyond the point where the v-SNARE's molecule lands when the
@@ -625,16 +667,57 @@ export function clathrinAt(
     const j = h - Math.floor(h)
     const a = -Math.PI / 2 + ((k + 0.5) / COAT_N) * Math.PI * 2
     const rad = g.r + LIPID.halfMem + 5 + shed * g.r * 0.35
-    const x = g.cx + Math.cos(a) * rad
-    const y = cy + Math.sin(a) * rad
+    const seatX = g.cx + Math.cos(a) * rad
+    const seatY = cy + Math.sin(a) * rad
     // Only the standing part wears the coat.
-    if (y > g.wallY - 2) continue
-    const on = Math.max(0, Math.min(1, (grow - j * 0.55) / 0.3))
-    const alpha = on * (1 - shed)
-    if (alpha <= 0.01) continue
-    out.push({ x, y, angle: a, alpha })
+    if (seatY > g.wallY - 2) continue
+    // ⚠ IT FLIES IN FROM THE SIDE AND STICKS — it does not fade up (21c-14/15,
+    // user: "clathrin currently fades in and becomes transparent
+    // occasionally"; "clathrin should fly from left and right"). The same two
+    // rules the endocytosis panels use, from the shared module: a steady
+    // approach on its own clock to a STATIC waiting place beside the bud, then
+    // an eased settle when the space opens. Apex first, each later piece added
+    // on the membrane side, every piece at full strength or not at all.
+    const order = coatOrder(k, COAT_N)
+    const side: -1 | 1 = seatX < g.cx ? -1 : 1
+    const hoverX = g.cx + side * g.r * (2.2 + 0.4 * j)
+    const hoverY = g.wallY - g.r * (1 + 1.1 * order + 0.3 * j)
+    const fromX = side < 0 ? g.left - g.r : g.right + g.r
+    const span = STAGE_SPANS.find((sp) => sp.id === 'retrieve')
+    const fly = coatFlyAt(order, u, span?.from ?? 0, (span?.to ?? 1) - (span?.from ?? 0))
+    if (fly <= 0) continue
+    const land = coatSettleAt(order, u, span?.from ?? 0, (span?.to ?? 1) - (span?.from ?? 0))
+    const wx = fromX + (hoverX - fromX) * fly
+    const wy = hoverY
+    out.push({
+      x: wx + (seatX - wx) * land,
+      y: wy + (seatY - wy) * land,
+      angle: a + (1 - fly) * 2.2 + (1 - land) * 1.2,
+      // ⚠ Kept in the shape for the shed's own fade only — the ARRIVAL is a
+      // journey now, never an opacity.
+      alpha: 1,
+    })
   }
   return out
+}
+
+/** ⚠ WHERE THE SNARE BENCH'S OWN DYNAMIN IS (21c-10) — null off duty. It works
+ *  the NECK of the reforming bud, late in the retrieval, while the pocket is
+ *  still open to the wall: squeezing is what separates the bud, so the coil's
+ *  squeeze runs up to the moment the pocket seals and it is gone once the
+ *  bubble is free. */
+export function snareDynaminAt(
+  g: SnareGeometry,
+  u: number,
+): { y: number; halfW: number; height: number; squeeze: number; alpha: number } | null {
+  const back = through(u, 'retrieve')
+  if (back < 0.55 || back >= 1) return null
+  const squeeze = Math.min(1, (back - 0.55) / 0.4)
+  const alpha = Math.min(1, (back - 0.55) / 0.12) * Math.min(1, (1 - back) / 0.06)
+  const cy = fusedCentreY(g, u)
+  const neckTop = cy + g.r * 0.55
+  const height = Math.max(6, (g.wallY - neckTop) * 0.7)
+  return { y: (neckTop + g.wallY) / 2, halfW: g.r * 0.5, height, squeeze, alpha }
 }
 
 /** The ring angle the proton pump rides at, and where it is (null before it
@@ -681,6 +764,66 @@ export function transporterAt(
     Math.min(1, t / 0.12) * (1 - Math.max(0, Math.min(1, (t - 0.85) / 0.15)))
   if (t <= 0 || alpha <= 0.01) return null
   return { ...transporterSpot(g, u), a: TRANS_A, alpha }
+}
+
+/** ⚠ HOW LONG ONE MOLECULE IS IN THE BORE, in u. Named once (21c-3o): the
+ *  cargo's pass, the transporter's own cycle and the guard all read it, so the
+ *  gates cannot swing at a moment nothing is crossing. */
+/** ⚠ ONE MOLECULE'S SLOT AT THE PORE, in u — SOLVED, not chosen (21c-3o). The
+ *  refill is booked on `uAtLoadFill`, so consecutive molecules seat a fixed
+ *  step apart; that step IS the slot. */
+export const NT_SLOT_U = uAtLoadFill(1.5 / NT_COUNT) - uAtLoadFill(0.5 / NT_COUNT)
+
+/** ⚠ ONE TURN AT THE PORE — approach, bore, release. It was a flat 0.03 of the
+ *  run, nearly a third of the whole load stage, so seven molecules were inside
+ *  one pore at once, which a pore does not do. A shade under its slot, so no
+ *  pass overlaps its neighbour's and there is a beat between one leaving and
+ *  the next arriving. */
+export const NT_TURN_U = NT_SLOT_U * 0.95
+
+/** ⚠ AND THE DRIFT TO ITS SEAT IS NOT THE PORE'S BUSINESS (21c-3o). Folding it
+ *  into the turn made the last leg — up to 88 px across the lumen — run at
+ *  1,170 px/s, and the guard that watches for teleports caught it at 25 px a
+ *  frame. Once a molecule is through, it diffuses to its place while the
+ *  transporter gets on with the next; several may be drifting at once, and only
+ *  one is ever in the bore. */
+export const NT_SETTLE_U = NT_SLOT_U * 2
+
+/** ⚠ NOR IS THE WALK UP TO THE DOOR (21c-3o). Folding it into the turn's first
+ *  beat ran a 73 px approach in 64 ms — 1,140 px/s, caught by the teleport
+ *  guard at 27 px a frame. The queue shuffles up to the outer mouth over its
+ *  own window, and arrives there as the gates open on that side. */
+export const NT_APPROACH_U = NT_SLOT_U * 2
+
+/** When molecule `i` begins its turn — worked out once, so the cargo's path and
+ *  the transporter's own gates cannot disagree about when it is being carried.
+ *  It is booked BACKWARD from the moment the ledger says the bag is that much
+ *  fuller, so the picture still matches `cargoAt`. */
+export function ntTurnStart(i: number): number {
+  return uAtLoadFill((i + 0.5) / NT_COUNT) - NT_TURN_U - NT_SETTLE_U
+}
+
+/** ⚠ VGLUT'S CYCLE AT THIS MAGNIFICATION (21c-3o, user: "align 'vesicle &
+ *  snare' with elements introduced in 'The synapse: the round trip'").
+ *
+ *  The bench drew a static barrel while the synapse view had already been given
+ *  a transporter that WORKS — one molecule at a time, open to the cytoplasm,
+ *  shut around it, swung over, released. This is the close-up: it should show
+ *  the cycle better than the wide view, not worse.
+ *
+ *  The beats are the shared ones (`transportOpen`), run over the very window
+ *  each molecule takes to thread the bore, so the gates and the cargo cannot
+ *  disagree. Between molecules it stands open to the cytoplasm, waiting for the
+ *  next; off duty it is shut. Signed the transporter's way — −1 open to where
+ *  the cargo comes from — and the drawing does the mirroring. */
+export function vglutOpenAt(g: SnareGeometry, u: number): number {
+  if (!transporterAt(g, u)) return 0
+  for (let i = 0; i < NT_COUNT; i++) {
+    const start = ntTurnStart(i)
+    if (u < start) return -1
+    if (u <= start + NT_TURN_U) return transportOpen((u - start) / NT_TURN_U)
+  }
+  return -1
 }
 
 /** How many protons are shown. A handful stands for the flood. */
@@ -782,12 +925,29 @@ function ringPoints(cx: number, cy: number, r: number, skipFrom?: number, skipTo
  *  ADDS membrane, so the original wall's molecules are pushed OUTWARD by
  *  `shift` on each side — identity for the wall's own lipids too. The ones
  *  that slide past the frame's edge leave the picture by travelling. */
-function wallPoints(g: SnareGeometry, shift: number): WallPoint[] {
+/** ⚠ EXPORTED (21c-5). The endocytosis exhibit draws three little terminals of
+ *  its own, and every one of them needs THIS wall — the same molecules, the
+ *  same spacing, the same paver. A second private drawing of a membrane is
+ *  forbidden here, and that rule does not stop at this file's edge. */
+export function wallPoints(
+  g: SnareGeometry,
+  shift: number,
+  /** ⚠ WHERE THE WALL IS BEING OPENED (21c-6). Its own middle, until an
+   *  exhibit opens it somewhere else — ultrafast endocytosis dents the wall
+   *  BESIDE the active zone, and a gap that opens at the frame's centre while
+   *  the dent forms to the right is a wall parting where nothing is happening. */
+  about = g.cx,
+): WallPoint[] {
   const out: WallPoint[] = []
   const n = Math.round((g.right - g.left) / SPACING)
   for (let i = 0; i <= n; i++) {
     const x0 = g.left + (i / n) * (g.right - g.left)
-    const x = x0 + Math.sign(x0 - g.cx) * shift
+    // ⚠ NO MOLECULE STAYS IN THE MOUTH (21c-8, user: "1 lipid remains in the
+    // center of opening"). `Math.sign(0)` is 0, so the slot that lands exactly
+    // at the opening's own centre was shoved NOWHERE — one lipid left floating
+    // in the parted gap, in front of the merging vesicle. The centre slot goes
+    // right; there is no honest side for it, only a side.
+    const x = x0 + (x0 >= about ? 1 : -1) * shift
     out.push({
       at: { x, y: g.wallY },
       tangent: { x: 1, y: 0 },
@@ -1031,18 +1191,35 @@ export function transmitterAt(
     const uWait = uAtThrough('refill', 0.3 + 0.6 * ((i + 0.5) / NT_COUNT))
     const uIn = uAtLoadFill((i + 0.5) / NT_COUNT)
     const RAIN = 0.03
-    const DOOR = 0.03
+    const turn = ntTurnStart(i)
     if (u >= uIn) {
       out.push({ ...seat, phase: 'inside' })
       continue
     }
-    if (u > uIn - DOOR) {
+    if (u > turn + NT_TURN_U) {
+      // Through, and drifting to its own seat — the pore has no further part
+      // in it, and it is already carrying the next molecule.
+      const mouthR = LIPID.halfMem + 5
+      const inMouth = {
+        x: trans.x - Math.cos(TRANS_A) * mouthR,
+        y: trans.y - Math.sin(TRANS_A) * mouthR,
+      }
+      const q = (u - (turn + NT_TURN_U)) / NT_SETTLE_U
+      out.push({ ...lerpP(inMouth, seat, Math.min(1, q)), phase: 'entering' })
+      continue
+    }
+    if (u > turn) {
       // ⚠ THREADS THE BORE (user, 2026-09-04: "let them penetrate the vesicle
       // through the channel"): a quadratic only passes NEAR its control
       // point, and dots were visibly crossing beside the barrel. The pass is
-      // now piecewise through the barrel's two mouths — outer, then inner —
-      // so every molecule crosses the membrane INSIDE the transporter.
-      const q = (u - (uIn - DOOR)) / DOOR
+      // piecewise through the barrel's two mouths — outer, then inner — so
+      // every molecule crosses the membrane INSIDE the transporter.
+      //
+      // ⚠ AND ON THE TRANSPORTER'S OWN BEATS (21c-3o): it comes up to the outer
+      // mouth while the gates are open on that side, crosses while they are
+      // shut around it and swing, and is let go as they open on the lumen. The
+      // split is `TURN_IN` — the shared cycle's first beat — not a number typed
+      // beside it, so the cargo and the gates cannot drift apart.
       const mouthR = LIPID.halfMem + 5
       const outMouth = {
         x: trans.x + Math.cos(TRANS_A) * mouthR,
@@ -1052,13 +1229,24 @@ export function transmitterAt(
         x: trans.x - Math.cos(TRANS_A) * mouthR,
         y: trans.y - Math.sin(TRANS_A) * mouthR,
       }
+      const p = (u - turn) / NT_TURN_U
       const pos =
-        q < 0.4
-          ? lerpP(wait, outMouth, q / 0.4)
-          : q < 0.6
-            ? lerpP(outMouth, inMouth, (q - 0.4) / 0.2)
-            : lerpP(inMouth, seat, (q - 0.6) / 0.4)
+        p < TURN_IN
+          ? // Held at the mouth while the gates open on this side — the same
+            // stillness the synapse view's cargo keeps in its seat.
+            outMouth
+          : lerpP(outMouth, inMouth, (p - TURN_IN) / (1 - TURN_IN))
       out.push({ ...pos, phase: 'entering' })
+      continue
+    }
+    if (u > turn - NT_APPROACH_U) {
+      const mouthR = LIPID.halfMem + 5
+      const outMouth = {
+        x: trans.x + Math.cos(TRANS_A) * mouthR,
+        y: trans.y + Math.sin(TRANS_A) * mouthR,
+      }
+      const q = (u - (turn - NT_APPROACH_U)) / NT_APPROACH_U
+      out.push({ ...lerpP(wait, outMouth, q), phase: 'entering' })
       continue
     }
     if (u >= uWait) {
@@ -1280,6 +1468,10 @@ export interface SnareView {
    *  checkpoint holds the run. Left undefined, labels show at rest (fading
    *  over the first LABEL_FADE_U) and at the run's end. */
   labelAlpha?: number
+  /** ⚠ The thermal clock, screen time (21c-8, Rule 2): the bilayer is this
+   *  exhibit's actor, so its molecules jostle — including while the run is
+   *  parked on a labelled still. Absent, still, so tests stay deterministic. */
+  ms?: number
 }
 
 export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
@@ -1318,7 +1510,14 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
   }
   ctx.stroke()
   ctx.restore()
-  paveMembrane(ctx, wallPoints(g, shift), { geom: LIPID, first: 0, taperOver: 3 })
+  // ⚠ Rule 2 (21c-8): membranes are this exhibit's ACTORS — fusion and
+  // retrieval are things that happen TO the bilayer — so it jiggles.
+  paveMembrane(ctx, wallPoints(g, shift), {
+    geom: LIPID,
+    first: 0,
+    taperOver: 3,
+    ms: v.ms ?? 0,
+  })
 
   // ── the transmitter, WITH IDENTITY (user, 2026-09-03): the same molecules
   // from first frame to last — riding the bubble, squeezing out through the
@@ -1361,7 +1560,7 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
     ctx.fill()
     ctx.restore()
   }
-  paveMembrane(ctx, ring, { geom: LIPID, first: 500, taperOver: 0 })
+  paveMembrane(ctx, ring, { geom: LIPID, first: 500, taperOver: 0, ms: v.ms ?? 0 })
 
   // ⚠ NO SECOND BUBBLE. The retrieval used to grow a separate omega at
   // cx − 1.9r — an enclosed circle sitting on an intact wall, in the wrong
@@ -1613,21 +1812,22 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
     }
   }
 
-  // ── the clathrin coat: pale studs on the cytosolic face of the reforming
-  // bud — the shape-making tool — shed radially once the bubble is free.
+  // ── the clathrin coat, as TRISKELIONS (21c-10, handover of 2026-09-06).
+  // They were flat studs; the endocytosis drawer now draws the coat as the
+  // three-legged pinwheels the protein actually is, from the shared module —
+  // and one coat must be one object across the app, so this bench draws the
+  // very same shape at its own magnification.
   for (const stud of clathrinAt(g, u)) {
-    ctx.save()
-    ctx.globalAlpha *= stud.alpha
-    ctx.translate(stud.x, stud.y)
-    ctx.rotate(stud.angle + Math.PI / 2)
-    ctx.strokeStyle = CLATHRIN_INK
-    ctx.lineWidth = 4
-    ctx.lineCap = 'round'
-    ctx.beginPath()
-    ctx.moveTo(-5.5, 0)
-    ctx.lineTo(5.5, 0)
-    ctx.stroke()
-    ctx.restore()
+    drawTriskelion(ctx, stud, g.r * 0.24, stud.angle * 2.399, stud.alpha)
+  }
+
+  // ── dynamin, at THIS bench's own neck (21c-10, user: "adjust 'vesicle &
+  // snare machinery' with the newly created elements"). The pinch that frees
+  // the reforming bud had no machine doing it — a neck that snapped by itself.
+  // The same coil, late in the retrieval, squeezing as the bud comes free.
+  const dyn = snareDynaminAt(g, u)
+  if (dyn) {
+    drawDynamin(ctx, { x: g.cx, y: dyn.y }, dyn.halfW, dyn.height, dyn.squeeze, dyn.alpha)
   }
 
   // ── the proton pump and the transporter, riding the readied bubble, and
@@ -1642,7 +1842,7 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
     ctx.globalAlpha *= pump.alpha
     ctx.translate(pump.x, pump.y)
     ctx.rotate(pump.a + Math.PI / 2)
-    ctx.fillStyle = PUMP_INK
+    ctx.fillStyle = V_ATPASE_INK
     ctx.beginPath()
     ctx.roundRect(-5, -LIPID.halfMem * 1.1, 4, LIPID.halfMem * 2.2, 2)
     ctx.fill()
@@ -1653,20 +1853,28 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
   }
   const trans = transporterAt(g, u)
   if (trans) {
-    // One wide barrel with a dark bore — the pump family's indigo, a
-    // different SHAPE for a different job.
+    // ⚠ IT IS VGLUT, AND IT LOOKS LIKE VGLUT (21c-3o). It was a hand-drawn
+    // barrel in the pump family's indigo — which is EAAT's ink — while the
+    // synapse view drew the same protein from the user's own handover in
+    // purple. One biology, one drawing: the traced glyph, the code book's
+    // colour, and the cycle it runs there, at the register where the bilayer is
+    // resolved so the protein can span it honestly.
+    //
+    // ⚠ MIRRORED HERE, at the one place it is drawn: the glyph stands across
+    // the bubble's wall with its far end in the LUMEN, so the transporter's own
+    // sign — −1 open to where the cargo comes from — is flipped for the
+    // drawing, exactly as the synapse view flips it.
     ctx.save()
     ctx.globalAlpha *= trans.alpha
-    ctx.translate(trans.x, trans.y)
-    ctx.rotate(trans.a + Math.PI / 2)
-    ctx.fillStyle = PUMP_INK
-    ctx.beginPath()
-    ctx.roundRect(-7, -LIPID.halfMem * 1.15, 14, LIPID.halfMem * 2.3, 3)
-    ctx.fill()
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'
-    ctx.beginPath()
-    ctx.roundRect(-2, -LIPID.halfMem * 1.15, 4, LIPID.halfMem * 2.3, 2)
-    ctx.fill()
+    drawMovingGlyph(
+      ctx,
+      VGLUT_GLYPH,
+      { x: trans.x, y: trans.y },
+      trans.a + Math.PI / 2,
+      CHANNEL_INK.vglut,
+      VGLUT_SPAN_SN,
+      -vglutOpenAt(g, u),
+    )
     ctx.restore()
   }
   for (const p of protonsAt(g, u)) {
@@ -1723,6 +1931,11 @@ export function drawSnare2(ctx: CanvasRenderingContext2D, v: SnareView): void {
  *  the real thing is under a millisecond from calcium to pore. Raised
  *  13 s → 20 s (user, 2026-09-03: "make animation slower"), alongside the
  *  still beats the stage `hold`s insert after each important event. */
-export const SNARE_SCREEN_MS = 20000
+/** ⚠ SCALED BY THE STAGES' OWN WEIGHT (21c-3o). It was a flat 20 s; when the
+ *  refill trade was given the time its cycle needs, keeping 20 s would have
+ *  squeezed every other stage to pay for it. Multiplying by the weight means
+ *  each stage keeps `share × 20 s` of screen whatever the others do — measured:
+ *  the run goes 20 s → ~30 s, and only the trade is longer. */
+export const SNARE_SCREEN_MS = Math.round(20000 * STAGE_WEIGHT)
 
 export { PRIMED_ZIP }

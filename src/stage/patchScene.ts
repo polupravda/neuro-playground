@@ -161,6 +161,7 @@ function drawRig(ctx: CanvasRenderingContext2D, vm: number, now: number): void {
     from: -cx / scale,
     to: cx / scale,
     gaps: [[-1.2 * PX_PER_NM, 1.2 * PX_PER_NM]],
+    ms: now,
   })
   // ⚠ THE TRACED VOLTAGE-GATED SHAPE, IN PURPLE, WITH NO BALL (user,
   // 2026-08-30). This clamp records a voltage-gated potassium channel — and

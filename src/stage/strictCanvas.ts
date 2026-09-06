@@ -71,6 +71,12 @@ export interface StrictCanvas {
    *  in the factory. Lets a test ask whether a drawing honoured a fade it was
    *  handed instead of painting over it. */
   alphas: number[]
+  /** ⚠ EVERY INK-LAYING CALL, WITH THE COLOUR IT LAID (21c-3l) — in order, so a
+   *  test can ask WHAT IS PAINTED OVER WHAT. `styles` records the colours a
+   *  drawing chose and `calls` records the operations, but neither pairs them,
+   *  so z-order — "the filler must not end up under the bubble it stands on" —
+   *  could not be measured at all. */
+  inks: { op: string; fill: string; stroke: string }[]
 }
 
 /** A context that records what it was asked to do and complains about anything a
@@ -114,6 +120,7 @@ export function strictCanvas(): StrictCanvas {
   const texts: string[] = []
   const styles: string[] = []
   const alphas: number[] = []
+  const inks: { op: string; fill: string; stroke: string }[] = []
   const drawStack: Record<string, unknown>[] = []
   /** Through the current transform, so a caller sees where the ink went. */
   const put = (x: number, y: number) => {
@@ -139,7 +146,14 @@ export function strictCanvas(): StrictCanvas {
     (name: string) =>
     (...args: unknown[]) => {
       checkNumbers(name, args)
-      if (INK.has(name)) alphas.push(Number(state.globalAlpha ?? 1))
+      if (INK.has(name)) {
+        alphas.push(Number(state.globalAlpha ?? 1))
+        inks.push({
+          op: name,
+          fill: String(state.fillStyle ?? ''),
+          stroke: String(state.strokeStyle ?? ''),
+        })
+      }
       if (name === 'fillText' || name === 'strokeText') texts.push(String(args[0]))
       for (let i = 0; i < (VERTICES[name] ?? 0); i++) {
         put(args[i * 2] as number, args[i * 2 + 1] as number)
@@ -271,5 +285,5 @@ export function strictCanvas(): StrictCanvas {
     },
   ) as unknown as CanvasRenderingContext2D
 
-  return { ctx, calls, points, texts, styles, alphas }
+  return { ctx, calls, points, texts, styles, alphas, inks }
 }

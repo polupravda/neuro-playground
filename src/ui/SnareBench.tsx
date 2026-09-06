@@ -104,6 +104,7 @@ export function SnareBench() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       drawSnare2(ctx, {
         u: state.current.u,
+        ms,
         labelAlpha: !state.current.labelsOn
           ? 0
           : hold.current.active || atStop

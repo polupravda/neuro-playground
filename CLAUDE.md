@@ -106,6 +106,9 @@ and the bug it came from. **Read that section before working in the area.**
 
 - **One dashed ring, on the zoom target's own centre.** A marker's job is to say
   what is on screen. → *The whole-cell miniature*
+- **A drawer must be able to say what it does that the view CANNOT** — a fork, a
+  comparison, a register out of reach. "The same thing, closer" is not a drawer;
+  the view already has a camera. → *A drawer must be able to say what it does…*
 - **A drawer rebuilding the app's furniture is evidence it should be a place.**
   → *The scene is the world…* / *Where a concept lives*
 - **Two doors at one place need two icons, not one menu**, spaced by a marker's
@@ -159,7 +162,26 @@ and the bug it came from. **Read that section before working in the area.**
 - **Draw what a thing is made of when that is the point.**
 - **Orient the camera to the structure** (`turn` on the zoom target).
 - **A membrane is a liquid, not a ruled line.**
+- **Jiggly lipids, by two rules**: a view that moves at rest jiggles; a view
+  that rests as a still keeps still lipids; and wherever the bilayer is the
+  main actor or subject, it jiggles regardless. Each leaflet on its own beat,
+  identity = slot, screen time never model time. → *Jiggly lipids*
+- **Compare things in the `SideBySide` component** ("side-by-side interactive
+  comparison") — one container per thing, speaker-first headline, fixed-height
+  caption, transparent canvas, action at the foot. → *The 'side-by-side
+  interactive comparison' layout*
 - **Make the model's hidden states visible**, allocated by threshold not rounding.
+- **A machine's cargo sits where the machine has a SEAT** — the chamber the trace
+  draws, found by measuring the pore, never the door's own anchor point.
+  → *A machine's cargo sits where the machine has a seat*
+- **One protein, one drawing — across REGISTERS too.** Same glyph, same ink, same
+  behaviour in every view; only the scale differs, and it is declared.
+  → *One protein, one drawing — across REGISTERS too*
+- **A guard that walks a run samples in SCREEN TIME**, never in a fixed count of
+  `u` — or growing a leg loosens every guard. → *A guard that walks a run…*
+- **A transporter's gates swing BOTH ways**, and one pore carries one molecule —
+  but do not invent a waiting line where the picture already has one.
+  → *A transporter's gates must swing BOTH ways*
 
 ### Fades
 

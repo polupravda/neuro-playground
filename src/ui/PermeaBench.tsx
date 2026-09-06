@@ -73,7 +73,7 @@ export function PermeaBench() {
       stepMotes(motesRef.current, dt, ms, aquaporinRef.current)
       tankCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
       tankCtx.clearRect(0, 0, PT_W * PERMEA_SCALE, PT_H * PERMEA_SCALE)
-      drawPermea(tankCtx, motesRef.current, aquaporinRef.current, true)
+      drawPermea(tankCtx, motesRef.current, aquaporinRef.current, true, ms)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)

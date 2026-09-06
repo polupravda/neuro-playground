@@ -754,10 +754,10 @@ drawing board (postsynaptic spine, astrocyte process, receptor positions).
 | 19 | S04–S05 | Cleft concentration and AMPA-type binding — **model kept**; view deleted for redesign. | model done; view superseded by step 20 |
 | 20 | S12 (S01–S04) | Leg 1, arrival → binding: AP reaches the bouton, active-zone Ca²⁺ doors open, the four-site sensor fills, fusion, the cleft fills as a concentration, two glutamates bind per receptor. Ends at binding. | done (2026-09-04) |
 | 21 | D06 | Drawer, vesicle life cycle & SNARE: dock → prime → zipper → fuse → retrieve → refill. The vesicle is a ring of the scene's own bilayer; the sensor is the scene's own sensor. | done (2026-09-04) |
-| 21b | D17 | Drawer, reuptake & the glutamine round-trip: the tripartite synapse in section; astrocytic EAATs catch the drifting glutamate (the neuron a minor route), glutamine synthetase converts, SNAT doors ship it home, glutaminase converts back, the terminal's stock fills — the pool D06's refill rains from. Plan below. | todo (planned 2026-09-04) |
+| 21b | D17 | Drawer, reuptake & the glutamine round-trip: the tripartite synapse in section; astrocytic EAATs catch the drifting glutamate (the neuron a minor route), glutamine synthetase converts, SNAT doors ship it home, glutaminase converts back, the terminal's stock fills — the pool D06's refill rains from. Plan below. | built through 21b-1…21b-5 · awaiting manual test |
 | 22 | S13 (S05–S06 excitatory) | Leg 2, receptors → hillock: AMPA opens (EPSP), depolarization pops NMDA's Mg²⁺ plug, Ca²⁺ enters the spine, the EPSP is handed to the whole-cell view where summation fires the hillock. ⚠ never one synapse = one AP. | todo |
 | 23 | D07 | Drawer, AMPA & NMDA structure: clamshell binding, gates, the Mg²⁺ plug; receptors arrive by lateral diffusion and PSD capture, ⚠ not attraction through space. Ghost schematic + locator. | todo |
-| 24 | S14 (S10) | Leg 3, clearance & recycling: astrocytic + presynaptic transporters empty the cleft ⚠ (astrocytes do most of it, or declare), endocytosis, V-ATPase re-acidification, VGLUT refill. | todo |
+| 24 | S14 (S10) | Leg 3, clearance & recycling: astrocytic + presynaptic transporters empty the cleft ⚠ (astrocytes do most of it, or declare), endocytosis, V-ATPase re-acidification, VGLUT refill. | ⚠ ABSORBED into step 21c (2026-09-04) — leg 1 re-implemented to run the whole loop |
 | 25 | D08 | Drawer, receptor kinetics bench: AMPA vs NMDA time courses side by side; coincidence detection (transmitter alone / depolarization alone / both). | todo |
 
 ## Milestone 5 — Membrane deep dives (D01–D05, D12–D13) — **first up**
@@ -11590,3 +11590,2183 @@ regex that deleted ~280 lines of `reuptake.ts` and two paragraphs of
 HEAD (the only diff in `synapse.ts` is the new paragraph plus two prettier
 reformats). The lesson is the obvious one: a break must be surgical, and a
 break that deletes a region is not a break, it is damage.
+
+### Step 21c — PLAN: the loop comes to the synapse, and D17 stops being a drawer, 2026-09-04
+
+The user, having seen 21b-1…21b-5: *"both processes are so tightly coupled
+that I see no way to break them apart"* — then, mid-round: *"we don't need the
+drawer any more — its content goes into a unified loop on the main view.
+Delete it."*
+
+The arrival→binding view ends the transmitter's story mid-sentence: dots enter
+a glial capsule and stop, while the whole loop lives one magnification away in
+a drawer. This step tells the loop UNIFIED on the main view, re-shapes the
+astrocyte from two anonymous fingers into ONE recognisable cell, and turns
+D17's machinery from a drawer into a PLACE.
+
+⚠ **What was NOT the problem.** The user described the split as *clearance
+here, conversion elsewhere*. It never was: 21b split by REGISTER (band scene /
+molecular drawer), and D17 always held the whole loop. What was missing is the
+loop's second half AT THE SCENE'S OWN REGISTER. Recorded so the distinction is
+not re-lost — the fix is "finish the loop wide", never "move the molecules
+into the scene".
+
+⚠ **D17 as a drawer was itself the evidence.** It had already been rebuilt once
+on the user's own words (*"not kids-friendly, is torn out of context. Make
+clear: where is astrocyte? where is neuron?"*), and the complaint arrived a
+second time as "delete it". 03 already names this: *a drawer rebuilding the
+app's furniture is evidence it should be a place.* D17 kept redrawing the
+bouton, the cleft and the spine so the child could tell where they were —
+which is what a place gives you for free.
+
+**Alignment answers (2026-09-04), all seven:**
+
+1. **Band register on the main view, no enzymes.** The unified loop shows the
+   loop AS A LOOP: capture ticks, the dot's visible change of ink, the trip
+   home, the change back, the stock. No enzyme, barrel or SNAT door drawn
+   here. (The rejected alternative — a half-magnified astrocyte panel beside a
+   band-register bouton — is the 2026-08-27 forbidden move: a new category
+   invented so both sides can be true.)
+2. **Leg 1 is RE-IMPLEMENTED to run the whole loop** — chosen against the
+   recommendation (keep leg 1, add leg 3). Consequences accepted and recorded:
+   **S14 / step 24 is absorbed** (row marked above, not deleted), and step 20's
+   tested `CLOCK_LEGS` are rebuilt to span ~1 ms → ~minutes in one window. The
+   clock table is the riskiest part of this step and gets walked in a test
+   before anything is drawn.
+3. **ONE astrocyte, on the right**, reversing the 2026-09-04 "since we display
+   2 fingers, draw 2 astrocytes" ruling — which had already needed one
+   correction (21b-1a: the fingers read as a second postsynaptic
+   specialization). Also the better anatomy: astrocytic coverage of a
+   hippocampal synapse is partial and asymmetric, ~half the perimeter and
+   often one side; two mirrored fingers assert a symmetry that is not there.
+4. **A stock between the loop and the vesicles.** Returning glutamine rains
+   INTO the terminal's standing pool; vesicles fill FROM the pool on their own
+   faster clock. Never a direct hand-off — see the honesty block.
+5. **The drawer is deleted; the machinery becomes a PLACE.** A new zoom target
+   INSIDE the astrocyte, reached by diving on the cell the main view now shows
+   properly. Level of detail dissolves on the way in — the band-register cell
+   dissolves out as the barrels, the fare and the enzymes dissolve in; the two
+   representations are never both on screen. Spatial navigation, not pages.
+6. **The model survives the drawer.** `core/reuptake.ts` and its tests are
+   KEPT: `REUPTAKE_STAGES` (`released → caught → converted → shipped →
+   restored → stocked`), `ASTROCYTE_SHARE`, `EAAT_FARE` and the conservation
+   checks feed BOTH registers. One stage list, no second copy of the biology.
+   Deleted: `stage/reuptakeScene.ts` + test, `ui/ReuptakeBench.tsx`,
+   `state/reuptakeStore.ts`, and the ♻️ shelf button with its `home: 'synapse'`
+   wiring. (All six files archived to scratchpad before deletion — they were
+   UNTRACKED, so git could not have brought them back.)
+7. **D17's honesty paragraphs are re-homed, not lost** — in particular the
+   21b-5 glutamate qualifier, which exists precisely so "the astrocyte does
+   most of the clearing" is not read as a fact about transmitters in general.
+
+⚠ **What the deletion must not quietly drop.** The drawer's *drawings* are
+being re-sited, not discarded: the EAAT barrel and its bore, the 3 Na⁺ + 1 H⁺
+in / 1 K⁺ out fare (the payoff that connects reuptake to the pump's stored
+work — the membrane milestone's lesson arriving as fuel for something else),
+glutamine synthetase, the SNAT doors and glutaminase all reappear inside the
+astrocyte place. If any of them fails to survive the move, that is a loss to
+report in the hand-over, not a simplification.
+
+**Division of labour, after the change:**
+
+| | main view (band) | inside the astrocyte (place) |
+| --- | --- | --- |
+| capture | a tick on the astrocyte's process | barrel + bore, 3 Na⁺ + 1 H⁺ in, 1 K⁺ out |
+| conversion | the dot turns orange | glutamine synthetase, as a body |
+| the trip home | the dot travels the process | SNAT door → gap → SNAT door |
+| back to glutamate | the dot turns teal | glutaminase |
+| the stock | drawn, and **feeds the vesicles** | drawn; the place ends here |
+| vesicles refilling | **this step's new work** | not drawn |
+
+**Reuse, so the loop is told once (03 → never two private copies).** Both
+registers read `REUPTAKE_STAGES` and glutamine's settled orange `#fb923c`
+(05 → *Reconciliation — glutamine's ink*) and end at the same `stock`. The
+main view is the wide register of a story the app already owns — the
+fusion → D06 relationship, repeated.
+
+**Layout — SOLVED, not translated** (03 → *A layout is solved from a budget*).
+"Move the whole canvas to the left" is expressed as a budget: the astrocyte's
+compartment claims a stated share of the right of the frame and the synapse
+re-solves into the remainder; what the solve reaches is measured and reported,
+never asserted. The astrocyte needs real interior area — the conversion
+happens in cytoplasm, the thing a finger could not carry — and its body fades
+at the frame's edge (never an invented off-page surface). Moving with it:
+`ASTROCYTES` and `MAP_ASTROCYTES` drop to one cell (a marker's job is to say
+what is on screen); the `outgoing-synapse` and `active-zone` zoom targets
+re-centre, or the 4× close-up crops empty water and the miniature's dashed
+ring lands off the subject; the new astrocyte target joins them, and two doors
+at one place need two icons; the callout guard's reserved regions re-measure.
+⚠ **Leg 2 must keep its road**: S13 hands the EPSP out of the spine toward the
+hillock, so the right-hand budget is checked against leg 2's route before it
+is fixed.
+
+**Honesty block (03 → declare every exaggeration beside the real number).**
+Literature values, not app-calibrated, and marked as such where they appear:
+
+- Cleft clearance ~1 ms; the EAAT transport cycle ~10–70 ms; vesicle re-use
+  ~10–30 s (ultrafast endocytosis ~50–100 ms); the glutamine round trip
+  **seconds to minutes**. Five orders of magnitude in one window: the clock is
+  choreography and says so, leg by leg.
+- ⚠ **The loop is a BUDGET, not a relay.** A vesicle does not wait for the
+  glutamate it released; VGLUT fills from the standing cytosolic pool. Drawn
+  as a direct hand-off the picture would teach "this molecule went out and
+  came back into a vesicle", which is false — hence the stock.
+- ⚠ **The loop LEAKS.** Astrocytes oxidize a real fraction of the glutamate
+  they take up and replace it de novo from glucose via pyruvate carboxylase,
+  an enzyme neurons lack. Carbon leaves and enters from outside; the cycle is
+  not closed, and the info block must not draw it as closed.
+- The astrocytic share stays the model's own `ASTROCYTE_SHARE`, and 21b-5's
+  glutamate-specific qualifier applies to the main view's new paragraphs.
+
+**Guards planned** (each citing its point): the clock walked leg by leg with
+the payload's share measured, not asserted; one astrocyte, on the right, its
+interior holding every converted dot by the compartment's own decision;
+conservation — every released dot ends stocked, declared-lost, or on the
+neuron's minor route, ball for ball; the stock strictly between glutamine and
+vesicle (no dot travels glia → vesicle directly); both registers read
+`REUPTAKE_STAGES`, not a copy; the astrocyte place dissolves in and never
+shares a frame with its band-register self; every deleted drawing accounted
+for in the new place (barrel, fare, both enzymes, both SNAT doors); no ♻️
+drawer button survives anywhere; leg 2's route still clear of the astrocyte's
+budget; the miniature shows one cell, and the zoom targets still centre what
+the close-up crops. Each broken and watched fail.
+
+**Build order** (one hand-over each): 21c-1 the layout budget and the single
+astrocyte, scene + miniature + guards · 21c-2 the clock rebuilt for the long
+run, walked in tests before it is drawn · 21c-3 the loop at band register,
+reading the kept model · 21c-4 the stock feeding the vesicles · 21c-5 the
+drawer deleted and re-born as the inside-the-astrocyte place, every drawing
+accounted for.
+
+### Step 21c-1 — one astrocyte on the right, the neuron fitted into what is left, 2026-09-04 · awaiting manual test
+
+Scope held to the user's own limit: *"At this step, only implement re-drawing of
+astrocyte and push neuron to the left. I estimate, then we continue."* No loop,
+no clock rebuild, no drawer deletion — those are 21c-2…21c-5.
+
+**A1 — the handover, reconciled before drawing.** `blue-astrocyte-9214b4f5.svg`
+(one 346-segment path, fill `#355d88`, viewBox 248.33 × 213.33) is adopted as a
+COMPOSITION reference only, at the user's ruling: the silhouette stays
+`astroShape`, the app's one astrocyte glyph, so the map's cell and the scene's
+cell remain the same animal. Ink stays glial green (navy would have read as the
+neurons' own slate cytoplasm); the cell is PAVED rather than filled. Written up
+in 05 → *Reconciliation — blue-astrocyte-9214b4f5.svg*, with the scale caveat
+declared.
+
+**A2 — a quarter of the cell, the rest off the page.** `astrocyteCell(g)` in
+`synapseScene.ts`: the soma's radius is a fraction of the astrocyte's room and
+its centre sits BEYOND the frame's right edge by 0.3 radii, which leaves a
+corner of the cell on the page and carries the rest off it — the screenshot's
+own arrangement. `drawAstrocyte` paves it: the soma stroked in LEAFLET/CORE over
+the glial wash, each process a three-layer TUBE (leaflet, core, cytoplasm).
+The fade to the frame's edge lives in the gradients, never in `globalAlpha`.
+Measured at 1060×660: the cell is 809 px wide of which 448 are on the page,
+37% of the soma showing, tubes 9.3–17.0 px, the reaching process landing on the
+cleft's mouth at (612, 370) with the bouton's zone ending at 594.
+
+**A3 — the neuron pushed left, by BUDGET not by nudge.** `ASTRO_SHARE = 1/3`,
+and `synapseGeometry` fits the bouton into `width − astroRoom`, so everything
+solved from the fit — active zone, vesicles, spine, cleft — follows with no
+hand-placed offset.
+
+⚠ **The budget had to yield to an older rule, and does so explicitly.** Measured
+when the strip was first taken: handing a third of the width away makes the
+bouton WIDTH-limited on tall frames, and a width-limited bouton is too short to
+put its foot two thirds down — the user's 2026-09-01 rule. Pushing it down with
+an offset was rejected (the neck is cut off at the top edge, so an offset would
+float the cell below a gap). So `astroRoomFor` asks for a third and takes
+whatever is left once the bouton has the width the older rule needs. Measured:
+33.3% at 1060×620, 1060×660 and 1280×800; **20.8% at 1440×1080**, where the
+two-thirds rule bites. `foot.y / height` holds at 0.652 at every size.
+
+**Knock-ons, all re-solved rather than nudged:**
+
+- `ASTROCYTES` and `MAP_ASTROCYTES` drop to ONE cell, on the right — a marker's
+  job is to say what is on screen, so the miniature may not keep a cell the
+  scene no longer draws.
+- The escapees from BOTH gap ends now travel to the same cell (`astroCellRest`
+  walks the reaching process and offsets within its own tube, so a caught ball
+  cannot land outside the membrane it entered). That is what one astrocyte
+  means, and what an asymmetric glial wrap looks like.
+- The 'astrocyte' callout points at the SOMA now, not a fingertip — the part
+  that makes the cell recognisable as a cell.
+- ⚠ The 'vesicle' callout had to move: the old constant offset put its box
+  **55 px off the page** once the bouton moved left. `vesicleLabelAx` solves it
+  from where the bouton's floor actually begins. Measured: the bath left of the
+  floor is 87 px and the box is 77 wide, so this is very nearly the only place
+  it fits — a squeeze worth watching if the composition changes again.
+- The congruence guard on the spine's shoulders went from 6 to 4 decimal places:
+  `ox` is no longer a whole number, so the two sides differ by 2.7e-6 px of
+  double precision. A ten-thousandth of a pixel still catches real lopsidedness.
+
+**Guards** (each citing its point): A1+A3 — one cell, soma inside the astrocyte's
+strip, the reach landing at the cleft's own height beyond the zone's mouth, and
+no membrane point of either neuron inside the cell; A2+A3 — at every plausible
+size the room is non-zero and never over the share, the bouton's floor ENDS
+before the strip begins, the cell is bigger than the page, and enough soma shows
+to read as a body; the collection contract now asks `astroCellHolds`; the map
+guards ask for one cell on the right. **Broken and watched fail**: the cell put
+back on the left flank (3 guards down), a caught ball rested outside its tube
+(1 down), and the share set to zero so the synapse re-took the whole frame
+(2 down). 1251 tests green, typecheck clean, formatting clean.
+
+⚠ **A known, dated inconsistency.** D17 still draws the OLD two fingers — it
+imports `astrocyteFinger`/`drawAstroFinger`/`astroRest`, which are kept alive for
+it and are now unused by the scene. Deleting the drawer is step 21c-5, and the
+duplication dies with it. Until then the two views disagree about how many
+astrocytes there are; recorded rather than quietly tolerated.
+
+### Step 21c-1a — the astrocyte re-drawn from the traced outline, 2026-09-05 · awaiting manual test
+
+User: *"the reason why I suggested you svg is that you could trace the outline
+to avoid part overlayed. The seams are too obvious. Re-draw."*
+
+**A1 — one outline, not twelve.** 21c-1 built the cell from `astroShape` and
+stroked each process as its own tube. That is a structural seam, not a tuning
+problem: N stroked shapes have N outlines, and every junction showed one tube's
+membrane crossing the inside of another. `stage/astrocyteShape.ts` now carries
+the handover's own path (`ASTRO_SVG_D`, 346 segments, verbatim, so the trace can
+always be checked against the file), and `drawAstrocyte` traces it ONCE —
+filled with the glial wash, stroked outer-leaflet then core, exactly as the
+walls are. One path, one membrane, no interior edge.
+
+**A2 — placed by a similarity, so nothing is stretched.** `placeAstro(soma,
+reach)` rotates and uniformly scales the whole silhouette so that one of the
+cell's OWN arm tips lands on the cleft's mouth. Two point correspondences
+determine a similarity exactly, and a similarity cannot bend an outline — which
+matters, because stretching a process into position is the other way to put a
+kink where it meets the body. The arm carried onto the mouth is the one already
+pointing most nearly the right way, so the rotation stays small (measured:
+−6.7°) and the cell keeps its own posture.
+
+⚠ **The body had to move off the top-right CORNER, and that was measured.**
+A cell big enough to touch the cleft has arms that long in every direction, so
+placement is not cosmetic. Four candidates were measured at 1060×660: a body
+level with the cleft put **96 outline points over the two neurons**; a body
+above the corner puts **zero** — because the bouton lies up and to the left of
+the synapse, so a body above it fans the arms DOWN-left, into the gap. Final:
+soma (1254, −53), k = 6.82, 4,402 outline points of which **14% are on the
+page**, the reaching tip the leftmost ink the cell has.
+
+**Consequences, each re-solved:**
+
+- `astroCellHolds` asks the traced outline itself (even-odd ray casting over
+  both rings), instead of a union of tube tests.
+- Resting spots are **measured, not trusted**: candidates are walked in from the
+  tip and each is put to `astroContains`; only the 40 that really are inside the
+  outline are kept. A wavy process cannot be approximated by the straight line
+  to its body, so asking the shape is the only honest way to stay inside it.
+- `flattenSubpaths` was added to `svgPath.ts` and `flattenPath` now delegates to
+  it — one flattener, not two. A silhouette is several closed rings, and "is this
+  inside?" cannot be answered from one concatenated list: the join between rings
+  is a line that was never in the drawing.
+- The 'astrocyte' callout points at the mean of the cell's **on-page ink**; the
+  body is off the corner by design, so a name aimed at the soma would point off
+  the page.
+- ⚠ `astrocyteCell` is **memoised per geometry**. The cast asks for it once per
+  ball per frame, and tracing 4,402 points there timed two tests out before the
+  cache went in; `astroContains` also rejects on a bounding box first.
+
+⚠ **The one-glyph rule is now split, knowingly.** `astroShape` still draws the
+miniature and the dendrite astrocytes; the scene draws the trace. Two glyphs for
+one animal — tolerated because they live a dissolve apart and the trace is the
+truer one, to be resolved by bringing the trace outward, not by reverting.
+
+**Guards**: the placed cell has as many closed rings as the FILE'S PATH closes
+(counted off the parsed segments, not off the rings — see below), every ring the
+same length as its source, and every sampled distance ratio equal to the single
+scale `k`; nothing the cell has on the page reaches further in than the reaching
+tip; zero ink over either neuron; a real corner on the page (5–45% of the
+outline). **Broken and watched fail**: a non-uniform scale, 1.35× in x (2 guards
+down); the body put back level with the cleft (1 down); a ring deleted (1 down).
+
+⚠ **A guard that was a guess, caught by breaking it.** The ring count first
+compared `placement.rings.length` to `ASTRO_SVG_RINGS.length` — both sides move
+together, so deleting a ring passed. It now counts `close` segments in the
+parsed path. This is the rule working exactly as intended: *a guard you have not
+broken is a guess.*
+
+⚠ **A process note.** An earlier `prettier --write` in this round was run with
+prettier's DEFAULTS — the project has no prettier config — and rewrote five
+files with semicolons throughout, a style the codebase does not use. Caught,
+and reverted: `synapseScene.ts` from an exact pre-format backup, the other four
+by reformatting at the house options (`--semi=false --single-quote
+--print-width=98`). The project is not prettier-enforced — the author hand-wraps
+in places — so the lesson is recorded: **do not run a formatter on this repo
+without a config to run it from.** 1252 tests green, typecheck clean.
+
+### Step 21c-1b/1c — four corrections, two of them reversed on the picture, 2026-09-05 · awaiting manual test
+
+Round 21c-1b built four things the user asked for; seeing them running, they
+reversed two the same day. Both rounds are recorded, because the reversals are
+the more useful record.
+
+**A1 — the SNARE. Asked, built, reversed, and one real bug found underneath.**
+The ask: *"adjust snare to be parallel to the membrane and look visually tied to
+it."* Built: the bundle laid flat in the gap along the wall's own tangent, with a
+stem up to the vesicle and syntaxin's stub across the membrane. The physics
+supports it — an assembled four-helix bundle is ~10 nm and a primed vesicle sits
+a few nm off the membrane, so a rod that long has to lie down. The picture did
+not: *"restore what snare looked before. now they look broken."* **Restored**, and
+the guard now PINS the standing shape, so it is not quietly improved again.
+
+⚠ Two things survived the reversal, both of them real:
+
+1. **The complex no longer vanishes at fusion** — *"they should not disappear
+   after exocytosis."* It did: a fused slot skipped the machinery entirely, on an
+   old note that the rope had "become part of the merged wall". That is half true
+   and it drew the wrong half. After fusion the trans-complex becomes a
+   CIS-complex, all four helices in the one membrane, and stays there until NSF
+   and α-SNAP prise it apart — which is exactly what D06 spends its last leg
+   showing. `snareCis` now draws the spent pair lying in the wall at every fused
+   slot, dimmer than a working rope, using D06's own `SNARE_CIS_LEN`.
+2. **The rope's foot sits on the wall at its own x.** It hung off the SLOT
+   CENTRE's height and floated up to 13 px off the membrane on the sloped outer
+   slots — the one part of the old drawing that really was broken. The knobs
+   beside it already carried this exact correction; the rope had not.
+
+Also kept: `SNARE_ANCHOR_A` and `SNARE_CIS_LEN` now live in `synapseScene` and
+D06 imports them instead of holding private copies.
+
+⚠ **Declared, not hidden**: D06's docked rope is much steeper than the scene's
+(measured > 45° to the wall) because D06 draws its vesicle far off the membrane
+at that stage. The two presentations do not agree about this angle. A guard
+records the difference so that bringing them into line breaks it loudly.
+
+**A2 — the astrocyte's body brought back onto the page** (*"the astrocyte body
+should be a bit more visible"*). It could be, because the test that had pushed it
+off the corner was WRONG: it asked "is this point above the bouton's floor",
+which at the bulb's extreme flanks says yes for points BESIDE the cell — 228 px
+of phantom overlap. `boutonHolds` now asks the closed outline. Measured at
+1060×660 with the honest test: soma (1078, 176), the body's own on-page share
+**14% → 36%**, the whole cell **14% → 32%**, and outline points inside either
+neuron **still zero**. Dropped further, level with the cleft, it really does
+cross them (25 in the bouton, 117 in the spine) — so the rule that put it high is
+real, just not as strict as the broken measurement made it look.
+
+⚠ And a bug the move exposed: with the cell smaller, a caught ball was measured
+OUTSIDE it at (646, 363). The resting pockets were tested for being inside the
+outline but not for CLEARANCE, and a resting ball wears the scene's ±2 px thermal
+wobble. Pockets are now probed at a margin, relaxed only if the process at hand
+is genuinely too thin.
+
+**A3 — one side for all three views** (*"map astrocyte, same as 'whole picture'
+astrocyte, are located below the synapse. Demo one — above. Align on either of
+the views"*). Aligned **on the demo**, because the demo's placement is the
+measured one: the bouton is on the presynaptic side, so a body below the synapse
+throws the cell's processes across the postsynaptic spine. `ASTROCYTES` and
+`MAP_ASTROCYTES` move above (measured: 457 and 483, against the synapse at 503),
+and the guard asks the GEOMETRY which side is presynaptic rather than assuming.
+
+**A4 — pink, asked for and reversed.** See 05 → *Reconciliation — the astrocyte's
+ink, settled*. The ink is the glial green again, in all views. The refactor stays:
+one `ASTRO_INK` constant instead of a literal repeated in six places across four
+files, guarded green-dominant and a measured distance from both charge inks, with
+a second guard that no drawing file keeps a private copy.
+
+**Guards, broken and watched fail**: the ink set back to pink (1 down); the map
+cell put back below the synapse (1 down); the complex made to vanish at fusion
+(1 down); the docked rope laid flat again (1 down). 1259 tests green, typecheck
+clean.
+
+### Step 21c-2 — the drawer deleted, and the whole loop built into the main view, 2026-09-05 · awaiting manual test
+
+**A1 — D17 is gone.** `stage/reuptakeScene.ts` (+test), `ui/ReuptakeBench.tsx`,
+`state/reuptakeStore.ts`, the ♻️ shelf door, the contents row and the nav entry
+are deleted; `core/reuptake.ts` and its tests are KEPT, as ruled. Archived to
+the session scratchpad first — they were untracked, so git could not have
+brought them back. 1259 → 1244 tests, the drop being D17's own scene guards.
+
+**A2 — the loop runs on the main view.** Released → caught → converted →
+shipped → converted back → stocked → the vesicles fill from the pool.
+
+- **The clock grew rather than compressing.** The tail leg used to carry
+  24.5→60 ms at 0.081 of the run, so the round trip would have flickered past.
+  Shares are now normalised weights and `SYNAPSE_SCREEN_MS` is scaled by the
+  same factor, so **every leg before the loop keeps the absolute screen time it
+  was tuned to** and only the new stages cost anything. Measured: 22.0 s → 32.8
+  s, of which the loop's five legs take 10.8 s; the release flood held ~6.16 s
+  of the old run and holds ~6.10 s of the new one.
+- **The conversion is watched happening.** `glutamine` rides 0 → 1 on the dot
+  itself and `transmitterDot` blends the two inks, so the same ball becomes
+  another molecule — identity kept through the change of kind. Glutamine's
+  orange `#fb923c` is the ink settled in 05.
+- **Every door is a real protein, and the neuron's one is real too** (the
+  user's "if scientifically correct"): EAAT on the astrocyte in, SNAT3/5 out,
+  **SNAT1/2 on the presynaptic terminal in**, VGLUT into the vesicle.
+- **The stock stands between the loop and the vesicles** — a seeded share of
+  returning balls stays in the pool, so the picture cannot teach that a vesicle
+  waits for the molecule it released.
+- **The vesicle and its SNARE come back**, and the bubble is **re-shaped out of
+  the membrane** rather than appearing: `vesicleBud` starts it as a dimple IN
+  the wall, clipped with the very clip the fusion uses, and only lets it pinch
+  off and travel to its slot at 60% of the retrieval. Measured: r 0.2 → 24.7 at
+  the slot's own 24.7.
+
+⚠ **"THROUGH THE HOLE, NOT THROUGH THE MEMBRANE" — the guard that found four
+real faults.** The claim is made on the TRAJECTORIES: walk every ball through
+the run, and every change of side of a membrane must happen at a door. It
+caught, in order:
+
+1. The astrocyte's EAAT ticks were stepped back along a straight line from the
+   reaching tip and fell **outside** the wavy process.
+2. The terminal's door was placed by arithmetic at x = 646 — **twelve pixels
+   past the bulb's right edge**, where `wallAt` only extrapolates and there is
+   no membrane at all. Every door is now a point of its own traced outline.
+3. Travel INSIDE the astrocyte went in straight lines, which leave a wavy
+   process and re-enter it — measured at (718, 332), 41 px from any door. Both
+   the entry and the exit legs now follow the pockets.
+4. The pocket chain itself was not safe: each pocket was inside, but the
+   SEGMENT between two of them could leave the cell. Pockets are now kept only
+   if the whole segment from the last one stays inside.
+
+And it found one thing that was **not** a fault: a released ball crosses the
+bouton's outline at the mouth of its own fusing vesicle. The fusion pore IS the
+hole exocytosis makes, so pores are doors too — each door now carries its own
+width rather than one flat tolerance.
+
+**Guards, broken and watched fail**: the bubble made to appear in mid-air
+instead of budding (1 down); travel straight through the astrocyte's wall
+(1 down); the returning balls sent straight into bubbles with no pool (1 down);
+the conversion ramp replaced by a constant (1 down — after the first version of
+that guard was found to be a guess: it checked only the endpoints and passed
+happily, so it now asks for the in-between and for monotonicity).
+
+**Honesty**: a new ♻️ paragraph states the three things that are stretched — the
+clock (ms vs minutes), the store-not-relay, and that the loop LEAKS (astrocytic
+oxidation out, de novo synthesis from sugar via an enzyme neurons lack). 1247
+tests green, typecheck clean.
+
+
+### Step 21c-2a — retrieval is exocytosis reversed, not a second shape machine, 2026-09-05 · awaiting manual test
+
+User: *"Vesicle restore should be a process, opposite to exocytosis. Just
+revert the process, do not re-invent."*
+
+**A1 — the invented bud is gone.** 21c-2 had already been corrected once here
+(the first pass grew a bubble from radius zero, floating at the docked slot with
+nothing to be made of), and the correction invented a SECOND shape machine: a
+dimple that deepened, pinched off at a made-up 60%, then travelled to the slot.
+Two private copies of one process — and the rule against that exists precisely
+because they can only drift apart.
+
+There was nothing to invent. `fusedShape` already carries the entire schedule
+from docked bubble to flat wall, and `pocketAt`/`drawPocket` already draw the
+omega with its feet on the bouton's own outline. So retrieval is now
+**`retrievalAge(ms)`, an age that counts DOWN through that same schedule**, and
+the fused slot's drawing has ONE code path: the flat wall dimples, the omega
+reappears, the pore narrows, the bubble lifts off its dock — every stage of the
+way out, in reverse, drawn by the code that drew it going out. `vesicleBud` and
+its `BUD_PINCH` constant are deleted.
+
+Retrieval now begins exactly where fusion ended (`FLATTEN_FROM_MS +
+FLATTEN_MS`), so the two schedules meet with no seam at the join.
+
+**The guard was rewritten to make the claim testable.** Its first version
+compared `fusedShape(...)` with `fusedShape(...)` — the same call twice, which
+proves nothing. It now WALKS both schedules: the outward one sampled from the
+docked bubble to the flat wall, the retrieval sampled over its own window, and
+the two sequences must be **each other backwards**, null stages included. A
+second shape machine cannot pass that however carefully it is tuned.
+
+**Broken and watched fail**: the way home given a different easing
+(`1 − back²` instead of `1 − back`) — 1 down; retrieval started at the
+pore-opening stage instead of the flattened one, skipping a stage of the way
+out — 1 down. 1247 tests green, typecheck clean.
+
+### Step 21c-2b — six corrections on the loop, and a bug found three times over, 2026-09-05 · awaiting manual test
+
+**A1 — "the bilayer should follow the circle shapes and not stay in place."**
+The outline pass had been moved onto the reversed age in 21c-2a; the LIPID pass
+still computed `ms - gone`. So on the way home the circle came back and its own
+molecules stayed lying flat in the wall. The fix was to extract `fusedAgeAt`,
+and extracting it **found a third pass with the same fault** — `tearsAt`, the
+hole in the wall, which would have opened and closed out of step with the
+bubble coming home through it. Guarded by counting the call sites in the source:
+three passes draw a fused slot, and all three must age it through the one
+helper.
+
+**A2 — "neurotransmitters should not rush to the astrocyte through the
+presynaptic bouton."** They were: the cell is on the right, and a ball leaving
+by the LEFT mouth flew the whole width of the terminal to reach it. Left-hand
+escapees now leave the picture on their own side.
+
+⚠ **The conflict this raised, and how it was settled.** The user's words were
+"dissolve into nowhere", which contradicts their own 2026-09-01 ruling that the
+J1 guard enforces: *"None of them fades out, none of them materializes from
+nowhere, none of them teleports."* Put to them, they chose the reading that
+keeps both: the balls **leave the frame by TRAVEL**. It is also the truer
+picture — astrocyte processes ring every synapse, and the one drawn is simply
+the one this frame can see. A new `where: 'away'` records it, the guard checks
+they are really off the page, and the books still balance ball for ball.
+
+**A3 — "the channels do not look like channels. They look like lines."** They
+were one filled bar set across the membrane, which at that size is a dash.
+`drawTransporter` now draws what this app draws for every door: two waisted
+posts spanning the membrane with a **BORE** between them, the bore cut out in
+the outside's own ink so the hole reads as a hole. The astrocyte had been
+drawing its own ticks with its own `roundRect` — one protein, two shapes at one
+magnification — and now asks for the same drawing; a guard holds that there is
+exactly one `drawTransporter` and that the astrocyte calls it.
+
+**A4 — enter through the channel.** Already routed through the door's centre by
+21c-2's trajectory guard; with the bore now drawn on that same point, what the
+picture shows is what the cast does.
+
+**A5 — "active zone label is covering the view."** It hugged the membrane just
+past the zone's right end — exactly where the terminal's transporter and the
+astrocyte's reach now are. It is **solved**, not nudged: candidates are walked
+across the terminal's cytoplasm and the first clear of every bubble, every door
+and the stock is taken (measured: 70 px above the wall), and it carries the same
+connector every other name has.
+
+**A6 — "conversion should be accompanied by a flash, and not just a silent
+colour change."** An enzyme doing work is an event; a two-second ease from teal
+to orange is not something a child notices happening. Each converting ball now
+carries `flash`, rising and falling once across the change of kind, drawn as a
+gradient halo under the ball (never a canvas shadow).
+
+⚠ **A guard that had stopped being true.** "At the end of the run the wall is
+whole again" was written as `tearsAt(...) === []`. Retrieval brings the bubble
+back through the wall, so a spent slot has a shape again at 60 ms and a
+zero-width placeholder tear is recorded. The wall IS whole — the empty list was
+only ever a proxy — so the guard now asks that no tear has any WIDTH.
+
+**Broken and watched fail**: the lipid pass put back on its own age (1 down);
+the channel's bore set to zero (1 down); the conversion made silent again
+(1 down); the left-hand balls sent across the bouton again (1 down). 1250 tests
+green, typecheck clean.
+
+### Step 21c-2c — the caption removed, the departures scattered, the way home straightened, 2026-09-05 · awaiting manual test
+
+**A1 — the 'active zone' caption is gone** (*"it's self-explanatory"*). It had
+been moved twice already — off the vesicles it was covering, then aside off the
+machinery it was covering — and a name that keeps having to be moved out of the
+way of the thing it names is one the picture was giving for free. The docked row
+against the wall IS the active zone. The words survive where words belong: the
+info block still names it, and the guard checks that it does.
+
+**A2 — the departing balls scatter** (*"leave by travelling, but scatter into
+space instead of forming a stream line"*). Every leaving ball had been given the
+SAME destination, so they filed along one path — the one thing diffusion never
+looks like. Each now takes its own seeded heading (±0.75 rad about straight
+left), its own reach and its own speed, with the jiggle strongest early and
+easing as it goes. Guarded on the spread of their headings AND on the spread of
+their distances: a line of balls moving together is still a stream even when it
+is aimed well.
+
+**A3 — the way home heads for the vesicles.** Two faults, both stated as
+measurable properties rather than as tweaks:
+
+1. The first pocket inside the terminal was stepped toward the STOCK, which sat
+   168 px up in the cell, so a returning ball climbed deep and then turned back
+   down to the active zone. It is now stepped toward the bubble it is filling,
+   and the **stock is reseated between the entry door and the docked row**
+   (measured: 125 px above the wall, in the air the removed caption used to
+   occupy). Guarded as *the distance to its own bubble only ever shrinks*.
+2. A freely seeded spot in the pool put some balls slightly PAST their bubble,
+   so they turned back ~5 px. A ball moving on now passes THROUGH the pool on
+   its own way rather than detouring into it; one that is staying keeps its
+   seeded spot, so they still do not queue.
+
+**And the second conversion sparkles too** (*"after entering presynaptic neuron,
+glutamate should also sparkle at conversion"*). Two enzymes do work in this loop
+— glutamine synthetase on the way out, glutaminase on the way home — and only
+one of them was an event on screen.
+
+⚠ **THREE GUARDS WERE GUESSES, and breaking them said so.** The first round of
+breaks left three passing:
+
+- The **caption** break did not apply at all — the string I broke did not exist,
+  so "it failed to fail" was my own error, not the guard's. Re-broken properly,
+  it takes down two guards.
+- The **dogleg** guard could not see the stock's position any more, because the
+  moving-on balls are routed through the pool on their own line. True for them,
+  blind to the ones that STAY there and would be parked deep in the cell. The
+  pool's own seat is now asked for directly.
+- The **flash** guard only watched the astrocyte's conversion window, so
+  silencing the terminal's passed. It now walks both.
+
+**Broken and watched fail**: the departures given one heading, one reach and one
+speed (1 down); the stock put back deep in the cell (1 down); the caption
+restored (2 down); the second conversion silenced (1 down). 1253 tests green,
+typecheck clean.
+
+### Step 21c-3 — the loop closes: both routes home, the calcium pumped out, the cell fattened, 2026-09-05 · awaiting manual test
+
+**A1 — the astrocyte's fingers are thick enough to watch a ball travel down.**
+Rather than redraw the silhouette (which would lose the star it is), the cell is
+DILATED: every point of the traced outline is treated as the centre of a disc,
+so the body grows a little and a hairline process becomes a tube. A dilation IS
+a wide stroke, so the drawing gets it for free. Measured at 1060×660: dilation
+8.5 px, reaching process 23.5 px wide at the tip and 72.5 px further in, against
+a transmitter ball 6.4 px across.
+
+**A2 — the last frame is the first frame.** Measured before the work, four
+things differed: 14 calcium ions still inside the terminal, 10 transmitter balls
+still in the gap, 7 gone off-frame with 1 in the spine, and so only 17 of 35
+back in vesicles. Now: **every transmitter ends in a vesicle** but for the few
+the spine took, and **every calcium ion is back in the cleft**.
+
+- **Both sides come home**, to the user's own design: the left-hand balls drift
+  off the page and return through a **second door on the terminal's left flank**
+  — it is presumed, and said in words, that another astrocyte is there; there is
+  one at every synapse. They come back as GLUTAMINE and convert inside like the
+  right-hand ones, so both routes read as one grammar and share one code path.
+- **The calcium is pumped out**, through drawn PMCA/NCX pumps on the wall —
+  real proteins, and the reason a terminal's calcium falls back to rest between
+  spikes. It leaves through a door like everything else.
+- **The gap's ten lingerers give up the cleft.** They were held there by the
+  2026-09-01 ruling that "the transporters that reclaim THOSE work on a slower
+  clock than this run" — the run has since grown a second act and is 33 s long,
+  so the reasoning no longer holds. They still linger far longer than the rest.
+
+⚠ **Objections raised before building, and where they stand.** (1) Every ball
+returning makes the loop a CLOSED CIRCLE, which it is not — astrocytes burn a
+share and make fresh glutamate from glucose via an enzyme neurons lack. Built as
+asked; the leak stays declared in the ♻️ paragraph. (2) The spine's balls do NOT
+come home, because postsynaptic uptake is real and that glutamate is largely
+metabolised. So the end frame is 3 balls of 35 short of the start, and the guard
+states that rather than faking it.
+
+**Faults found along the way, each by a measurement:**
+
+- A **teleport**: starting every lingerer's escape at a fixed time flung the ones
+  still gliding to their spot 80 px forward. It starts at the fixed time OR when
+  the glide ends, whichever is later.
+- `astroCellRest` averaged **two arbitrary pockets**, and the midpoint of two
+  points on a wavy process is not on the process. Resting balls were resting
+  outside the cell. It interpolates between NEIGHBOURS now, which the chain
+  check has already proved is inside.
+- The astrocyte's doors sat on the traced path, which the dilation makes the
+  process's **centreline** — so the channels were drawn in the middle of the
+  cytoplasm rather than in the wall. `outwardOn` carries them to the boundary.
+- The exit door was chosen for being nearest the terminal and then a pocket was
+  hunted to reach it from; when none could, it silently took the nearest anyway
+  and the ball left **through the wall**. Door and approach are now solved
+  together: a door the inside cannot reach is not a door.
+- **Performance**: the dilation made "is this inside?" walk 4,400 segments per
+  query and timed four unrelated tests out. The outline is bucketed into a grid
+  once per placement; the suite is back to 25 s.
+
+**A3 (from the same round) — the doors moved off the SNARE machinery** (user:
+"reuptake channels overlap with snare"). Solved, not placed: candidates are
+walked up the bouton's own outline and the first far enough from every rope,
+knob and bubble is taken, avoiding the doors already claimed. Measured: every
+door is 60–114 px from the nearest, where a calcium pump had been **3 px** from
+a rope end.
+
+**A4 — the cell reads hollow again** (user: "they do not look hollow"). The
+first fattening made the oily core three times thicker than the leaflet, so a
+process came out a solid dark rod. The band widths are now one exported
+constant, proportioned as every other membrane here is.
+
+⚠ **FOUR ATTEMPTS CHASED A FAULT THAT WAS IN THE GUARD.** The crossing guard's
+list of doors was hand-written, and `snatInLeft` was added to the model but not
+to that line — so a ball entering EXACTLY at its own door scored as a wall
+crossing, with byte-identical numbers through four unrelated "fixes". The list
+is enumerated from `LoopDoors` now, so a new door cannot be forgotten. The
+lesson is the general one: when a measurement does not move across changes that
+should have moved it, suspect the measurement.
+
+⚠ **Two guards were tautologies, caught by breaking them.** The hollow test
+recomputed the band widths from `MEM_PX` inside the test, so it agreed with
+itself whatever the drawing did; and nothing at all asserted the closing frame.
+Both fixed, then broken and watched fail.
+
+**Broken and watched fail**: the fingers thinned (1 down); the core made thicker
+than the leaflet (1 down); the doors put back among the SNAREs (1 down); the
+calcium never pumped (1 down); the lingerers left holding the gap (2 down).
+1256 tests green, typecheck clean.
+
+### Step 21c-3b — six corrections on the loop's look, 2026-09-05 · awaiting manual test
+
+**A1 — the astrocyte is drawn in ONE ink** (user: "the inner outline looks like
+there's bilayer inside a cell. Also, the outline color has to be unified with
+the body color"). ⚠ **This reverses the 2026-09-05 "pave it — membrane bands on
+the outline" ruling**, and for a reason that only appeared once the cell was
+fattened: slate LEAFLET/CORE bands are right on a wall seen edge-on, and read as
+a SECOND MEMBRANE when wrapped round a fat process. Wall and cytoplasm are now
+the same green at two strengths (0.62 / 0.2) — one cell, one colour. This is
+03 → *Level of detail cuts BOTH ways* applied to ink: draw less than the app
+owns when the detail misleads.
+
+**A2 — every door has its own colour** (user: "color-code channels"). They were
+all one indigo, so the picture said "transporter" and never said WHICH, while
+the loop's whole story is four proteins doing four jobs. `CHANNEL_INK` names
+them by FAMILY, not by place, so one family cannot wear two colours: EAAT indigo
+`#6366f1`, SNAT-out amber `#f59e0b`, SNAT-in `#d97706`, Ca pump sky `#0ea5e9` —
+each clear of the transmitter's teal and glutamine's orange.
+
+**A3 — and they are shaped like channels** (user: "change their shapes to
+resemble more ion channels"; "make NTs enter the channels through the
+opening"). Two subunits leaning together into a WAISTED pore, wide at both
+mouths, narrow at the gate, mouths marked in the family's lighter tone. The bore
+went **5 → 8 px**: a transmitter ball is 6.4 px across, so at 5 the ball was
+always wider than the hole it was supposedly passing through.
+
+**A4 — each door is square to its OWN membrane** (user: "on the astrocyte, the
+last channel is positioned horizontally, which is wrong"). Every door had been
+given one angle — the line from the astrocyte's body to the cleft — which is
+right for the arm that runs along it and wrong everywhere else. `tangentOn`
+asks the outline at the door's own place (measured: −12°, −16°, −30°, where
+they had all been one number). The terminal's doors had the same fault from the
+other direction: they used `wallAt`'s slope, which is the FLOOR's slope and
+level on the flanks where these doors now sit, so they lay flat across a
+near-vertical wall. They ask the bouton's traced ring now.
+
+**A5 — the dead-end door is gone** (user: "there's a channel outside of the
+astrocyte, which takes 2 NT balls. These 2 balls remain in place till the end").
+It was the spine's own EAAT — the declared neuronal minor route — and on the
+picture it was an unfinished sentence: balls went in and nothing ever happened
+to them. `NEURON_UPTAKE_FRAC` is 0 and the door is no longer drawn.
+
+⚠ **What that costs, said plainly.** Postsynaptic uptake is real, and the
+glutamate it takes is largely metabolised rather than returned — which is
+exactly why those balls had nowhere to go. The fact keeps its place in the info
+block and a guard checks it is still stated; it is simply no longer drawn. The
+constant stays so the route can come back if it is ever given an ending.
+
+⚠ **And what it buys**: the last frame now equals the first EXACTLY. All 35
+balls end in vesicles, where before three were parked in the spine.
+
+**A6 — the calcium leaves through the pore and goes round** (user: "adjust Ca
+ions paths as they leave the neuron: go through the opening. The further pass
+does not overlap with the presynaptic bouton, but goes around it"). The exit
+dropped straight to the gap's height at the pump's own x — a line through the
+cell, now the pumps are high on the flanks. It now steps out square to the wall,
+down the outside past the bouton's own widest point on that side (measured off
+the traced outline, not guessed), and in along the cleft to where it began.
+
+**Broken and watched fail**: slate bands put back on the cell (1 down); two
+channel families given one colour (1 down); the pore narrowed below a ball
+(1 down); the dead-end route restored (3 down); the calcium sent straight across
+the terminal (1 down). ⚠ A first attempt at that last break — dropping the ion
+vertically at the pump's own x — did NOT fail, and correctly: that path also
+stays outside the cell. The break was wrong, not the guard. 1260 tests green,
+typecheck clean.
+
+### Step 21c-3c — the second astrocyte handover, the traced channels, and the calcium's skirt, 2026-09-05 · awaiting manual test
+
+**A1 — `astrocyte-thick.svg` replaces the first handover.** Reconciled in 05
+before drawing. It is drawn already thick and already cropped, so the entire
+dilation apparatus invented for the first file is retired: `ASTRO_FATTEN` is 0,
+the traced outline IS the boundary, and the cell is filled and stroked once
+rather than built from layered strokes round a centreline. That also puts every
+door back on a real membrane by construction.
+
+Re-solved with it: the placement (this cell's arms fan more widely, and the old
+seat put processes across both neurons — swept at two frame sizes for the seat
+with ZERO ink on either), and the arm that reaches the cleft, now the LONGEST
+one pointing the right way rather than the best-aimed, because the scale is set
+by that arm and a stub blows the whole cell up.
+
+⚠ **Two guards had to be re-stated rather than re-tuned**, and the distinction
+matters. The cleft guard asked "no cell ink within 70 px of the reaching tip",
+which is a proxy: a glial process legitimately lies ALONG the cleft's mouth, so
+that number would need re-tuning for every silhouette. It asks what it means
+now — nothing of the cell crosses the ACTIVE ZONE. And the on-page share ceiling
+went 45% → 65%, because this handover is ITSELF a cropped quarter: the claim
+that the cell continues past the frame is carried by its ink really extending
+beyond the width, which is separately asserted.
+
+**A2 — the calcium follows the bouton's own shape.** The two-leg detour that
+kept it out of the terminal walked it straight through the SPINE and the
+ASTROCYTE instead. It now leaves square through the pore and follows a SKIRT —
+the bouton's outline pushed 26 px out — round to the cleft. ⚠ Choosing the
+shorter way round that skirt still sent the right-hand pump's ions through the
+glia, so the direction is solved per pump: the way that is CLEAR wins over the
+way that is short. And when no route could save a pump that opened straight into
+the astrocyte's arms, **the pump was moved** — both are on the far flank now,
+which is a composition choice about where to draw a protein that a terminal has
+all over its membrane, not a claim.
+
+⚠ **A guard that named one cell moved the fault to another.** "The calcium does
+not re-enter the terminal" was true throughout; the ions were crossing the spine
+and the glia the whole time. It names all three now.
+
+**A3 — the channels are the handovers' own shapes**, traced into
+`stage/channelShapes.ts`, painted in their family's colour code, with the pore
+MEASURED off each trace rather than declared. SNAT's staves are moved 2.7 units
+apart — a declared modification, because its own gap is narrower than the ball
+that has to pass through it and scaling the protein up instead made it twice
+EAAT's size. Both now stand 23 px on the wall with a 7.7 px pore.
+
+⚠ **Still missing, and asked for**: the calcium pump/exchanger (PMCA or NCX) has
+no glyph and wears EAAT's; VGLUT is not drawn as a protein at all.
+
+**Broken and watched fail**: SNAT's pore closed again (1 down); a calcium pump
+put back among the glial arms (1 down); dilation switched back on over a trace
+that is already thick (2 down); the cell placed across the active zone (4 down).
+1261 tests green, typecheck clean.
+
+### Step 21c-3d — the astrocyte scaled down and given a membrane, 2026-09-05 · awaiting manual test
+
+**A1 — the cell is as small as it can be** (user: "astrocyte is now scaled up
+too much, child can not recognise its shape. Scale down as much as possible
+without breaking channels visualisation"). The scale is SOLVED, not tuned: the
+body is walked in along its own direction, smallest trial first, and the first
+one that satisfies every criterion wins. Measured: `k` 7.4 → 4.3 at 1060×660
+(a 42% reduction), with 78% of the cropped cell on the page against 36% before.
+
+⚠ **Two degrees of freedom, because one was not enough.** Shrinking straight
+down the body's own line brings the cell closer in, which is exactly the move
+that swings a process over the bouton — so at every scale the body may also be
+lifted, and the pair is searched together. Before that, the shrink was blocked
+by overlap at every size and the cell simply stayed big.
+
+⚠ **AND MY OWN CLAIM ABOUT THE LIMIT WAS WRONG, corrected in the code.** The
+comment said the DOOR was the binding constraint — a channel stands
+`CHANNEL_SPAN` across the wall, so its process must be wider. Measured by
+removing that requirement: nothing changes. The binding constraints are the
+FRAME (the file's straight crop edges are its own boundary, not the world's, so
+they must stay out of shot) and the NEURONS. The door requirement is kept and
+checked, but it is a statement of the requirement, not of the limit.
+
+**A2 — the astrocyte has a membrane** (user: "give astrocyte membrane"), in the
+frame's own LEAFLET/CORE inks over its own cytoplasm. ⚠ **This supersedes the
+21c-3b "one ink, no bands" ruling, and the reversal is principled rather than a
+change of mind**: that ruling was about the FIRST handover, where the trace was
+a fat process's CENTRELINE and a band wrapped round it read as a bilayer running
+INSIDE the cell. The second handover's trace is the cell's real boundary, so a
+band laid on it is a wall exactly where the bouton's and the spine's are.
+
+**Two labels are now solved, not seated.** The 'synaptic cleft' and 'astrocyte'
+names both share `labelSeat`, which walks candidates and takes the first clear
+of the cell, both neurons and the shelf — because each new silhouette, and now
+each new SCALE, moves what is free. The astrocyte's name points at the nearest
+visible ink to wherever it landed, so its connector is short whichever seat won.
+
+⚠ **A guard that was a proxy, and a guard that was a tautology.** "The doors do
+not all share one angle" failed the moment the cell was rescaled — two doors on
+a straight stretch of membrane legitimately share an angle. It asks the real
+question now: stepping across a door lands INSIDE the cell one way and OUTSIDE
+it the other, which is what a channel through a wall is. And "as small as
+possible" was first written by re-listing the solver's criteria in the test,
+which left one out and failed on the real code; it uses the solver's own
+predicate now — with the channel requirement asserted separately, since sharing
+a predicate means breaking it breaks both sides at once.
+
+**Broken and watched fail**: the shrink disabled (1 down); the membrane removed
+(1 down). ⚠ A third break — removing the channel requirement from the fit — did
+NOT fail, and that is what showed the requirement never binds; the code comment
+was corrected rather than the guard. 1262 tests green, typecheck clean.
+
+### Step 21c-3e — PMCA and VGLUT, the first proteins that move, 2026-09-05 · awaiting manual test
+
+Two handovers, reconciled in 05 before drawing: `PMCA.svg` and `VGlut.svg`.
+
+**A1 — PMCA replaces the stand-in on the calcium pumps**, and it MOVES. Both
+gates turn about one hinge — the right border of the left gate, at its vertical
+middle, read off the trace exactly as the user specified — while the calcium is
+crossing. `SWING_RAD` 0.34: a machine working, not a protein coming apart.
+
+**ATP is a hexagon in its slot**, amber, below the membrane where the site
+really is. ⚠ It is SPENT: full before the gates move, gone after, gradually
+between. The first guard checked only the ends and let through a version that
+held it at full until it vanished — a hexagon that disappears rather than fuel
+that is used.
+
+⚠ **Fitted by the GATE, not the box.** PMCA's ATP tail hangs below the membrane
+and makes its box half as tall again; fitting the box to the wall shrank the
+gates until the pore was **3.9 px, narrower than the calcium crossing it**. What
+must match the membrane is the part that is in the membrane. `wallH` is now the
+left gate's own height and every glyph is fitted by it.
+
+**A2 — VGLUT is drawn at all, for the first time.** It stands on each vesicle's
+OWN membrane, facing the terminal's pool, and its gates swing while the filling
+happens. ⚠ And the refilling balls now go IN THROUGH IT: until this round they
+travelled to a spot inside the bubble and crossed its membrane wherever the line
+happened to meet it — the very fault the astrocyte's doors were fixed for, left
+standing on the vesicles because the protein was not there to go through.
+
+⚠ **A colour collision, caught by an old guard.** VGLUT was first given teal
+`#0f766e` — which is `TRANSMITTER_INK.dark` exactly, so the protein was painted
+in its own cargo's colour. The guard that counts transmitter ink to prove no
+ball is ever minted noticed. It is purple `#7e22ce` now, checked clear of K⁺'s
+violet and the SNARE's fuchsia.
+
+⚠ **And the dogleg came back in miniature.** Routing through a door meant the
+resting spot inside the bubble could sit on the far side of its centre, so
+arriving at the door moved a ball AWAY from where it was going — 2.4 px. Fixed
+where it belonged: the ball now settles just inside the door it came through,
+with a small sideways spread instead of a wide one.
+
+**Broken and watched fail**: fitted by the box again so PMCA's gates shrink
+(1 down); the pump's gates frozen (1 down); the ATP never spent (1 down, after
+the guard was strengthened to ask for gradual); the refill bypassing the filler
+(2 down). 1264 tests green, typecheck clean.
+
+⚠ **Nothing is missing now** — every protein the loop names is drawn.
+
+### Step 21c-3f — the pumps made to pump, and four fixes around them, 2026-09-05 · awaiting manual test
+
+**A1 — the astrocyte's body is visible again** (user: "astrocyte fades out on
+the right side, make its body visible"). The fade was written when the body was
+off the corner and only the arms were on the page — dissolving toward the soma
+then meant dissolving toward nothing. Scaling the cell down in 21c-3d brought
+the body into frame, and the same gradient started rubbing out the very thing
+the shrink was for. It now fades only across the last stretch before the frame's
+edge, where the cell really is leaving the picture.
+
+**A2 — the transmitter enters the astrocyte through its channel** (user:
+"currently: enters via membrane"). A straight line from the gap's mouth to a
+transporter crosses the outline wherever that line happens to meet it, which on
+a wavy process is not the door. `outsideOn` gives a holding point straight out
+from the door; the ball comes to it and then goes in.
+
+**A3 — the pore is drawn UNDER the gates** (user: "the rectangle is back, should
+go under the gates layers"). The parts come out of the file in its own order,
+which puts the middle piece last — on top, reading as a rectangle laid across
+the gates. `partOrder` is a named decision now, so a test can ask for it.
+
+⚠ **And the first version of that guard was a source check** — "the drawing
+contains `const order =`" — which a break satisfied while still painting in the
+file's own order. Asked of the DECISION instead, as the rule says.
+
+**A4 — both pumps now carry rather than flap.** The openness is SIGNED: −1 open
+to the inside, 0 shut, +1 open to the outside. The two sides are never open at
+once, which is the whole reason a pump can move something against a gradient; a
+gate that merely opened and shut was a door.
+
+⚠ **Two pushbacks, both built as pushed back:**
+
+1. **PMCA's order is not the one asked for.** It is a P-type ATPase: the calcium
+   binds FIRST, on the inside; phosphorylation from ATP then drives the flip to
+   the outward-open state; the calcium leaves; dephosphorylation resets. So it
+   is **load → spend → flip → release**, not ATP → load → flip → release. The
+   hexagon is now spent in the SHUT step between the two openings, which is when
+   the pump actually spends it.
+2. **VGLUT is not an ATPase and gets no hexagon.** It is a secondary active
+   transporter: glutamate goes in on the electrochemical PROTON gradient the
+   V-ATPase maintains, exchanging for a H⁺ going out. Drawing ATP on it would
+   say it burns ATP directly, which is false. The user's "ignore protons" is
+   kept as an ANIMATION simplification — the proton is not drawn — and the info
+   block still names the gradient as what pays for it. A guard holds that no
+   VGLUT call is given an ATP argument.
+
+**A5 — rebuilt vesicles have their filler** (user: "recreated vesicles have no
+pump, add"). They had their rope back but no VGLUT — and these are precisely the
+vesicles the loop then fills, so the ones the child watches being filled were the
+ones with nothing to fill them through.
+
+**A6 — empty in the user's message**; nothing was recorded against it.
+
+**Broken and watched fail**: both openings made the same way, so the gate flaps
+instead of carrying (1 down); VGLUT given an ATP hexagon (1 down); the pore
+painted over the gates (1 down, after the guard was rewritten to ask the
+decision); the astrocyte entry back to a straight line (1 down, caught by the
+continuity walk). 1264 tests green, typecheck clean.
+
+### Step 21c-3g — the transmitter's path through the astrocyte's doors, 2026-09-06 · awaiting manual test
+
+User: *"adjust NTs path into astrocytes and inside them. Currently the path
+crosses the sides of the channels. When they are inside the finger, they overlap
+the channels."* Two faults, and each is a thing that can be measured.
+
+**A1a — through the pore, not past a subunit.** A ball that arrived at a door
+and then headed straight for its resting pocket left the barrel SIDEWAYS,
+crossing a subunit rather than the opening. `insideDoor` steps it in along the
+very line it came in on — the pore's own axis — so it is clear of the protein
+before it turns. The same step is used on the way out through the exit door.
+Measured: the step is 17.2 px on a 23 px channel.
+
+**A1b — nothing rests under a drawn protein.** A door reaches `CHANNEL_SPAN`
+into the cytoplasm, and the pockets are gathered along the process without
+knowing where the doors are, so a ball could come to rest on top of one. The
+pockets are filtered against the astrocyte's own intake doors when the cell is
+built. Measured: the closest a still ball now comes to any door is 21.2 px.
+
+⚠ **The exit door could not be filtered there, and why.** It is chosen in
+`loopDoors`, which depends on the cell — so the cell cannot know about it
+without a cycle. The resting spot is nudged along the chain in the CAST instead,
+where both are in view.
+
+⚠ **Two honesty notes on the guards.**
+
+1. The first version asked that no POCKET sit under any door. That is the wrong
+   claim: a pocket may pass under the exit door, because a ball crossing there
+   is going THROUGH the pore, which is the point. It asks the intake filter of
+   the pockets and the resting claim of the balls.
+2. The resting claim is asked only of balls that are STILL — sampled twice, a
+   moment apart. A ball on a door mid-crossing is not a fault; it is what going
+   through one looks like.
+
+**Broken and watched fail**: the pockets no longer filtered away from the intake
+doors (1 down); the step through the pore removed, so the ball turns off the
+door (1 down). ⚠ A third break — the resting nudge disabled — did NOT fail: with
+these seeds no ball happens to land under the exit door anyway. The nudge is a
+safeguard against a seed change rather than a fix for something currently
+visible, and is recorded as such rather than claimed as a caught fault.
+1265 tests green, typecheck clean.
+
+### Step 21c-3h — four timestamped faults from the user's own watch, 2026-09-06 · awaiting manual test
+
+The user watched the run and reported by the clock. Each observation turned out
+to be a different fault.
+
+**25 ms, "crossing membrane."** Measured: ball 18 entering the BOUTON at
+(616, 324) on its way to a glial door and leaving at (635, 260). The astrocyte's
+intake door had been chosen for being near the wanted spot, and it sat where the
+straight line from the cleft's mouth to anywhere outside it crosses the
+terminal. No holding point rescues a door like that — three attempts at
+approaches proved it — so **reachability is now part of choosing the door**,
+exactly as it already was for the exit door.
+
+⚠ **And the crossing guard had been masking it.** Fusion pores were credited as
+doors for the WHOLE RUN — a 35 px hole standing permanently in the wall — so a
+ball swimming through the terminal passed if it happened to do so near a slot.
+Pores are matched against the run's own fusion times now.
+
+**35 ms, "the gathering on the top of the finger touching the membrane."** The
+resting spots are walked along a straight line from the mouth toward the body,
+and a process CURVES away from that line, so the first offset that happened to
+be inside was the one nearest the wall it curved toward. Candidates are now
+walked out to both walls and placed at the midpoint, and — the part that
+actually guarantees it — rejected unless a ball's width fits all round.
+Measured: the closest a resting ball comes to a wall went 6.0 px → 15.0 px.
+
+**42.3 ms, "crossing the orange channel."** The exit hop came in from whatever
+side the last pocket happened to be on, which is across the protein rather than
+along its pore. The chain now ends through the door's own axis — and it ends AT
+the door rather than 17 px short of it, which was a jump small enough to slip
+under the continuity walk and still be visible.
+
+**"After leaving the pool they look like one dot."** Every ball left at the same
+instant along the same line. They now set off on their own beats, spaced by the
+GOLDEN RATIO rather than by a hash — measured, a hash gave two of them the same
+beat and they came out 0.17 px apart, which is the same complaint in miniature.
+At 57.6 ms the queue is 21 balls spread over 378 px.
+
+⚠ **A performance fault of my own making.** The clearance test measured the
+exact room in every direction, ran a million containment calls per cell, and
+timed the suite out. What the gather needs is whether a ball FITS, so it asks
+that and gives up on the first direction that says no.
+
+**Broken and watched fail**: the door chosen without reachability (1 down); the
+room requirement removed (1 down); the stagger removed (1 down). ⚠ A fourth
+break — the centring removed — did NOT fail, and correctly: the room
+requirement is what makes the property true, and the centring is a refinement on
+top of it. Recorded rather than dressed up. 1268 tests green, typecheck clean.
+
+### Step 21c-3i — the glutamine crosses as separate balls, 2026-09-06 · awaiting manual test
+
+User: *"as I've earlier requested, let glutamine exit astrocyte and enter the
+bouton as single balls, not merged into one ball."*
+
+Every ball converted, left, crossed and entered on the SAME clock and along the
+SAME line, so a dozen of them were one dot for the whole return. Two changes,
+because one was not enough:
+
+1. **Its own beat.** Each ball runs every leg of the loop offset by
+   `loopBeat(id)` — spaced by the golden ratio, which separates consecutive ids
+   further than a hash does. The refill's own stagger was folded into the same
+   beat, so a ball's journey is consistent from the conversion to the bubble
+   rather than late out of one place and early into the next.
+2. **Its own lane.** A beat alone was not enough: the balls travel one line and
+   converge at a door, so two with nearby beats still came out 1.3 px apart.
+   ⚠ And a RANDOM lane was not enough either — two balls can share one. The lane
+   is the beat's COMPLEMENT: multiplying the beat's fraction before taking it
+   modulo one means balls CLOSE IN TIME are far apart in SPACE. Separate one way
+   or the other, always. The lane is carried across leg boundaries and eased to
+   nothing at each door, so a ball still goes in through the pore.
+
+⚠ **Four honesty notes, because this round produced more of them than code.**
+
+- **Widening the lanes made it WORSE at one point** (3.15 px → 2.80 px). The
+  spacing is not monotone in the lane's width: a wider lane moves every ball,
+  not only the crowded pair. Reverted, and recorded so it is not tried again.
+- **"One ball at a time in each pore" was tried and abandoned.** Separating a
+  dozen balls by more than a pore's dwell time needs a stagger longer than the
+  legs themselves, and widening it that far broke the refill's spacing instead.
+  Two balls may be in one doorway; they may not be one dot.
+- **The claim does not extend INSIDE the terminal, for a reason.** Two routes
+  converge on ONE pool from opposite doors, so their paths must cross — and two
+  balls passing each other is not two balls merged. A window there swung between
+  1.8 px and 0.25 px with the sampling grid, which is the signature of a
+  crossing. The guard holds the stretch the user actually named.
+- Several existing guards sampled the loop at fixed instants and had to be
+  re-timed to each ball's own beat. That is not the guards being wrong so much
+  as the run having stopped being simultaneous.
+
+**Broken and watched fail**: the stagger set to zero — 6 guards down, including
+the refill's queue, the crossing-at-a-door walk and the closing frame.
+1269 tests green, typecheck clean.
+
+### Step 21c-3j — the crossing curved, and an ATP on the wrong side of the membrane, 2026-09-06 · awaiting manual test
+
+**A1 — the glutamine's crossing is a curve.** It was two straight legs with a
+corner. What the legs existed to keep is that a ball leaves and arrives SQUARE
+to a pore, so the replacement is a cubic whose control points lie on each door's
+own outward normal — bent in the middle, straight at the ends. The guard asks
+both at once: the path is measurably longer than its chord, and no step turns
+through more than 12°, where the old dog-leg turned through tens at a stroke.
+
+**A2 — the user asked whether ATP binds outside the cell as displayed. It did,
+and that was wrong.**
+
+- PMCA **is** a P-type ATPase and hydrolyses ATP directly (NCX, the other
+  calcium exit, does not — it runs on the sodium gradient), so drawing ATP at
+  all commits the picture to PMCA specifically.
+- **The nucleotide-binding domain of every P-type ATPase is CYTOPLASMIC.**
+  Measured before the fix, both hexagons sat OUTSIDE the terminal, at (65, 272)
+  and (94, 209) — the side had never been solved, it fell out of whichever way
+  the wall's tangent happened to point.
+- `caAtpAt` solves it against the bouton's own outline and turns the glyph with
+  it, so the handover's ATP lobe points into the cytoplasm too.
+- ⚠ The stroke's ORDER was already right and is unchanged: bind inside, shut and
+  spend, open outside, release. That is the P-type cycle.
+
+⚠ **A guard that agreed with itself.** The first version of the ATP check worked
+the correct side out INSIDE THE TEST and asserted that it was inside — true
+whatever the drawing does. It passed when the drawing was put back to the wrong
+side. The side is a named decision now (`caAtpAt`), asked by the drawing and by
+the guard alike, and the guard's assertion — that the point is in the cytoplasm —
+is independent of how it was chosen.
+
+⚠ **And one scope correction.** The dogleg guard started at the crossing's
+nominal end, so a ball still on the curve was measured as turning back into the
+cell — a curve bulges, which is the curve doing its job. It starts once the
+slowest ball is inside.
+
+**Broken and watched fail**: the ATP put back on the outside (1 down); the
+crossing straightened (3 down, including the separation guard and the
+crossing-at-a-door walk). 1271 tests green, typecheck clean.
+
+### Step 21c-3k — one ion at a time through the pump, and an ATP that fits, 2026-09-06 · awaiting manual test
+
+**A1 — the ATP is smaller.** It was drawn at `wallSpan * 0.3`, wider than the
+lobe it is supposed to bind in, so it read as a hexagon parked ON the pump
+rather than IN it. Now `ATP_OF_SPAN = 0.16`.
+
+⚠ **The size was unguarded, and the first break round said so.** Putting `0.3`
+back broke nothing — nothing in the suite knew how big the slot was. The fix is
+not a magic number in a test: `slotWidth(PMCA_GLYPH)` measures the part of the
+traced glyph that hangs BELOW the wall, which is where the ATP site is, and the
+guard asks that the hexagon across is narrower than that. Re-broken at `0.3`:
+1 down. The number is now a fact about the handover, not a taste.
+
+**A2 — the calcium goes through one at a time, with a real cycle.** Fourteen
+ions were crossing as one blob at one moment, which is not what a pump does.
+Now:
+
+- `caQueue` splits the ions between the two pumps by which is nearer, then
+  balances them 7/7 (a pump that takes twelve while its neighbour takes two
+  reads as a leak, not a queue), and gives each a **slot**.
+- `CA_SLOT_MS` is **solved**, not chosen: the room left between the extrusion's
+  start and the frame the run has to close in, divided by the ions one pump
+  carries, capped at 2.2 ms so a small cast does not crawl.
+- Each turn is four beats — `CA_SIT_MS` still in the centre, `CA_ATP_MS` the
+  hexagon binding with its flash, `CA_FLIP_MS` the gates changing conformation,
+  `CA_OUT_MS` leaving on the far side. `caPumpStateAt` is the single source for
+  both the ion's position and the pump's own `{open, atp, flash}`, so the gates
+  cannot swing while the pore is empty.
+- Ions waiting their turn hold a line on the cytoplasmic side (`insideOfPump`),
+  9 px apart along the inward normal, rather than stacking on one point.
+
+**Guarded** (`A2 (21c-3k)`): the queues are balanced, every turn finishes inside
+the run, **at most one ion is inside a pore at any sampled moment**, the ion does
+not move during the bind and the flip, and the pump's drawn state matches the ion
+it is carrying.
+
+**Broken and watched fail**: all ions released at once (1 down); the queues
+unbalanced (3 down); the ion allowed to drift while bound (1 down); the ATP back
+at `0.3` (1 down, after the slot guard existed). 1272 tests green, typecheck
+clean.
+
+### Step 21c-3l — a seat in the channel, and a filler that carries, 2026-09-06 · awaiting manual test
+
+**A1 — the calcium sits in the pump's chamber, not in its neck.** It sat at the
+door's own point, which is the middle of the wall — where the handover draws
+PMCA at its NARROWEST. The user saw what the drawing actually contains: a
+rounded, circle-shaped slot nearer the entrance.
+
+- `poreSeat(glyph, side)` **finds** it rather than declaring it: walking out from
+  the wall's middle toward the side the cargo enters by, the first row of the
+  pore that is wider than the rows either side of it is the chamber. Measured on
+  PMCA: local y **+11.5**, where the pore is **22.3** units across against
+  **9.0** at the middle — two and a half times the neck.
+- `poreGapAt` measures that width by **crossing the outline with a ray**. The
+  first version sampled flattened points, and a long straight edge has none
+  between its ends — VGLUT read as having no gate at all for a third of its
+  height.
+- `caSeatAt` puts it in the scene along the very axis the ATP already uses, so
+  the seat, the fuel and the pump's facing cannot come to disagree.
+
+**A2 — the vesicle filler carries, one ball at a time.** VGLUT had a stroke on
+the run's own clock and the balls swam past it; two could be inside one pore at
+once.
+
+- `refillQueue` gives every returning ball a bubble and a **slot**, balanced so
+  no bubble's queue outlives the run, dealt in the order the balls reach the
+  pool. `slotMs` is **solved** from the room left, as the calcium's is.
+- A turn is four beats — out of the pool and into the seat, shut around it,
+  swing, release — driven by `fillerStateAt`, which the drawing reads, so the
+  filler's gates and the ball in it cannot disagree.
+- ⚠ **No ATP, still** (kept from 21c-3f): VGLUT is not an ATPase.
+- ⚠ **THE GATES NOW SWING BOTH WAYS.** `drawMovingGlyph` clamped `open` to
+  [0, 1], so "open to the side the cargo comes from" — half of every transport
+  cycle, and the documented meaning of a negative `open` — was drawn identically
+  to shut. A transporter that only opens one way is a door.
+- ⚠ **The fillers are drawn last.** They were painted while their bubble was
+  being built, so the bubble's own body and then the lipid pass went over the
+  top of them (user: "they are behind in the newly created vesicles view").
+
+⚠ **Two faults the new guard found on the way, both real.**
+
+1. A ball resting in the standing pool sat **8.8 px from a lumen's centre** —
+   *inside* a vesicle it had never entered. The pool's spots are points on the
+   line from the terminal's door to a bubble's filler, and for the leftmost
+   bubble that line runs straight through it. `clearOfFillers` pushes them out
+   of the wall, and out on the side their own pore is on.
+2. A waiting line standing off each door — the calcium's pattern, copied —
+   put a ball **further from its bubble than the pool spot it left**: 11 px of
+   turn-back against the 7 px dogleg guard. The pool already IS the waiting
+   room, so the line is gone and a ball leaves the pool only when the pore is
+   its own. Fewer inventions, and the older ruling ("the pool is the point")
+   kept.
+
+⚠ **The filling leg pays for its own queue.** Four beats in 0.84 model ms is a
+flicker at the old share; 0.12 → 0.20 makes a turn ~0.50 s against the calcium
+pump's ~0.73 s. The run grows by ~1.7 s to pay for it (32.8 → 34.5 s) rather
+than the earlier legs being squeezed — the same rule as 21c-2.
+
+⚠ **A guard on three dead functions.** `pumpOpenAt`, `fillerOpenAt` and
+`atpLeftAt` were one global stroke per protein, from before each pore had a
+queue; nothing had drawn them since 21c-3k. Deleted, and the same claims put to
+`caPumpStateAt` and `fillerStateAt`, which is what the picture reads.
+
+⚠ **And a guard that could not see wobble.** The "held still" check sampled the
+cast with the thermal clock pinned at 0, where the wobble is a constant — a
+break that left the ball wobbling in the pore passed. It samples on the running
+clock now.
+
+**Broken and watched fail**: the ion put back at the middle of the wall (1
+down); the chamber flattened to nothing (1 down); every ball given slot 0 (2
+down); the ball left wobbling through the hold (1 down, after the clock fix);
+the fillers drawn under their bubbles (1 down, after the guard was strengthened
+from "the last filler" to "the first"). 1274 tests green, typecheck clean.
+
+### Step 21c-3m — the timeline covers the loop, 2026-09-06 · awaiting manual test
+
+**A1 — the bar's dots stopped at 24.5 ms.** Everything after it — the calcium
+going back out, the astrocyte, both conversions, the pool, the refilling — had
+no dot at all, and that is more than half the run.
+
+Seven dots added: **caught** (17.5), **calcium out** (30), **glutamine** (39),
+**shipped** (45.5), **glutamate** (52), **the pool** (53.5), **refilled** (56).
+
+⚠ **Dated off the CAST, not off the schedule.** The loop's stages are scheduled
+by constants (`CONVERT_FROM_MS` and the rest), and placing the dots from those
+would give a bar that agrees with the schedule and not with the picture — the
+exact failure this file's rule about reading events off the run exists to
+prevent. `loopMoments` walks the transmitters once, at half a model ms, and
+asks when each thing FIRST shows: a ball inside the astrocyte, a ball that has
+changed kind, a ball back in a bubble.
+
+⚠ **And the walk found a mismatch worth keeping.** The first transmitter is
+inside the astrocyte at **17.5 ms** — before the clearing dot, and well before
+the clock leg that is captioned "caught: the astrocyte takes it in" (30–36 ms).
+Both are true: the leg is where the bulk of it happens, the dot is where the
+first one happens, and "first" is the convention every other dot here already
+uses (fusion, binding, gates open). The dot is placed where the picture is.
+
+⚠ **"Refilled" has to mean REFILLED.** Fourteen of the thirty-five balls never
+leave a bubble, so `where === 'vesicle'` is true from the first frame. Only the
+return of a ball that actually left counts.
+
+⚠ **Measured, not assumed: the bar stays readable.** Fourteen chips over the
+timeline's three rows clear each other at 1100, 900 and 700 px — but only after
+three labels were shortened; "shipped home" and "vesicle filled" collided at
+700. Guarded at the stage's own width and at a narrow one.
+
+⚠ **The widest gap on the bar is still 0.202, between fusion and binding** — the
+leg where the transmitter crosses the gap, and nothing else there is dated. Past
+the clearing dot the widest gap is now 0.098. Measured and reported rather than
+covered by a threshold chosen to hide it.
+
+**Broken and watched fail**: the conversion dot dated from `CONVERT_FROM_MS`
+instead of the picture (1 down); "refilled" allowed to count a ball that never
+left (2 down); a loop stage left off the bar (2 down); a chip made too long for
+its row (1 down). 1275 tests green, typecheck clean.
+
+### Step 21c-3n — the exhibit renamed, and S14 moved beside the machinery, 2026-09-06 · awaiting manual test
+
+**A1 — "The synapse: arrival to binding" → "The synapse: the round trip."** The
+name was true when the run stopped at the receptors. It now runs the whole
+glutamate–glutamine loop and closes on the frame it opened with, so the row said
+less than the exhibit did. The question moved with it: *"What happens in the gap
+— and how does the terminal get ready to do it again?"*
+
+⚠ **The rename surfaced a stale promise, and it went to the user rather than
+being resolved quietly.** The menu still carried a PLANNED row —
+**S14, "The synapse: clearance & recycling"**, *"Who cleans the gap up
+afterwards, and where do the bubbles come from?"* — which is exactly what S12
+now shows. (The roadmap had already recorded S14 as absorbed on 2026-09-04; the
+menu had not.) Offered: mark it superseded, narrow it, or leave it. The user
+chose neither: **"place it closer to 'Vesicles & the SNARE machinery', we will
+display it in a drawer."**
+
+- The menu is sorted by lecture, so **the lecture a row is filed under IS its
+  position**. S14 moves 10 → 8, which lands it immediately after the SNARE
+  bench. Measured: Part III now reads *round trip · SNARE · clearance & recycling
+  · receptors to the hillock · …*
+- And the move says what the row now is: not a third journey leg, but a deeper
+  look at machinery the synapse view already runs — so when it is built it is a
+  **drawer** over that view (`{ zoom: 'outgoing-synapse', drawer: 's14' }`), the
+  same door the SNARE bench uses. Recorded beside the row and in the spec.
+
+**Guarded** (`A1 (21c-3n)`): the synapse row's title and question no longer say
+"binding"; S14 is the row after `snare`; and it is still a promise, not a door
+(`planned`, `to: null`).
+
+**Broken and watched fail**: the old title restored (1 down); S14 filed back
+under lecture 10 (1 down). 1276 tests green, typecheck clean.
+
+⚠ **Left standing, and said plainly**: S14's question still asks "who cleans the
+gap up afterwards", which the main view now answers. The row is a drawer that
+will go deeper — endocytosis, V-ATPase re-acidification, the reserve pool over
+many spikes — and its wording should probably follow. Not changed without asking.
+
+### Step 21c-3o — the SNARE bench aligned with the round trip, 2026-09-06 · awaiting manual test
+
+**A1 — "Vesicles & the SNARE machinery" was drawing the round trip's own
+proteins in the wrong colours, the wrong shapes, and without their behaviour.**
+Measured before touching anything:
+
+| | round trip | the bench |
+| --- | --- | --- |
+| VGLUT | traced glyph, `#7e22ce` | hand-drawn barrel, **`#6366f1`** — *EAAT's* wall |
+| V-ATPase | not present | also **`#6366f1`** |
+| the trade | one molecule a turn, gates swing | a static barrel |
+
+The drawer wore the astrocyte's transporter ink for two different machines, in a
+view that has no astrocyte in it.
+
+- **VGLUT is now VGLUT**: the traced `VGLUT_GLYPH`, `CHANNEL_INK.vglut`, and the
+  same transport cycle — asked and answered (user: "glyph, colour and cycle").
+  ⚠ **Sized honestly for its register**: the synapse view draws it several times
+  its 5 px membrane, a declared exaggeration; here the bilayer is resolved
+  molecule by molecule, so the protein simply spans the membrane.
+- **The V-ATPase wears its cargo's family** (user: "red family, like its
+  protons") — a channel wears what it passes. ⚠ NOT the protons' own body ink
+  `#dc2626`: a protein painted in its cargo's exact colour is the fault VGLUT's
+  first teal had, and it makes "count the cargo's ink" unanswerable.
+- **ONE CYCLE, NOT TWO**: the four beats moved to `channelShapes.transportOpen`,
+  and both views read them. A second private copy is a second copy of every
+  correction made to it.
+
+⚠ **The alignment exposed two real faults in the bench, both found by the new
+guard rather than by eye.**
+
+1. **Seven molecules were inside one pore at once.** The pass was a flat 0.03 of
+   the run — nearly a third of the whole load stage — while the molecules seat
+   0.0074 apart. `NT_SLOT_U` is now solved from the refill ledger and the turn is
+   a shade under it, so no pass overlaps its neighbour's.
+2. **Then the crossing became a teleport.** With the turn cut to its slot, the
+   walk up to the door ran at 1,140 px/s and the drift to a seat at 1,170 px/s —
+   caught at 27 px a frame. Neither is the pore's business: the queue shuffles up
+   over `NT_APPROACH_U`, the turn owns only the crossing, and the molecule
+   drifts to its seat over `NT_SETTLE_U` while the transporter takes the next.
+
+⚠ **The run grew to pay for the cycle** (user: "grow the run to pay for it").
+Twenty-two molecules through one pore in the old 1 s of trade is 45 ms a turn —
+a flutter, not a machine. The load stage's share goes 0.1 → 0.62 and
+`SNARE_SCREEN_MS` is scaled by `STAGE_WEIGHT`, so every other stage keeps the
+absolute time it was tuned to. **Measured: the run is 30.4 s (was 20), the load
+stage 12.4 s, a slot 225 ms, a turn 214 ms** — against the synapse view's ~500 ms
+turn, because there are 22 turns here and 7 there. Under the "~0.25 s" I quoted;
+say the word and the share buys the other half at ~40 s of run.
+
+⚠ **And seven guards had to be told what time it is.** Walks written as "400
+samples of the run" were one sample per 50 ms at 20 s; at 30.4 s they became one
+per 76 ms, and motion that had not changed speed started reporting 30 px jumps —
+the walk had got coarser, not the picture. Every walk now derives its step from
+`SNARE_SCREEN_MS`, so a stage given more time can never loosen a guard.
+
+**Guarded** (`A1 (21c-3o)`): the filler is drawn in VGLUT's ink and nothing in
+the drawer wears EAAT's; the V-ATPase is drawn, is not the protons' body ink and
+is not VGLUT's; the cycle waits open to the cytoplasm, shuts around the molecule,
+opens to the lumen, is never out of range, and matches the SHARED curve at the
+same phase.
+
+**Broken and watched fail**: the filler back in EAAT's ink (1 down); the pump in
+the protons' body ink (1 down); the turn stretched so passes overlap (1 down);
+the gates frozen (1 down); the shared cycle's beats changed underneath it
+(1 down). 1277 tests green, typecheck clean.
+
+⚠ **Also fixed in passing, and it was not this round's fault**: `A3: draws at
+every moment of the run` had been failing intermittently as a 5 s timeout. The
+scene issues ~3,800 canvas calls a frame and `strictCanvas` costs ~15 µs a call —
+it is a recording Proxy that parses every colour. 25 frames is ~1.5 s of
+RECORDER. Given a 20 s leash, with the measurement written beside it.
+
+## Step 22 — S14, clearance & recycling (the plan, agreed 2026-09-06)
+
+⚠ **What this drawer owns, and what it must not repeat.** Two views already tell
+most of this story: S12 follows every molecule to a fate and runs the whole
+glutamate–glutamine cycle; D06 takes one vesicle through fusion, retrieval,
+uncoating, re-acidification and refilling. So S14 is not the same story a third
+time. It owns the four things neither can say — **the budget, the ledger, the
+alternatives, and the pools** — outlined to the user before any code and agreed
+with three answers: *all five legs, trimmed*; *the retrieval routes as a switch
+the child flips*; *the register is the synapse view, zoomed in*.
+
+⚠ **And it is not D17.** A drawer called "where the transmitter goes" was built
+and deleted on 2026-09-04 on the user's ruling that its content belonged on the
+main view. That ruling stands: D17 animated the JOURNEY, which the round trip
+now does. This counts the ENDINGS, which nothing does.
+
+| leg | what it owns | state |
+| --- | --- | --- |
+| 1 | the gap empties, and the tally says where each molecule ENDED | built (22a) |
+| 2 | the wall got bigger — the membrane ledger that forces retrieval | built (22a) |
+| 3 | kiss-and-run vs clathrin vs ultrafast, as a switch | planned |
+| 4 | sour then sweet: the refill clock against the release clock (reading only — the machinery stays D06's) | planned |
+| 5 | the pools, and what a train of spikes costs | planned |
+
+### Step 22a — the drawer, and the first two legs, 2026-09-06 · awaiting manual test
+
+**Leg 1 — the budget.** Sixty drawn molecules (each standing for fifty of the
+~3,000 a vesicle holds) leave the mouth the vesicle left, spread into the gap,
+and every one of them ENDS somewhere: inside the astrocyte through EAAT, inside
+the spine through EAAT3, or off the gap's open end into somebody else's
+transporter. Three bars count the endings as they happen.
+
+- ⚠ **The dots keep the budget exactly.** Routes are dealt by largest remainder,
+  not by a coin toss per molecule — a per-molecule toss leaves the tally a few
+  off every run, and the tally is this exhibit's one claim.
+- ⚠ **TWO CLOCKS, and they are the lesson.** The gap reads empty in about a
+  millisecond — that is DIFFUSION — while fewer than a tenth of the molecules
+  have been taken up. Conflating the two is exactly why "reuptake clears the
+  synapse" sounds right and is wrong. Guarded as a claim about both readings.
+- ⚠ **Touching a receptor is not an ending** and is never tallied: a molecule
+  sits on one for a moment and is let go again. It is drawn; it still ends
+  somewhere else.
+
+**Leg 2 — the ledger.** The fused vesicle's skin is lying in the wall. The
+reading is **measured from two real sizes**, not typed: a 40 nm vesicle against a
+1 µm bouton is **+0.16%**, and it takes **≈601 fusions to swell the wall by a
+tenth**. That is why retrieval exists, and nothing in the app said so.
+
+**Wiring**: S14 stops being a promise — the menu row is built, filed at lecture 8
+so it still sits beside the SNARE bench, and the synapse view now carries **two
+doors**, because two drawers deepen it and two doors need two buttons.
+
+⚠ **A guard that timed out, and the fix was in the guard.** `A3 (21c-2c)` walks
+the way home and was asking for a fresh cast **once per ball** — 1,700 casts at
+~3 ms each on the refilling leg. One cast returns every ball; it now walks once
+and indexes. Same samples, same assertions, a twentieth of the work. (The first
+pocket inside a door is memoised too — pure in the door, and it was being solved
+per ball per frame.)
+
+**Guarded** (`A1 (21c-4)`, model and scene): the drawn population keeps the
+stated shares to within one molecule; the astrocyte's share is more than three
+times the neurons'; the two clocks are measurably different; the tally has no
+receptor bar; the ledger is derived from the two sizes; every molecule ends
+measurably INSIDE the cell that took it; nothing crosses back into the terminal
+or enters a cell off-door; the astrocyte's transporter wears the code book's own
+EAAT ink; and the ledger reading does not appear before its leg.
+
+**Broken and watched fail**: routes dealt by a coin toss (2 down); the gap
+emptied on the uptake's clock (1 down); the neuron given the largest share
+(1 down); molecules left standing at the door instead of going in (1 down); the
+ledger reading shown from the first frame (1 down). 1291 tests green, typecheck
+clean.
+
+### Step 21c-4a — S14 rebuilt on the view it deepens, 2026-09-06 · awaiting manual test
+
+**A1 — "not kids friendly at all… no visual reference to what we have
+previously built. Do not reinvent anything."** The user is right, and the fault
+is the one this project already has a rule for: *a right model can still be an
+unreadable view — rebuild the view, do not defend it with the model behind it.*
+
+What the first version drew: two horizontal bands for the cells, a vertical band
+for the astrocyte, four hand-made receptor bumps, and a **bar chart**. Every one
+of those was a NEW object standing in for something the child had seen five
+minutes earlier in the round trip. Nothing on the canvas said *this is the same
+synapse*.
+
+**What it draws now: the synapse scene.** `drawClear` calls `drawSynapse` — the
+traced bouton, the spine, the traced astrocyte, the real doors, the real glossy
+balls — through a camera pushed in on the gap, with the view's chrome off. There
+is no second world, no second population and no chart:
+
+- **The camera is solved**, not typed: from the active zone's own span and the
+  astrocyte's own doors, because "where did it go?" is answered by one of them.
+  Guarded by asking whether both ends of the gap and every EAAT door are on
+  screen.
+- **The count is of the scene's own cast.** Not sixty invented molecules — the
+  very balls the child watched leave the vesicles. Drawn as the app counts
+  everything else: the thing itself, with a number beside it.
+- **The clock is the run's own.** The drawer has no window of its own; it walks
+  the synapse run from 2.4 ms to 38 ms, slowly. Every moment it shows is a
+  moment that exists in the view behind it.
+- **Leg 2 points, it does not redraw.** The fused vesicles' patches are already
+  in the wall; the ledger leg lights them with the app's own `softGlow`.
+
+⚠ **And the measurement changed the reading.** Walking the real cast: of the 21
+loose balls, about 8 end up inside the drawn astrocyte and about 13 leave by the
+gap's LEFT end — the second astrocyte the round trip presumes and does not draw.
+Two counts would have made the numbers not add up on screen, so there are
+**three**: *in the gap*, *in the star cell*, *off the picture* — and the info
+block says where the third goes. Counting the ones that leave as "taken up here"
+would have been a tidier picture and a false one.
+
+**Guarded** (`A1 (21c-4a)`): the frame contains the scene's own inks and runs to
+thousands of marks, not the few hundred a diagram makes; the camera holds the
+gap and the doors; the population is conserved across the window; the gap
+visibly fills and then empties; and what leaves it ends in a star cell.
+
+**Broken and watched fail**: the scene call removed (2 down); the camera zoomed
+until the doors fell off screen (1 down); the window cut short so the gap never
+empties (1 down); the balls that leave the frame left uncounted (1 down). 1287
+tests green, typecheck clean.
+
+### Step 21c-4b — no words on the drawer, and a bilayer for the astrocyte, 2026-09-06 · awaiting manual test
+
+**A1 — is the lack of interaction intended?** Reported, not built: at this point
+the drawer has only the transport (▶, the bar, the stage buttons), which is the
+same set of controls D06 has. The interaction this exhibit is planned to get is
+**leg 3** — the retrieval routes as a switch the child flips, agreed in the
+outline. Put to the user whether anything should be interactive sooner.
+
+**A2 + A3 — the counts and the labels are gone.** Three counted pills along the
+bottom and two lines of reading at the top. A count IS a reading on a scale,
+which the canvas is allowed to carry — and it was still wrong here: *"in the gap
+0, in the star cell 10"* is a number to read and then translate, and the child
+does neither. The picture already shows the answer: the balls leave the gap and
+pile up inside the star cell. **`strictCanvas().texts` is empty for this
+drawer's whole run**, and everything those numbers said is in the info block,
+which is written to be read aloud.
+
+**A4 — the astrocyte's wall is made of molecules now.** It had a wall — a
+leaflet band and a core band stroked round its traced boundary — while every
+other membrane in the frame is PAVED with the app's own phospholipids at this
+depth. One cell made of molecules and its neighbour made of paint is two
+materials for one thing.
+
+- `astroLipids(g)` walks the traced outline at the lipids' own spacing and hands
+  the result to the very paver the bouton, the spine and the vesicles use.
+- ⚠ **The inward side is decided once per RING**, by asking the cell's own
+  `astroContains` — the trace is two closed rings whose winding is whatever the
+  illustrator drew, and a normal taken on faith comes out inside-out on one of
+  them: a bilayer with its heads in the oil.
+- ⚠ **Paved on the stretch the exhibit is about**, the same budget the bouton's
+  own wall uses (`membraneLipids` paves `activeHalf × 1.25`, not the whole
+  bulb). Measured: the whole outline is **2,563 molecules** and takes a frame
+  from **3,048 canvas calls to 74,816**. Round the doors it is **693**.
+- ⚠ **And it dissolves on the same gate every other wall does.** `drawAstrocyte`
+  takes the zone's depth: at the wide view the molecules cost nothing, and they
+  appear as the camera dives — level of detail must dissolve for every wall at
+  once, or one cell is molecules while its neighbour is paint.
+
+⚠ **One assertion deliberately not made.** The guard checks a molecule's INWARD
+side lands inside the cell; it does not check that its outward side lands
+outside. Measured: at the narrow processes the cell's two walls are closer
+together than three pixels, so that claim is false of a real thin arm and the
+guard would be punishing the anatomy.
+
+**Broken and watched fail**: the bilayer laid inside-out (1 down); the molecules
+never dissolving away (1 down); the whole cell paved (1 down); words put back on
+the drawer's canvas (1 down). 1290 tests green, typecheck clean.
+
+### Step 21c-4c — legs 1–2 deleted; the drawer is the retrieval fork, 2026-09-06 · awaiting manual test
+
+**The user asked the question that settles it**: *"how different is this view
+from the big view? What does it display that I haven't seen on the big view? If
+it's a copy, why recreate instead of zooming in the big view?"*
+
+Measured before answering: after the counts and labels came out (21c-4b),
+`drawClear` did exactly three things the big view does not — chrome off, a 1.6×
+camera, and a glow. Worse: **the big view already has a 🔍 active-zone place
+that dives 4× in**, and it gives the stretch from 2.4 ms to 38 ms **19.4 s** of
+screen where the drawer gave the same stretch **13.6 s**. A zoomed-out, faster,
+wordless copy of a place that already exists.
+
+**Legs 1 and 2 are deleted.** Chosen: *"delete them; the drawer starts at leg 3."*
+
+**What the drawer is now: the fork.** Retrieval happening three ways, chosen by
+the child — which is precisely what a single run cannot play:
+
+- **💋 Kiss and run** (~1 s): the bubble never opens up. A hole barely wider than
+  one molecule, cargo out through it, the hole shuts, and it leaves whole.
+- **🧺 Coat and pinch** (~15 s): it flattens into the wall; a clathrin basket is
+  built, a dynamin collar squeezes the neck, the basket comes off.
+- **🌀 Big gulp** (~5 s): it flattens; then the wall dents inwards BESIDE the
+  busy patch and swallows a piece far bigger than a bubble.
+
+⚠ **And still nothing is reinvented.** The world is `drawSynapse` held on a
+still before fusion; the bubble is the scene's own `vesicle` (exported for
+this); its flattening is `fusedShape`/`pocketAt`/`drawPocket`; its skin is
+`vesicleLipids` through the same paver. What is new is only what no view has
+drawn: a pore that never widens, a basket, a collar, and a dent bigger than a
+bubble. The scene gets ONE hook — `skipDocked` — so the drawer can take a site
+over rather than keeping a private copy of a bubble.
+
+⚠ **The camera is solved from what the routes need**, not from a multiple of a
+vesicle. The first version framed r × 14 round the site and cropped the big
+gulp: measured, its top sat 141 px above centre against a half-frame of 134. The
+box is now the union of every route's own extent at every stage.
+
+**The interaction question, answered**: yes, the absence was intended so far —
+this is the first exhibit control, and it is the switch, exactly where the
+outline said it would be.
+
+**Guarded** (`A1 (21c-4c)`): kiss-and-run's `flat` is zero at every moment while
+the other two reach 1; every route ends with a bubble measurably clear of the
+wall; the basket and collar belong to clathrin alone and run in the right order
+(basket on → collar squeezes while it is on → basket off); the gulp is bigger
+than a vesicle and not at the busy patch; the backdrop is held before the first
+fusion; the drawer letters nothing; and the scene really does leave the taken
+site empty.
+
+**Broken and watched fail**: kiss-and-run made to flatten (1 down); a basket
+given to every route (1 down); the gulp shrunk to vesicle size at the zone
+(1 down); the backdrop run on past fusion (1 down); the scene's skip removed
+(1 down — after the guard was sharpened from "fewer marks" to "no bubble in that
+lumen", because a call count falls if anything at all is skipped). 1290 tests
+green, typecheck clean.
+
+### Step 21c-4d — the exhibit renamed to what it shows, 2026-09-06 · awaiting manual test
+
+**A1 — "the name says clearance and recycling. But what I see is the type of
+vesicle merge mechanisms."** Right, and the count is the argument. Listed for
+the user, in simple terms, everything that belongs under that topic name —
+**sixteen mechanisms**, six of clearance and ten of recycling — against where
+each one lives today:
+
+- clearance (diffusion out, astrocytic EAAT, neuronal EAAT3, spillover, the
+  glutamine cycle, and the contrast with transmitters destroyed in the cleft):
+  **S12's job already**, which is why a copy of it was deleted in 21c-4c;
+- recycling: the SNARE bench owns uncoating, re-acidification and refilling;
+  **this exhibit owns three retrieval routes**;
+- and **four are shown nowhere**: bulk endocytosis, the vesicle pools, what a
+  burst costs, and enzymatic destruction in the cleft.
+
+Three of sixteen, all from one half. **The row is renamed to what is behind it:
+"Taking the bubble back"** — *"There is more than one way to get a bubble back —
+which one really happens?"* — with ♻️ for the child who does not read it. The
+files and symbols were renamed with it (`retrieval.ts`, `retrievalScene.ts`,
+`retrievalStore.ts`, `RetrievalBench.tsx`): a module called `clearance` holding
+three endocytosis routes is the same rotted claim one level down.
+
+**Guarded**: the row may not promise clearance in its title or its question, and
+the exhibit is still the three-route fork the name is scoped to.
+
+**Broken and watched fail**: the old name put back (1 down). 1290 tests green,
+typecheck clean.
+
+**Next, chosen by the user**: mechanisms 14 and 16 — **the pools, and what a
+burst costs**. The ready few, the working pool, the reserve held by synapsin;
+then messages arriving faster than bubbles come back, and the synapse going
+quiet. It needs a train of spikes, which no existing run plays — so it is a new
+exhibit, not another leg of this one.
+
+### Step 21c-5 — rebuilt as three panels; the scientific name, 2026-09-06 · awaiting manual test
+
+**A1 — the scientific term.** The row is **"Synaptic vesicle endocytosis"**
+(♻️), and the three mechanisms are named as the field names them:
+**kiss-and-run**, **clathrin-mediated endocytosis**, **ultrafast endocytosis**.
+A row's title is written for the adult reading it aloud; the icon is the child's
+handle on it.
+
+**A2–A6 — rebuilt from scratch** (user: "the picture is too busy… create a 3
+container, full-width layout (see 'ion channel type')"). The version before drew
+the whole synapse and animated one site in it: the spine, the astrocyte, the
+cleft, four other vesicles and every ion in the bath were context for a question
+nobody was asking, and they buried the one thing being compared.
+
+- **Three panels, side by side.** Each is a piece of terminal wall and ONE
+  vesicle. Three of them in one frame is the comparison, made by LOOKING rather
+  than by remembering what the last run did.
+- **The wall and the vesicle are the SNARE bench's own** — `wallPoints`,
+  `omegaRing`, `lumenArc` and the shared paver, at that bench's register, both
+  exported for this. What is new is only what no view has drawn: a mouth that
+  never widens, a clathrin basket, a dynamin collar, and a dent bigger than a
+  vesicle.
+- **One button runs all three**, and each panel has its own ▶. Started at three
+  different moments the panels cannot be compared, which is the whole point.
+- **Each name sits above its panel with a voice** — the app's own round
+  `SpeakButton`, not a second speaker design.
+- **Nothing is lettered on a canvas.** `strictCanvas().texts` is empty for every
+  mechanism at every moment; the explanation is in the info block, which is
+  written to be read aloud. No timeline: there is nothing to scrub, only
+  something to start.
+- **No `u` in the store.** Three positions advancing through Zustand would be
+  three writes a frame for a per-frame value. The store owns the semantic thing
+  — that a run was asked for — as a counter, so pressing ▶ on a running panel
+  starts it over instead of doing nothing.
+
+⚠ **A1 (mid-turn) — the layout compared against the reference, element by
+element.** Fonts, colours, container classes, button placement and sizes are the
+ion-channel bench's: `h-[40px]`, `text-[13px] font-semibold`,
+`border-amber-400/80 bg-amber-500/40 … hover:bg-amber-500/45`, the container
+`relative min-w-0 rounded-xl border-slate-700 bg-slate-950/40 p-2`, the ▶
+centred on its own picture. And the panel sizes are **solved from the drawer's
+real content box the way that bench solves its own**, not typed — typing a
+height is the fault that left a band of that drawer empty in 2026-08-28.
+
+⚠ **Three faults the guards found while fitting it, all real.**
+
+1. At the SNARE bench's own vesicle ratio the panel is a portrait column
+   (measured: 317 × 696) and the vesicle came out far too big for the width. The
+   width holds the vesicle AND the dent beside it, so the width sets the size and
+   the height becomes the journey down from the crowd.
+2. The ultrafast dent either overlapped the vesicle it is meant to be beside or
+   ran off the right edge — measured, 329.5 px in a 325 px panel. Its offset is
+   solved from the room left, and the vesicle shrank to buy that room.
+3. Its little vesicles budded and then **hung just inside the wall**. Retrieval
+   that stops halfway is not retrieval; they go back to the crowd like every
+   other mechanism's does.
+
+**Guarded** (`A3`/`A4`/`A6 (21c-5)`): nothing is lettered; kiss-and-run's centre
+never reaches the wall while the other two pass it; every mechanism starts above
+the wall and ends with a vesicle back at the crowd's own height; the basket and
+collar belong to clathrin alone and run in the right order; the dent is bigger
+than a vesicle and beside it; nothing sails off a panel; and a panel's ink is a
+few hundred marks, not a whole scene's thousands.
+
+**Broken and watched fail**: kiss-and-run made to open up (1 down); a basket
+given to every mechanism (1 down); the dent shrunk to the vesicle's own spot
+(1 down); a label put back on a canvas (1 down); clathrin's bud left on the wall
+(1 down, after the guard was sharpened from "off the wall" to "back at the
+crowd"); the dent grown until it left the panel (2 down). 1292 tests green,
+typecheck clean.
+
+### Step 21c-6 — the layout copied properly, and a wall that opens, 2026-09-06 · awaiting manual test
+
+**A1–A4 — the layout, against the reference element by element.** The name now
+sits **inside** its container, over the picture, with the **speaker first**; the
+▶ sits at the **bottom** of the container; and both buttons are the ion-channel
+bench's own button, copied rather than approximated (`h-[40px]`, `text-[13px]
+font-semibold`, `border-amber-400/80 bg-amber-500/40 … hover:bg-amber-500/45`,
+`shadow-lg backdrop-blur`). With the name inside, the panel gets that height
+back: `PANEL_H` no longer subtracts a title row.
+
+**A5 — the wall stayed solid while a vesicle merged into it.** It was paved at
+shift 0. `wallShift` already knew how much room the crowd has to make, but only
+from the SNARE cycle's own `u`; it is now `wallShiftFor(g, cy, r)` — the same
+arithmetic asked of a CENTRE, so an exhibit that drives its own vesicle can ask
+it. `wallPoints` gained `about`, because ultrafast dents the wall BESIDE the
+active zone and a gap opening at the frame's middle is a wall parting where
+nothing is happening.
+
+⚠ **And the fusion pore was far too wide.** Measured while guarding it:
+kiss-and-run's dip of a fifth of a radius gave a mouth **44 px across on a 70 px
+vesicle** — half its own width, which is not "barely wider than one molecule",
+it is a collapse that stopped early. At three hundredths the mouth is 17 px and
+the wall parts a sixth as far as a full collapse makes it part.
+
+**A6 — the lipids jiggle, and they are uneven.** `paveMembrane` takes an
+optional thermal clock and jitters harder when asked; the panels pass screen
+time, so the crowd jostles whether or not a run is playing. ⚠ **One owner**: the
+jiggle's maths moved out of the lipid lab into `bilayer`, where the paver can
+reach it, and the lab now points at it.
+
+⚠ **Two guards that did not bite, and what was wrong with each.**
+
+1. *"The wall opens"* tested `wallShiftFor` and `wallPoints` — the helpers — so
+   a drawing that computed the shift and then paved at zero passed. It now asks
+   the PICTURE. And not as an empty gap: the opening is FILLED by the vesicle's
+   own molecules unrolling into it, which is what material conservation looks
+   like. What moves is the WALL's own crowd, shoved out past the ends of its
+   span — nothing is out there at rest.
+2. *"One owner for the jiggle"* compared the two functions' VALUES, which can
+   never fail because they are the same function. It asks for identity now, and
+   fails the moment the lab writes its own copy again.
+
+**Broken and watched fail**: the wall paved solid again (1 down, after the guard
+was moved from the helper to the picture); the lipids' clock removed (1 down);
+kiss-and-run's mouth opened like a collapse (1 down); the wall parted at the
+frame's middle instead of at the dent (1 down); the lab given its own copy of
+the jiggle (1 down, after the guard was changed from values to identity). 1294
+tests green, typecheck clean.
+
+### Step 21c-7 — jiggly lipids everywhere, and the layout given its name, 2026-09-06 · awaiting manual test
+
+**A1 — six more views jostle.** `drawLipids` — the wall every straight-run bench
+draws with — takes the thermal clock now, and membrane permeability, charge &
+capacitance, ion channel types, patch clamp, ion channel structure and what sets
+the membrane voltage all hand it theirs (`drawPermea` had no clock and gained
+one). Without `ms` a run is byte-for-byte what it drew before, so every test
+written against a still wall still holds.
+
+**A4 — each lipid is its own molecule.** Both drawing paths moved a head and the
+head facing it as ONE rigid object. The identity is now `slot × 2 + leaflet`, so
+the two leaflets of a slot are on different beats — in the paver and in
+`drawLipids` alike. ⚠ And the identity is the SLOT, never the pushed x: `pushAt`
+moves a molecule every frame while a wall parts, and an identity that rides it
+re-rolls the phase — a shimmer, not a jostle.
+
+**A5 — documented as the default.** *Jiggly lipids — the DEFAULT bilayer* in
+`03-architecture.md`: one owner (`lipidJiggle` moved into `bilayer.ts`, the
+lipid lab points at it), screen time never model time, the rules and the bug
+each came from. A still membrane needs a reason now.
+
+**A2 + A3 — the layout named and extracted.** `ui/SideBySide.tsx` is the
+'side-by-side interactive comparison' — the D04 anatomy documented in one place:
+speaker-first headline inside the container, optional fixed-height caption,
+transparent canvas on the container's own ground, tinted h-38 action at the
+foot, an empty slot where a panel has no action. **D04 itself now renders
+through it** (the proof it really is that layout) and S14 is its second user —
+which also delivered A2 for free: S14's buttons, headline and background are
+D04's own because they are D04's code. S14's panel arithmetic is D04's,
+three containers instead of four; its one background wash is the snare bench's
+own (OUTSIDE below the wall — necessary, because the lumen wears the same ink
+and that is what makes fusion seamless). The wash was also on the WRONG SIDE
+before: cytoplasm below the wall, where the cleft is.
+
+**A6 — the duplicated labels switch.** The 2026-09-04 move that put the lipid
+lab's switch outside the picture landed a second copy in its own row while the
+button row already carried one. The button row's copy stays.
+
+⚠ **Three guards that did not bite, and what each was measuring instead.**
+
+1. *"The leaflets move independently"* compared the two sides' average drifts —
+   and a rigid ROTATION also makes those differ. Asked now as what separates
+   rigid from liquid: the distance between the leaflets' centres must change.
+2. …and then it bucketed marks by which side of the midline they LAND on — a
+   rigid rotation swings tail marks across it. Bucketed by draw order.
+3. …and then its fixture (`to: 8`) held TWO molecules, so the halves compared
+   were neighbours, which differ even when bonded. One slot, sized off
+   `HEAD_GAP`. Measured: bonded = 1.8e-14 px of gap change, independent = 0.095.
+4. *"The views hand the paver their clock"* asked "did anything move?" — and the
+   capacitor's charge marks ride the same clock, so a wall that dropped its
+   clock still passed. Counted inside the membrane's own band now.
+
+**Broken and watched fail**: the clock ignored in `drawLipids` (3 down); the
+leaflets bonded in `drawLipids` (1 down, after the fixture was pinned to one
+slot); bonded in the paver (2 down); the capacitor's wall dropping its clock
+(1 down, after the band); the panel filling its whole canvas again (1 down);
+the identity riding the pushed x (1 down). 1301 tests green, typecheck clean.
+
+### Step 21c-8 — six fixes across the membrane world, 2026-09-06 · awaiting manual test
+
+**A1 — the dendrite-membrane zoom was on empty water AGAIN.** The 2026-09-04 fix
+stated the right rule — a frame and the drawing it frames are cut from ONE
+measurement — and measured the wrong drawing: the tapered ribbon, which is the
+LOW-zoom register, when at ×2300 the branch is drawn by `drawProcessTube` at its
+stroke's constant MAX width. Measured: the tube's wall sat 0.56 scene px —
+**1288 screen px** — from the frame. The frame is now cut from `tubeHalfWidthOf`,
+and the guard asks the claim itself: the camera's centre sits on the tube-drawn
+wall to 0.05 scene px.
+
+**A2 — one lipid stranded in the opening's centre.** `Math.sign(0)` is 0, so the
+wall slot exactly at the opening's own centre was shoved NOWHERE — a molecule
+floating in the parted mouth. The centre slot goes right now. ⚠ The guard's
+first fixture never put a slot at the centre (parity), so the break sailed
+through; the fixture now builds a run whose middle slot lands on the centre by
+construction, measured off the wall's own grid.
+
+**A3 — the endosome resolves; nothing is minted.** The old budding kept the big
+blob at full size AND added two vesicles beside it — membrane from nowhere. A
+lipid count is a circumference is a radius, so conservation is one line:
+`R_endo = R0 − Σ r_bud`, two buds of R0/2 each consume it exactly. And they BUD:
+each grows ON the shrinking endosome's surface — centre at `R_endo + r_bud`
+along its own direction — then pinches off and climbs to the crowd. Guarded as
+the sum (never grows once the gulp is free; ends split) and as the geometry (a
+bud is seen rim-to-rim on the parent's surface).
+
+**A4 — the transmitter is released.** The panels showed retrieval as if the
+vesicle arrived empty, and every one of these runs BEGINS with exocytosis.
+Seven seeded balls per panel, one model for the three routes; only the mouth
+differs — kiss-and-run single file through the pore while it is open, the
+collapsing routes through the widening mouth as they flatten. Released balls
+drift down into the cleft and off the frame, by travel, never a fade. ⚠ The
+carrier can be GONE between full collapse and the gulp (the panel briefly holds
+no bubble at all) — caught by the NaN guard on the first draw.
+
+**A5 + Rule 2 (mid-turn) — the jiggle rule, rewritten and applied.**
+'Ion channel structure' is a labelled still until Send is pressed: its lipids
+are STATIC again. The rule in `03-architecture` is now two rules: (1) jiggle
+where the resting view already moves, still where it rests as a still; (2) the
+bilayer as main actor or subject jiggles regardless. Audited: permeability,
+capacitance, channel types, patch clamp and resting voltage keep their jiggle
+(each moves at rest); the lipid lab and the endocytosis drawer keep theirs by
+Rule 2 (the user's own exceptions, mid-turn); **and Rule 2 reached two views
+that had never had the clock — the SNARE bench and the synapse's molecular
+register** (zone wall, vesicles, astrocyte), whose membranes are the actors.
+The rule's both halves are guarded: the channel wall must NOT move, the snare
+wall must.
+
+**Broken and watched fail**: the frame cut from the ribbon again (2 down); the
+centre lipid stranded (1 down, after the parity fixture); the endosome minting
+(2 down); buds materialising off the surface (1 down); balls drifting but never
+leaving (1 down); the still view jiggling again (1 down); the snare wall
+dropping its clock (1 down). 1305 tests green, typecheck clean.
+
+### Step 21c-9 — three faults in the endocytosis panels, 2026-09-06 · awaiting manual test
+
+**A1 — "'ultrafast endocytosis': bilayer twitches after exocytosis."** Two
+snaps, both from the model rather than the drawing:
+
+1. The merged vesicle was **culled** from the bubble list the instant `sink`
+   reached 1 — and the wall's parting is derived from the bubbles, so ~110 px of
+   parted crowd shut in a single frame.
+2. The dent then **arrived already flat** at `bigFlat`, a whole vesicle's worth
+   of membrane laid on the wall in one frame, so the crowd had to part ~170 px
+   instantly.
+
+Both are gone. A merged vesicle is **ABSORBED**: its radius runs down to nothing
+while its ring lies flat in the wall. That is not membrane destroyed but
+membrane absorbed, and the arithmetic says so — a fully merged ring's unrolled
+length is 2πr and the room the wall makes for it is 2 × πr, the same number, so
+shrinking r closes both at exactly the same rate with no gap and no overlap at
+any moment. And a pit **GROWS**: a circle whose radius runs 0 → big while its
+centre climbs from the wall line to a full radius above it, which reads as a
+dimple deepening into a sphere on a neck.
+
+⚠ **Guarded as what an eye sees**, not as a smoothness parameter: how far does
+any wall molecule move between two REAL frames at 60 fps? Measured — kiss
+**0.39 px**, clathrin **2.85**, ultrafast **4.87**, against the old kind of snap
+at **110 in one frame**. The absorption beat was widened (0.30→0.38) after the
+first measurement came back at 6.5. `wallOpenAt` is a named decision now, and it
+eases and clamps NOTHING: the continuity is a property of the bubbles, so the
+guard tests the model rather than a filter over it.
+
+**A2 — "NTs should be present in vesicles from the 1st frame. Currently
+teleport."** They were seated from frame 1, but a released ball jumped from its
+seat straight to a point below the wall on the frame it was let go. It threads
+the mouth now — a quadratic pinched at the opening, leaving in the very
+direction it carries on in, so there is no corner either — and its seat is
+FROZEN at the moment of release so the vesicle moving on cannot drag it.
+Measured: the worst per-frame step is now 2.4 px, which is the vesicle's own
+arrival from the crowd.
+
+**A3 — "large vesicle turns into 3, but only 2 remain."** The buds were half the
+endosome each, so `R_endo = R0 − Σ r_bud` reached zero and the remnant dropped
+out of the picture — a vesicle that vanishes, which is exactly what the
+conservation rule exists to forbid. **Thirds**: two buds and the remnant, each
+big/3, Σr still exactly `big`, and the remnant goes home last. Guarded three
+ways: three at the end, each a third, and the count may never DROP once the
+three exist.
+
+**Broken and watched fail**: the merged vesicle culled again (1 down); the pit
+arriving already flat (1 down); the buds taking half each (1 down); the release
+jumping to the mouth (1 down). 1308 tests green, typecheck clean.
+
+### Step 21c-10 — clathrin as triskelions, dynamin as a coil, one coat everywhere, 2026-09-06 · awaiting manual test
+
+**A1 — the illustration handover** (triskelion / coat architecture / CCV
+composition) is reconciled in `05-visual-language.md` and adopted:
+
+- **The triskelion is a shape with a decision behind it**: `triskelionLegs` in
+  the new `stage/clathrin.ts` — three legs from one hub, each bent at a knee,
+  all curling the same way (the pinwheel chirality of panel A). Heavy chains in
+  the coat's cyan; the light chain in the family's LIGHTER cyan, not the
+  handover's orange, which is spoken for twice over (rab, SNAT).
+- **Dynamin is a coil**, as panel B draws it — `DYNAMIN_TURNS = 4` shallow arcs
+  wrapped round the NECK, narrowing as it squeezes (`dynaminRx`, the pure
+  decision). ⚠ **And it has its own ink at last**: the bar it replaces wore
+  `#c026d3`, which is NSF's fuchsia EXACTLY — two machines, one colour, a
+  collision that had sat unnoticed since 21c-4c. Blue (`#60a5fa`): the
+  handover's navy is unreadable on this ground, and blue-400 is the nearest
+  free hue.
+- **The suck-in IS the coat.** Panel B's lattice-curves-the-membrane is adopted
+  as behaviour: `clathrinBuildAt` is ONE number that both the drawn coverage
+  and the bud's depth are derived from, so the membrane comes back exactly as
+  fast as triskelions land on it and cannot lead or lag them. Triskelions land
+  one by one on the bud's cytosolic face, staggered, only on the part standing
+  proud of the wall.
+- **Panel C (PIP₂, BAR) is out of scope and recorded** in the reconciliation
+  rather than half-drawn.
+
+⚠ **Two faults the guards caught while re-choreographing, both real:**
+
+1. `depth = coatAt` re-sank the freed vesicle — stripping the basket pushed the
+   bubble back into the wall, and the run ended with it never reaching the
+   crowd. The depth follows the coat's BUILD; the strip happens to a bubble
+   that is already free.
+2. The linear build's hard stop jerked the wall **8.3 px in one frame**
+   (`wallShiftFor`'s derivative blows up as the bud clears the wall). The build
+   is eased; measured after: 3.2 px.
+
+**A2 — the SNARE bench wears the same coat.** Its flat studs are gone; it draws
+the shared triskelions at its own magnification, and its pinch — a neck that
+used to snap by itself, with no machine doing it — now has the same dynamin
+coil (`snareDynaminAt`: appears late in the retrieval, squeezes to the seal,
+gone once the bubble is free).
+
+**Broken and watched fail**: the triskelion straightened into a star (1 down);
+the bud put back on its own clock (1 down); dynamin back in NSF's fuchsia
+(2 down); the bench's coat removed (1 down); the bench's dynamin suppressed
+(1 down); the coil's squeeze flattened (1 down). 1313 tests green, typecheck
+clean.
+
+### Step 21c-11 — a panel-sized endosome, and pause, 2026-09-06 · awaiting manual test
+
+**A1 — the endosome is sized from the PANEL, not from the vesicle.** It was
+r × 1.55; a bulk endosome really is several vesicles' worth of membrane in one
+piece, so `endosomeR(g)` now takes nearly the half-span (0.42 of the panel's
+usable width, capped by the room above the wall) — measured, 116.8 px against
+the docked vesicle's 34.8. **It still resolves into THREE** — an ultrafast
+endosome resolves into several synaptic vesicles, and three says "several"
+where two would undersell it; each third is bigger than a docked vesicle now,
+which reads right for vesicles born of a bulk piece. Knock-on effects, each
+measured: the pit's window grew with the pit (2.4× the membrane in the same
+time was 8.7 px a frame against the twitch guard's 8 — same speed as before,
+more time); the "back at the crowd" guard now measures each bubble against its
+OWN radius; the "beside the active zone" claim survives as far as the frame
+allows — pushed right until flush with the panel's edge, which `endosomeR`'s
+size makes the honest maximum.
+
+**A2 — pause** (user: "allow to pause animation. Turn pressed button into
+'pause' mode"). The store gains `playing` per panel beside the restart counter;
+the bench's clock advances only the playing panels — pause is the CLOCK
+stopping, not the drawing: the lipids keep jostling on the thermal clock while
+a paused run holds its frame. The pressed button is three states in one:
+playing → ⏸ Pause; paused mid-run → ▶ carries on from where it froze; at the
+start or the end → ▶ starts over. "Run all three" pauses all three when any is
+playing, resumes all when any is frozen mid-run, and restarts the comparison
+only when every panel is parked at an end. A finished run reports itself
+(`finished`), so the button never says "pause" over a still last frame.
+
+**Guarded**: `endosomeR` is panel-sized and the drawn endosome IS that number,
+flush right; the thirds read the same named size; the store's `pause` freezes
+without rewinding, `resume` continues without restarting, `startAll` bumps all
+three counters on one press. **Broken and watched fail**: pause made to rewind
+(1 down); run-all made to stop restarting (1 down); plus the four resize
+fallouts caught live by the existing guards (crowd, twitch, thirds, dent-offset)
+before any of them reached the browser. 1314 tests green, typecheck clean.
+
+### Step 21c-12 — the suck-in as a ratchet, and a real neck, 2026-09-06 · awaiting manual test
+
+**A1 — "clathrin animates with pull up ease: it moves away with a small gap →
+slows down → lipid ball 'snaps' towards it, bouncing → lipid ball creates a
+'neck', which gets cut or tightened and cut by dynamin."**
+
+The single motor curve became TWO, with a phase between them, three pulls
+across the build:
+
+- **The coat leads** (`clathrinPullAt`): each pull it climbs a step fast and
+  eases to a stop by 45% of the pull — a lattice stiffens, it does not glide —
+  and the drawn pinwheels ride THIS curve, so they hover a visible gap above
+  the bud. Monotone: a ratchet never gives back.
+- **The membrane lags and SNAPS** (`clathrinBuildAt`): holds while the coat
+  pulls away, crosses the gap ease-OUT — all the speed at the start, which is
+  what a snap is — hits the lattice at 55% and rebounds a tenth of the step
+  before settling. ⚠ **Except the last pull**: its rebound dipped the bud's
+  foot back through the wall it had just cleared, and `wallShiftFor` flickered
+  17 px on/off — measured, a **14 px twitch at u = 0.66** against the guard's 8.
+  The final pull lands without a rebound, settling against the finished
+  lattice, which is also what running out of slack looks like.
+- **The neck is MEMBRANE now** (`clathrinNeckAt`): between the build's end and
+  the cut the bud stands on a stalk — two strands of the same paved lipids from
+  the wall's opening to the bud's foot, their lumen the outside's own ink (it IS
+  the outside, up the stalk), narrowing 82% under the coil, gone at the cut.
+  The wall keeps a NECK-WIDE opening while the stalk stands — a crowd closed
+  under a standing neck is a wall drawn through a membrane — fading in over the
+  build's last beat and out over the beat after the cut, so neither end snaps.
+
+**Guarded** (`A1 (21c-12)`): the coat never trails the membrane and never gives
+back; the gap measurably opens (>20 sampled moments) and both curves end
+together at 1; the membrane rebounds at least once; the bud's drawn depth IS
+the membrane's curve and the drawn coverage IS the coat's; the neck stands only
+in its window, narrows under the coil, has height, dies at the cut; and the
+wall's opening tracks the neck's own base while it stands.
+
+**Broken and watched fail**: the coat made to trail the membrane (1 down); the
+bounce removed (1 down); the coil's tightening removed (2 down — the twitch
+guard caught the un-narrowed neck's fade-out jump too); the wall closed under
+the standing neck (1 down); the neck left standing past the cut (1 down). 1315
+tests green, typecheck clean.
+
+### Step 21c-13 — slower, and a neck worth cutting, 2026-09-06 · awaiting manual test
+
+**A1 — slower** (user: "make endocytosis slower"). The panels' shared run goes
+**7 s → 11 s**. The three stay one length — the comparison is the exhibit — so
+all three slow together; the ratchet's pulls go from under a second each to
+~1.1 s.
+
+**A2 — the neck is visible, and the cut has two ends** (user: "give the
+sucked-in vesicle a more visible neck which gets cut").
+
+- The bud's pinch lift grew **0.5r → 0.9r** and happens EARLY in the neck's
+  window (0.66→0.74 instead of →0.8): the stalk's height IS the lift, and at
+  0.5r-late it stood for barely a beat before the cut. Guarded: once the lift is
+  done the stalk spans **more than 0.6r** (measured 13.2 px before, ~32 after).
+- The base widened a touch (0.45r → 0.52r), still narrowing 82% under the coil.
+- **The cut severs, visibly** (`clathrinStubsAt`): the stalk used to vanish
+  between two frames. For a beat after the cut its two stubs recoil — the lower
+  down into the wall, the upper up into the freed bud — in the same paved
+  lipids, fading as they go. Guarded: no stubs before the cut, both ends recoil
+  in their own directions, alpha falls, gone after `NECK_STUB_MS`.
+
+**Broken and watched fail**: the lift cut back to a sliver (1 down); the stubs
+frozen at the cut line (1 down). 1315 tests green, typecheck clean.
+
+### Step 21c-14 — the coat flies in and sticks, 2026-09-06 · awaiting manual test
+
+**A1 — "clathrin currently fades in and becomes transparent occasionally. Let it
+fly into the scene and 'stick' to the membrane, and build up a circle, by adding
+elements at the membrane side."**
+
+Every piece was an alpha ramp — `on = (coat − seed) / 0.25` — so pinwheels
+swelled out of nothing on the way in and went see-through where they stood on
+the way out. A protein arrives from the cytosol and binds; it does not condense
+out of the air.
+
+- **A journey, never an opacity.** `coatPiecesAt` owns where each triskelion is:
+  it flies from off the top of the frame — the cytosol, in this register —
+  tumbling, and settles onto its own seat on the bud's cytosolic face at its
+  final angle. A piece is on its way, stuck, or gone; there is no third state.
+  ⚠ Guarded ON THE INK: every mark the coat makes, at every moment of the run,
+  is recorded at alpha 1.
+- **The circle grows from the APEX toward the membrane** (`coatOrder`,
+  `coatLandAt`, both shared): the apex lands first and every later piece is
+  added on the membrane side of those already there — what the user asked to
+  see, and what a coated pit does, since a lattice nucleates and extends toward
+  its edge.
+- **And it leaves the way it came**: on the strip, the rim goes first, pushed
+  outward and up off the frame, rather than dissolving in place.
+- **The SNARE bench's coat follows the same rule** from the same module — the
+  21c-10 alignment holds, so a correction to the landing reaches both.
+
+**Guarded** (`A1 (21c-14)`): no coat mark is ever drawn at partial alpha; a
+piece is caught mid-flight and begins inside the frame's top; the apex is
+order 0 and the rim lands strictly later; the circle only ever GROWS during the
+build; and its lowest piece — the one nearest the wall — appears only after the
+highest.
+
+**Broken and watched fail**: the fade put back (1 down); the order reversed so
+the coat builds inward from the membrane (1 down); the flight removed so pieces
+appear at their seats (2 down). 1317 tests green, typecheck clean.
+
+### Step 21c-15 — the coat drifts in from the sides and waits its turn, 2026-09-06 · awaiting manual test
+
+**A1 + A2 + A3 — "clathrin should fly from left and right, and have more smooth
+movements (no jerky breaks). Elements fly in, and slowly build themselves into
+the structure, when a free space occurs."**
+
+⚠ **The jerk had a cause, and it was measurable.** Both legs of a piece's
+journey were driven by `clathrinPullAt` — the ratchet, which starts each pull
+fast and stops dead. So a piece halfway through its flight was ALREADY being
+dragged toward its seat at the ratchet's speed: the approach and the settle
+pulled the same piece in different directions at different speeds. Measured at
+60 fps: **13.4 px in one frame**. After: **2.25**.
+
+- **Both legs run on the RUN's own clock now**, as eased windows with zero
+  speed at every end (`coatFlyAt`, `coatSettleAt`), so no leg can yank another
+  and nothing inherits the ratchet's sharpness.
+- **A piece is always WAITING before its space opens.** The approach starts a
+  full flight plus a lead before the settle window, and the guard asks exactly
+  that: at the moment its space opens, every piece's flight reads 1.
+- **In from the left and the right** — each piece enters past the side edge its
+  own seat is on, so the two arms of the arc are fed by two streams and nothing
+  crosses the dome to reach its place.
+- **And it waits at a STATIC point.** The hover is anchored to the wall, not to
+  the bud: the bud's height ratchets, and a piece parked on a ratcheting
+  reference bobs with it — a jerk with no cause a child can see.
+- **"When a free space occurs" is the stagger**, apex first, each later piece on
+  the membrane side of those already there. The ratchet still drives the bud and
+  the lattice's gap — the snap the exhibit is about — and a piece that has taken
+  its seat rides the lattice, as part of it should.
+- Pieces gained an **identity** (`k`), by this app's own rule for loose matter —
+  and the guard needs it: tracking smoothness means following the SAME piece
+  from frame to frame, and an array index shifts as the coat grows.
+- The SNARE bench follows both rules from the same module.
+
+**Broken and watched fail**: the settle put back on the ratchet (3 down); the
+lead removed so a piece is still arriving when its space opens (1 down); every
+piece entering from one side (1 down). 1318 tests green, typecheck clean.

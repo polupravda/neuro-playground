@@ -35,6 +35,11 @@ import {
   wallShift,
   calciumFlight,
   type NtDot,
+  NT_SLOT_U,
+  NT_TURN_U,
+  ntTurnStart,
+  V_ATPASE_INK,
+  vglutOpenAt,
 } from './snareScene'
 import {
   CLAMP_OFF,
@@ -49,8 +54,19 @@ import {
 } from '../core/vesicleCycle'
 import { HILL_N } from '../core/synapse'
 import { HEAD_R } from './bilayer'
+import { CHANNEL_INK } from './synapseScene'
+import { GLOSSY_COLORS } from './particleStyle'
+import { transportOpen } from './channelShapes'
 import { spokenTermAt } from './spokenLabels'
 import { DEMOS } from '../state/demoStore'
+
+/** ⚠ WALKS ARE SAMPLED IN SCREEN TIME, NOT IN u (21c-3o). These guards were
+ *  written as "400 samples of the run", which was one sample per 50 ms while
+ *  the run was 20 s. The run grew to ~30 s to pay for VGLUT's transport cycle,
+ *  and at 400 samples the SAME motion at the SAME speed started reporting
+ *  30 px "jumps" — the walk had got coarser, not the picture. Derived from the
+ *  run's own length, so a stage given more time never loosens a guard. */
+const walkSteps = (perMs: number) => Math.round(SNARE_SCREEN_MS / perMs)
 
 const at = (id: string) => {
   const s = STAGE_SPANS.find((x) => x.id === id)!
@@ -64,6 +80,61 @@ describe('D06 — the SNARE drawer', () => {
       expect(() => drawSnare2(c.ctx, { u: i / 40 })).not.toThrow()
       expect(c.calls.length).toBeGreaterThan(200)
     }
+  })
+
+  it('A1 (21c-3o): the vesicle\u2019s filler IS VGLUT \u2014 same glyph, same ink, same cycle', () => {
+    // ⚠ (user, 2026-09-06: "align 'vesicle & snare' with elements, introduced
+    // in 'The synapse: the round trip'".) The bench drew a hand-made barrel in
+    // `#6366f1` — which is EAAT's wall exactly, the ASTROCYTE's transporter, in
+    // a drawer that has no astrocyte in it — and the V-ATPase beside it wore
+    // the same ink, so two machines doing opposite jobs were one colour.
+    const g = snareGeometry()
+    const u = at('load')
+    const c = strictCanvas()
+    drawSnare2(c.ctx, { u })
+    // The code book's VGLUT, and NOT the astrocyte's transporter.
+    expect(c.styles, 'the filler is not drawn in VGLUT\u2019s own ink').toContain(
+      CHANNEL_INK.vglut.wall,
+    )
+    expect(c.styles, 'something in this drawer wears EAAT\u2019s ink').not.toContain(
+      CHANNEL_INK.eaat.wall,
+    )
+    // ⚠ The V-ATPase is in its cargo's family — a channel wears what it passes —
+    // but NOT the protons' own body ink, which would make "count the proton
+    // ink" unanswerable. It is the fault VGLUT's first teal had.
+    expect(c.styles, 'the proton pump is not drawn').toContain(V_ATPASE_INK)
+    expect(V_ATPASE_INK).not.toBe(GLOSSY_COLORS.h.dark)
+    expect(V_ATPASE_INK).not.toBe(CHANNEL_INK.vglut.wall)
+    // ⚠ AND IT CARRIES, it does not sit there. The synapse view's filler runs a
+    // cycle per molecule; this is the CLOSE-UP, so it must show that cycle at
+    // least as well. Walked over one molecule's own pass through the bore.
+    // ⚠ Measured, not assumed: the transporter appears ~0.014 of the run before
+    // the FIRST molecule reaches its bore, so there is no "waiting" state ahead
+    // of that one to sample — the door is drawn just in time and not before,
+    // which is right. The second molecule has a proper wait, so it is the one
+    // the cycle is read off.
+    const start = ntTurnStart(1)
+    // Waiting: open to the side the cargo comes from.
+    // ⚠ Sampled in the GAP between two passes: the slot is 0.9 door + 0.1 gap,
+    // so a step back of a fifth of a door lands inside the PREVIOUS molecule's
+    // release. Measured, that read +1 and the guard was right to complain.
+    expect(vglutOpenAt(g, start - NT_SLOT_U * 0.02)).toBe(-1)
+    // Shut around it, half way through…
+    expect(Math.abs(vglutOpenAt(g, start + NT_TURN_U * 0.5))).toBeLessThan(0.05)
+    // …and open to the LUMEN as it is released.
+    expect(vglutOpenAt(g, start + NT_TURN_U - 1e-6)).toBeGreaterThan(0.9)
+    // Never out of range, and never NaN, anywhere in the run.
+    for (let k = 0; k <= 200; k++) {
+      const open = vglutOpenAt(g, k / 200)
+      expect(Number.isFinite(open)).toBe(true)
+      expect(Math.abs(open)).toBeLessThanOrEqual(1)
+    }
+    // ⚠ AND IT IS ONE CYCLE, NOT TWO. The beats are the shared ones, so a
+    // correction to the synapse's filler reaches this one too: asked of the
+    // shared curve, at the same phase.
+    expect(vglutOpenAt(g, start + NT_TURN_U * 0.45)).toBeCloseTo(transportOpen(0.45), 6)
+    // Off duty, shut.
+    expect(vglutOpenAt(g, 0.02)).toBe(0)
   })
 
   it('A3: the vesicle is a RING OF MEMBRANE, not a hollow circle', () => {
@@ -116,15 +187,16 @@ describe('D06 — the SNARE drawer', () => {
     const g = snareGeometry()
     const n = vesicleRing(g, 0).length
     let prev: { x: number; y: number }[] | null = null
-    for (let s = 0; s <= 400; s++) {
-      const ring = vesicleRing(g, s / 400)
+    const N400 = walkSteps(50)
+    for (let s = 0; s <= N400; s++) {
+      const ring = vesicleRing(g, s / N400)
       expect(ring.length).toBe(n)
       const pts = ring.map((p) => p.at)
       if (prev) {
         for (const [i, p] of pts.entries()) {
           const jump = Math.hypot(p.x - prev[i].x, p.y - prev[i].y)
           if (jump > 30) {
-            throw new Error(`lipid ${i} jumped ${jump.toFixed(0)}px at u=${(s / 400).toFixed(3)}`)
+            throw new Error(`lipid ${i} jumped ${jump.toFixed(0)}px at u=${(s / N400).toFixed(3)}`)
           }
         }
       }
@@ -190,13 +262,14 @@ describe('D06 — the SNARE drawer', () => {
     }
     // And nothing jumps on the way: continuity, walked.
     let prev: { x: number; y: number }[] | null = null
-    for (let s = 0; s <= 400; s++) {
-      const ions = calciumFlight(g, s / 400)
+    const N400 = walkSteps(50)
+    for (let s = 0; s <= N400; s++) {
+      const ions = calciumFlight(g, s / N400)
       if (prev) {
         for (const [i, p] of ions.entries()) {
           const jump = Math.hypot(p.x - prev[i].x, p.y - prev[i].y)
           if (jump > 40) {
-            throw new Error(`ca ${i} jumped ${jump.toFixed(0)}px at u=${(s / 400).toFixed(3)}`)
+            throw new Error(`ca ${i} jumped ${jump.toFixed(0)}px at u=${(s / N400).toFixed(3)}`)
           }
         }
       }
@@ -374,16 +447,17 @@ describe('D06 — the SNARE drawer', () => {
     // And the catch is a TRAVEL, not a teleport: tip and Rab walked.
     let prevTip: { x: number; y: number } | null = null
     let prevRab: { x: number; y: number; alpha: number } | null = null
-    for (let s = 0; s <= 400; s++) {
-      const tip = tetherAt(g, s / 400).tip
-      const r2 = rabAt(g, s / 400)
+    const N400 = walkSteps(50)
+    for (let s = 0; s <= N400; s++) {
+      const tip = tetherAt(g, s / N400).tip
+      const r2 = rabAt(g, s / N400)
       if (prevTip) {
         const jump = Math.hypot(tip.x - prevTip.x, tip.y - prevTip.y)
-        if (jump > 30) throw new Error(`tether tip jumped ${jump.toFixed(0)}px at u=${(s / 400).toFixed(3)}`)
+        if (jump > 30) throw new Error(`tether tip jumped ${jump.toFixed(0)}px at u=${(s / N400).toFixed(3)}`)
       }
       if (prevRab && prevRab.alpha > 0.05 && r2.alpha > 0.05) {
         const jump = Math.hypot(r2.x - prevRab.x, r2.y - prevRab.y)
-        if (jump > 30) throw new Error(`rab jumped ${jump.toFixed(0)}px at u=${(s / 400).toFixed(3)}`)
+        if (jump > 30) throw new Error(`rab jumped ${jump.toFixed(0)}px at u=${(s / N400).toFixed(3)}`)
       }
       prevTip = tip
       prevRab = r2
@@ -449,10 +523,11 @@ describe('D06 — the SNARE drawer', () => {
     const g = snareGeometry()
     let sawOpen = 0
     let sawNone = 0
-    for (let s = 0; s <= 800; s++) {
+    const N800 = walkSteps(25)
+    for (let s = 0; s <= N800; s++) {
       // Walk the same centre the drawing uses; the decision under test is
       // lumenArc at that centre.
-      const cy = fusedCentreY(g, s / 800)
+      const cy = fusedCentreY(g, s / N800)
       const lum = lumenArc(g, cy)
       if (lum === 'full') continue
       if (lum === 'none') {
@@ -499,13 +574,14 @@ describe('D06 — the SNARE drawer', () => {
     expect(len(flat)).toBeLessThan(g.r * 0.6)
     // And the end WALKS there — continuity over the whole run, both ends.
     let prev: { wall: { x: number; y: number }; ves: { x: number; y: number } } | null = null
-    for (let s = 0; s <= 800; s++) {
-      const e = ropeEnds(g, s / 800)
+    const N800 = walkSteps(25)
+    for (let s = 0; s <= N800; s++) {
+      const e = ropeEnds(g, s / N800)
       if (prev) {
         for (const k of ['wall', 'ves'] as const) {
           const jump = Math.hypot(e[k].x - prev[k].x, e[k].y - prev[k].y)
           if (jump > 25) {
-            throw new Error(`rope ${k} end jumped ${jump.toFixed(0)}px at u=${(s / 800).toFixed(3)}`)
+            throw new Error(`rope ${k} end jumped ${jump.toFixed(0)}px at u=${(s / N800).toFixed(3)}`)
           }
         }
       }
@@ -595,14 +671,15 @@ describe('D06 — the SNARE drawer', () => {
     // A fixed cast, walked for continuity: every molecule of BOTH generations
     // can be followed — no jump anywhere.
     let prev: NtDot[] | null = null
-    for (let s = 0; s <= 800; s++) {
-      const dots = transmitterAt(g, s / 800)
+    const N800 = walkSteps(25)
+    for (let s = 0; s <= N800; s++) {
+      const dots = transmitterAt(g, s / N800)
       expect(dots.length).toBe(NT_COUNT * 2)
       if (prev) {
         for (const [i, d] of dots.entries()) {
           const jump = Math.hypot(d.x - prev[i].x, d.y - prev[i].y)
           if (jump > 25) {
-            throw new Error(`NT ${i} jumped ${jump.toFixed(0)}px at u=${(s / 800).toFixed(3)}`)
+            throw new Error(`NT ${i} jumped ${jump.toFixed(0)}px at u=${(s / N800).toFixed(3)}`)
           }
         }
       }
@@ -637,8 +714,9 @@ describe('D06 — the SNARE drawer', () => {
     // mouth is open wider there than the point it passes through — it goes
     // through the hole, not the wall.
     let crossingsSeen = 0
-    for (let s = 0; s <= 1600; s++) {
-      const u = s / 1600
+    const N1600 = walkSteps(12.5)
+    for (let s = 0; s <= N1600; s++) {
+      const u = s / N1600
       const dots = transmitterAt(g, u)
       const cy = fusedCentreY(g, u)
       const sinStar = (g.wallY - cy) / g.r
@@ -662,8 +740,9 @@ describe('D06 — the SNARE drawer', () => {
     // at the transporter's own spot.
     const g = snareGeometry()
     let crossings = 0
-    for (let s = 0; s <= 1600; s++) {
-      const u = s / 1600
+    const N1600 = walkSteps(12.5)
+    for (let s = 0; s <= N1600; s++) {
+      const u = s / N1600
       const cy = fusedCentreY(g, u)
       const door = transporterSpot(g, u)
       for (const d of transmitterAt(g, u).slice(NT_COUNT)) {
@@ -755,8 +834,9 @@ describe('D06 — the SNARE drawer', () => {
     // And the walk home is a WALK: every strand continuous across it.
     const rec = STAGE_SPANS.find((x) => x.id === 'recycle')!
     let prev: ReturnType<typeof snareStubs> = null
-    for (let s = 0; s <= 200; s++) {
-      const st = snareStubs(g, rec.from + (1 - rec.from) * (s / 200))
+    const N200 = walkSteps(100)
+      for (let s = 0; s <= N200; s++) {
+      const st = snareStubs(g, rec.from + (1 - rec.from) * (s / N200))
       if (st && prev) {
         for (const k of ['vs', 'syx', 's25'] as const) {
           for (const e of ['from', 'to'] as const) {
@@ -790,8 +870,9 @@ describe('D06 — the SNARE drawer', () => {
         iStar = i
       }
     }
-    for (let s = 0; s <= 800; s++) {
-      const u = s / 800
+    const N800 = walkSteps(25)
+    for (let s = 0; s <= N800; s++) {
+      const u = s / N800
       const anchor = vesicleRing(g, u)[iStar].at
       const ves = ropeEnds(g, u).ves
       const d = Math.hypot(ves.x - anchor.x, ves.y - anchor.y)

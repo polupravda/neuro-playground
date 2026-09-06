@@ -6,6 +6,7 @@ import {
   PX_PER_NM,
   OILY_CORE,
   drawLipid,
+  lipidJiggle,
 } from './bilayer'
 import { PX_PER_UM } from './layout'
 import { glossySphere } from './particleStyle'
@@ -241,23 +242,12 @@ export function clampHeldY(i: number, y: number): number {
 
 /** Thermal jiggle, a pure function of the clock and the lipid's identity —
  *  no per-lipid state, nothing to shimmer. Free lipids tumble more than
- *  lipids packed in the wall. */
-export function jiggle(
-  i: number,
-  ms: number,
-  free: boolean,
-): { dx: number; dy: number; dth: number } {
-  // Wall lipids jostle visibly too — a bilayer is a liquid crowd, not a
-  // parked one (amplitude raised 2026-08-27 on review: the wall read as
-  // still). Free lipids still tumble more.
-  const a = free ? 1.2 : 0.9
-  const p = i * 2.399
-  return {
-    dx: a * Math.sin(ms * 0.0016 + p),
-    dy: a * Math.sin(ms * 0.0013 + p * 1.7),
-    dth: (free ? 0.12 : 0.07) * Math.sin(ms * 0.0011 + p * 2.3),
-  }
-}
+ *  lipids packed in the wall.
+ *
+ *  ⚠ ONE OWNER (21c-6): the maths moved into `bilayer`, so the shared paver can
+ *  jiggle a wall with the very numbers this lab tumbles a free lipid with. A
+ *  second copy is a second copy of every correction ever made to it. */
+export const jiggle = lipidJiggle
 
 /** Where lipid i belongs when `held` has been pulled out of the wall: its own
  *  leaflet re-spreads edge to edge over the same span — the wall closes, which

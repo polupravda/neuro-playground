@@ -357,6 +357,7 @@ export function drawResting(
     from: 0,
     to: RS_W / SCALE,
     gaps: built.map((d) => [d.x / SCALE - fits, d.x / SCALE + fits] as const),
+    ms,
   })
   for (const d of built) {
     const tint = GLOSSY_COLORS[d.kind]

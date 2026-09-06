@@ -2192,6 +2192,183 @@ the membrane**. An outline that stops where the walls meet says *same material*
 more directly than a ring ever did. The molecular ring survives where it is
 resolvable, in D06.
 
+## A machine's cargo sits where the machine has a seat (2026-09-06)
+
+A ball being carried through a protein goes at the protein's own **chamber** —
+the rounded pocket the handover draws — not at the point the door is anchored
+at. Those are not the same place: a transporter is at its NARROWEST in the
+middle of the wall, which is exactly where a door's point sits, so a ball put
+there reads as jammed in the neck rather than held in a site.
+
+**Find the seat, do not declare it.** `poreSeat(glyph, side)` walks the pore's
+clear width out from the wall's middle toward the side the cargo enters by and
+returns the first row wider than the rows either side of it. Measured on PMCA:
+the chamber is 22.3 units across against 9.0 at the middle. A number typed here
+would drift the first time a file changed. (User, 2026-09-06: "calcium ion
+should be positioned not in the middle of the channel, but closer to the
+entrance there where you see a visual curved shaped, circle shaped slot".)
+
+**And measure a shape by CROSSING it, not by sampling its points.** The first
+version of this asked flattened points how wide the pore was; a long straight
+edge has no points between its ends, so VGLUT read as having no gate at all for
+a third of its height. Cast a ray and take the crossings.
+
+### A transporter's gates must swing BOTH ways (2026-09-06)
+
+`open` is signed — −1 open to the side the cargo comes from, 0 shut, +1 open to
+where it goes — and that sign is the whole difference between a transporter and
+a door. The drawing clamped it to [0, 1], so half of every cycle was drawn
+identically to shut. If a state exists in the model and the drawing cannot show
+it, the drawing is not showing the model.
+
+### One pore, one molecule — and the waiting room is the one already there
+(2026-09-06)
+
+A pore carries one thing at a time, so anything that queues for it needs a
+schedule: which pore, what order, how long a turn. But do NOT invent a waiting
+line where the picture already has one. A line standing off each vesicle's
+filler — the calcium's pattern, copied — put a ball FURTHER from its bubble than
+the pool spot it left, an 11 px turn-back against the dogleg guard. The standing
+pool IS the queue; a ball leaves it when the pore is its own.
+
+## One protein, one drawing — across REGISTERS too (2026-09-06)
+
+The same molecule appearing in two views must be the same glyph, the same ink
+from the code book, and the same behaviour. The SNARE drawer drew VGLUT as a
+hand-made barrel in `#6366f1` — which is EAAT's wall exactly, the *astrocyte's*
+transporter, in a drawer that has no astrocyte in it — while the synapse view
+drew the same protein from the handover in purple, running a transport cycle.
+
+- **The behaviour is part of the drawing.** A close-up that shows LESS of the
+  machinery than the wide view is the wrong way round.
+- **Share the decision, not just the picture.** The cycle's four beats live in
+  one function (`transportOpen`) that both views read: a second private copy is
+  a second copy of every correction ever made to it.
+- **Scale is the one thing that may differ, and it is declared.** The wide view
+  draws a channel several times its 5 px membrane — an exaggeration, or it would
+  vanish; the drawer resolves the bilayer molecule by molecule, so the protein
+  simply spans it.
+- **A channel wears what it passes — but never its cargo's EXACT ink.** The
+  proton pump takes the protons' red family, a shade off their body colour.
+  Painting a protein in its cargo's own hex makes "count the cargo's ink"
+  unanswerable, which is how VGLUT's first teal was caught.
+
+### A guard that walks a run must sample in SCREEN TIME (2026-09-06)
+
+Seven guards written as "400 samples of the run" were one sample per 50 ms while
+that run was 20 s. When the run grew to 30.4 s to pay for a cycle, the same
+motion at the same speed started reporting 30 px teleports: the walk had got
+coarser, not the picture. Derive the step from the run's own length, so a stage
+given more time can never loosen a guard — and so a guard can never punish the
+clock for being generous.
+
+## A drawer must be able to say what it does that the view cannot (2026-09-06)
+
+Before building a drawer, answer one question in a sentence: **what does this do
+that the view it sits over cannot?** If the answer is "the same thing, closer",
+it is not a drawer — the view already has a camera, and this app already has
+zoom targets that dive four times deeper than a hand-rolled one will.
+
+Caught twice now. D17, "where the transmitter goes", was built and deleted
+(2026-09-04) because its content belonged on the main view. S14's first two legs
+were built and deleted (2026-09-06) for the same reason, and the user asked the
+question that settles it: *"If it's a copy, why recreate instead of zooming in
+the big view?"* Measured before deleting them: the same scene through the same
+function, **1.6×** in where the view's own 🔍 place goes **4×**, and **13.6 s**
+of screen for a stretch the big view already gives **19.4 s**.
+
+**What a drawer legitimately owns** is anything a single run cannot play:
+
+- a FORK — a choice the child makes, where the same thing happens three ways
+  (retrieval: kiss-and-run, clathrin, ultrafast);
+- a COMPARISON that needs two things side by side;
+- a register the view genuinely cannot reach.
+
+**And a drawer still borrows everything it can.** S14 draws `drawSynapse` held
+on a still and the app's own `vesicle`, `fusedShape`, `pocketAt` and lipid
+paver; what it adds is only what no view has drawn. When it needs a piece of the
+scene out of the way, the scene gets ONE explicit hook (`skipDocked`) rather
+than the drawer keeping a private copy of a bubble.
+
+## Jiggly lipids — the DEFAULT bilayer (2026-09-06)
+
+**When a membrane jostles — two rules** (user, 2026-09-06, superseding the
+blanket "always" this section first said):
+
+1. **A view whose resting picture already moves gets jiggly lipids; a view
+   whose resting picture is a STILL keeps still lipids.** A jostling wall under
+   a labelled still reads as noise, not heat — which is how 'Ion channel
+   structure' earned its lipids back their stillness the same day they were
+   given a clock.
+2. **Where the bilayer or its parts are the main actor or subject, it jiggles
+   regardless** — the phospholipid bilayer lab (thermal motion IS the lesson),
+   the SNARE bench and the synaptic-vesicle-endocytosis drawer (fusion and
+   retrieval are things that happen TO the membrane), the synapse's own
+   molecular register (its vesicles fuse into that wall and are pinched back
+   out of it).
+
+The audit, as applied (2026-09-06): jiggling — permeability (motes at rest),
+capacitance (membrane is the subject), channel types (the leak trickles at
+rest), patch clamp (the channel flickers and the trace sweeps at rest), resting
+voltage (leak traffic), the lipid lab, the SNARE bench, the synapse zone, the
+endocytosis panels. Still — ion channel structure (a labelled anatomy until
+Send is pressed).
+
+**Mechanics — one owner.** The maths is `lipidJiggle(i, ms, free)` in
+`stage/bilayer.ts`: a pure function of the lipid's identity and the clock —
+sines at three incommensurate frequencies, no per-lipid state, nothing to
+shimmer, `Math.random` nowhere. It began as the phospholipid lab's; when the
+walls needed it the maths moved to the module the membrane is made in and the
+lab now points at it (`export const jiggle = lipidJiggle`). A second copy is a
+second copy of every correction ever made to it.
+
+**Usage.** Both membrane-drawing paths take an optional `ms`:
+
+- `drawLipids(ctx, { …, ms })` — the straight-run walls (permeability,
+  capacitance, channel types, patch clamp, channel structure, resting voltage).
+- `paveMembrane(ctx, samples, { …, ms })` — the traced walls (SNARE bench,
+  synapse zone, vesicles, astrocyte, endocytosis panels).
+
+Pass **screen time** (the rAF clock), never the model's position: thermal
+motion does not pause when a run is scrubbed or finished. Absent `ms`, the run
+is byte-for-byte what it drew before the clock existed — tests stay
+deterministic by simply not passing one, or by passing a constant.
+
+**Rules, each from a bug:**
+
+- **Each leaflet is its own molecule** (user: "lipids move individually, not in
+  bond with an opponent"). The identity is `slot * 2 + leaflet`, so the head and
+  the head facing it across the oily core move on different beats. One jiggle
+  applied to the pair is a rigid object the bilayer does not contain.
+- **The identity is the SLOT, never the pushed x.** `pushAt` moves a molecule
+  every frame while a wall parts; an identity that rides the moving x re-rolls
+  the phase as it goes — a shimmer, not a jostle.
+- **Guard the drawing, not the helper, and bucket by draw order.** Two traps
+  found by breaking: a rigid rotation swings tail marks across the midline, so
+  bucketing marks by which side they LAND on sees a bonded pair "move apart";
+  and a fixture two slots wide compares neighbours, which differ even when
+  bonded. One slot, halves by draw order, and the rigid case measures as
+  floating-point dust (1.8e-14 px against real motion's ~0.1 px).
+
+## The 'side-by-side interactive comparison' layout (2026-09-06)
+
+`ui/SideBySide.tsx` — the named, reusable form of the layout born in the
+equilibrium bench and matured in 'Ion channel types' (D04). The user refers to
+it by this name. One container per thing being compared, in a stretching row;
+each container stacks, top to bottom: **headline** (speaker FIRST, then icon,
+then name — the child must not hunt for the word the button says), an optional
+**fixed-height caption** (fixed because a caption that reflows moves the
+picture below it, and the pictures must sit in a row), the **canvas**
+(transparent — the container's own `bg-slate-950/40` is the ground; a scene
+washes only what its meaning needs), and the **action at the foot** (h-38px,
+full width, tinted like its panel, icon inside the label; a panel with no
+action keeps an empty slot the same height so the canvases start at one y).
+
+Panel sizes are still SOLVED in each exhibit's scene module from the drawer's
+content box — the component owns the anatomy, never the budget. Its reference
+users are D04 (four panels, captions, one panel with no action) and S14
+(three panels, no captions, a run-all control above the row).
+
 ## Ask the DECISION, not the ink (2026-08-31)
 
 Four guards written for the synapse and the SNARE drawer passed with the code
@@ -2668,9 +2845,15 @@ possible home:
   button is chrome of the view whose subject it deepens, so the child's mental
   map stays spatial even for non-spatial content.
 - A larger biological process that is a place is split into **legs** (the
-  synapse journey: arrival→binding, receptors→hillock, clearance→refill), each
-  with its own transport control and hand-over, rather than one long run
-  nobody can hold.
+  synapse journey: the round trip, then receptors→hillock), each with its own
+  transport control and hand-over, rather than one long run nobody can hold.
+  ⚠ **A leg is a unit of what the child can hold, not a fixed count.** The third
+  leg — clearance & recycling — stopped being a leg on 2026-09-06: leg 1 grew to
+  run the whole glutamate–glutamine loop and close on its own opening frame, so
+  what was left of leg 3 is a DRAWER over that view, filed beside the SNARE
+  bench. When a leg's ending moves, its NAME moves with it: "arrival to binding"
+  became "the round trip" the same day, because a row that promises an ending
+  the run no longer has is a claim about the app that has rotted.
 
 ## A structure exhibit keeps its schematic as a ghost
 

@@ -115,7 +115,7 @@ export interface Destination {
     | 'gating'
     | 'scales'
     | 'snare'
-    | 'reuptake'
+    | 's14'
     | null
   then?: 'race'
 }
@@ -216,6 +216,14 @@ export const PLANNED: Entry[] = [
     'The synapse: receptors to the hillock',
     'What does the next neuron feel, and where does that feeling go?',
   ),
+  // ⚠ MOVED FROM LECTURE 10 TO 8 (user, 2026-09-06: "place it closer to
+  // 'Vesicles & the SNARE machinery', we will display it in a drawer"). The
+  // menu is sorted by lecture, so that IS its position — and the move says what
+  // the row now is: not a third journey leg of its own, but a deeper look at
+  // the machinery the synapse view already runs. ⚠ When it is built it is a
+  // DRAWER over the synapse view — `to: { zoom: 'outgoing-synapse', drawer:
+  // 's14' }` — the same door the SNARE bench uses, because it is a thought
+  // about that place rather than another place.
   soon(
     'D07',
     'III',
@@ -231,14 +239,6 @@ export const PLANNED: Entry[] = [
     '⏱️',
     'Receptor kinetics bench',
     'Why is one catcher fast and the other slow?',
-  ),
-  soon(
-    'S14',
-    'III',
-    10,
-    '🧹',
-    'The synapse: clearance & recycling',
-    'Who cleans the gap up afterwards, and where do the bubbles come from?',
   ),
   soon('D11', 'III', 10, '🖼️', 'Synapse gallery', 'Are all synapses the same shape?'),
 
@@ -566,9 +566,15 @@ export const ENTRIES: BuiltEntry[] = [
     id: 'synapse',
     part: 'III',
     lecture: 8,
-    title: 'The synapse: arrival to binding',
+    // ⚠ RENAMED 2026-09-06 (user: "rename … to reflect updated demo"). It was
+    // "arrival to binding", which was true when the run stopped at the
+    // receptors. Since 21c it runs the whole glutamate–glutamine loop and ends
+    // on the frame it began with — the transmitter back in its vesicles, the
+    // calcium back in the gap — so the name says the round trip and the
+    // question asks about the second half as well as the first.
+    title: 'The synapse: the round trip',
     icon: '📨',
-    asks: 'What happens in the gap the instant a signal arrives?',
+    asks: 'What happens in the gap — and how does the terminal get ready to do it again?',
     // A PLACE — the outgoing terminal, drawn from the user's own bouton.
     to: { zoom: 'outgoing-synapse', drawer: null },
   },
@@ -584,14 +590,28 @@ export const ENTRIES: BuiltEntry[] = [
     to: { zoom: 'outgoing-synapse', drawer: 'snare' },
   },
   {
-    id: 'reuptake',
-    spec: 'D17',
+    // ⚠ BUILT 2026-09-06 (21c-4). Filed at lecture 8 beside the SNARE bench,
+    // because it is a deeper look at machinery the synapse view already runs
+    // rather than a journey leg of its own — the user's ruling when the round
+    // trip absorbed the old S14.
+    id: 's14',
     part: 'III',
-    lecture: 12,
-    title: 'Where the transmitter goes',
+    lecture: 8,
+    // ⚠ RENAMED 2026-09-06 (21c-4d, user: "the name says clearance and recycling.
+    // But what I see is the type of vesicle merge mechanisms"). They were right,
+    // and the count is the argument: "clearance & recycling" covers about
+    // sixteen mechanisms, this exhibit shows three of them, and every one of the
+    // clearance ones is the round trip's job already. A row must name what is
+    // behind it, so it names the fork it actually shows.
+    // ⚠ THE SCIENTIFIC TERM (21c-5, user: "use scientific term for the name").
+    // A row's title is written for the adult reading it — the icon is the
+    // child's handle on it — so it says what the field says. The three
+    // mechanisms are named the same way on their own panels, each with a voice.
+    title: 'Synaptic vesicle endocytosis',
     icon: '♻️',
-    asks: 'The gap is full of transmitter — who clears it up, and where does it go?',
-    to: { zoom: 'outgoing-synapse', drawer: 'reuptake' },
+    asks: 'A vesicle gives its membrane to the wall — how does the terminal get it back?',
+    // A DRAWER, over the view it deepens: the same door the SNARE bench uses.
+    to: { zoom: 'outgoing-synapse', drawer: 's14' },
   },
   {
     id: 'propagation',

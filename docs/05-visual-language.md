@@ -1000,3 +1000,229 @@ Corrections of 2026-09-03 (step 20ax):
   inside. Reuptake is deliberately NOT here — it belongs to a future view
   (glutamate is cleared by astrocytes; see auto-memory) — so the cargo exits
   the page, collected off-stage.
+
+**Reconciliation — blue-astrocyte-9214b4f5.svg (21c-1, 2026-09-04).** A second
+astrocyte handover, arriving for the right-hand cell of the synapse view. One
+path, 346 segments, filled `#355d88`, no stroke, viewBox 248.33 × 213.33 —
+rendered, a compact star soma with about ten branching processes radiating in
+every direction into forked tips. It parses through the app's own
+`parsePath`/`boundsOf`/`flattenPath` (5,026 flattened points), so nothing new
+was needed to read it.
+
+**Adopted as a TRACED SHAPE** — corrected 2026-09-05, and the correction is the
+whole point of the handover. It was first taken as a composition reference only,
+with the cell built from `astroShape` and each process stroked as its own tube;
+the user's answer: *"the reason why I suggested you svg is that you could trace
+the outline to avoid part overlayed. The seams are too obvious."* Twelve stroked
+tubes have twelve outlines, and every junction showed one tube's membrane
+crossing the inside of another. **A cell has ONE outline**, so the silhouette is
+now the file's own path, traced into `stage/astrocyteShape.ts`, filled once and
+stroked once. There is no interior edge left to see.
+
+⚠ **The one-glyph rule is now split, knowingly.** `astroShape` — the five-point
+star — still draws the miniature's cell and the dendrite astrocytes; the synapse
+scene draws the traced silhouette. Two glyphs for one animal, which 21b-1d
+warned against. It is tolerated here because the two live at magnifications a
+dissolve apart and the trace is the closer, truer one; it should be resolved by
+bringing the trace to the other registers, not by reverting the scene.
+
+The handover also fixes the ARRANGEMENT, and the arrangement turned out to be
+load-bearing: **the body off the frame's top-right corner, processes fanning
+down-left into the cleft.** Measured over four candidate placements — a body
+level with the cleft throws arms across the bouton (96 outline points over the
+two neurons); above the corner puts ZERO there, because the bouton lies up and
+to the left of the synapse. The cell is placed by a SIMILARITY — a rotation and
+a uniform scale carrying one of its own arm tips onto the cleft's mouth — so no
+process is stretched into position, which is what would put a kink where it
+meets the body.
+
+Changed, with reasons, as the first astrocyte handover was:
+
+1. **INK — glial green, not the file's navy `#355d88`.** The precedent is
+   `astrocyte.svg`, which arrived red and was drawn in the glial wash. Navy is
+   worse than red here, not better: the neurons' own cytoplasm is
+   `rgba(148, 163, 184, 0.10)`, a slate blue-grey, so a navy astrocyte beside a
+   slate neuron would say *the same kind of cell* — the one thing the third cell
+   must not say.
+2. **PAVED, not filled.** The handover is a solid silhouette; every other cell
+   in this frame is a membrane. An astrocyte drawn as a filled blob would be the
+   only object on screen without one, which quietly makes it a different kind of
+   thing rather than a different cell. So the soma is stroked in the wall's own
+   LEAFLET/CORE inks over the glial wash, and each process is a TUBE built the
+   same way — outer leaflet widest, oily core inside it, cytoplasm through the
+   middle. Measured at the shipping size: tubes 9–17 px, so the band really is
+   resolvable on every process, not only the trunks.
+3. **ONE ARM IS THE REACH.** As with the first handover, one process is carried
+   onto the cell's own mouth of the cleft — `astroShape`'s existing reach map,
+   unchanged.
+
+⚠ **A scale caveat, declared rather than hidden.** The reference screenshot
+draws a whole glial arbor beside one bouton. That is a LOWER magnification than
+this scene, which resolves vesicles and a 20 nm cleft; at our scale an
+astrocyte's process would be a broad smooth sheet, not a bushy tree. Taking a
+quarter and enlarging it into the right-hand strip pulls the drawing back most
+of the way — the processes come out 9–17 px wide rather than hairlines — but the
+branching density remains an emblem of an astrocyte rather than a measured view
+of one. Recorded here so it is not later mistaken for a scale claim.
+
+
+**Reconciliation — the astrocyte's ink, settled (21c-1c, 2026-09-05).** Pink was
+asked for and rejected within the same day, on the picture. The user: *"color-code
+astrocytes, both on map and big neuron. Make it pink tones"* — matching their own
+reference figure — then, having seen it running: *"the pink tint of astrocytes
+conflicts with red & blue charge color-coding. Bring back the previous color, for
+all views."*
+
+**The astrocyte's ink is the glial green `134, 184, 158`, everywhere.** The reason
+is the palette's own: red `#ef4444` is reserved for POSITIVE charge and sky
+`#0ea5e9` for negative, across both playgrounds, and a large pink wash in the same
+frame as those badges reads as charge. It is the same reason 21b-1d refused the
+first astrocyte handover's red. Recorded here so pink is not proposed a third time.
+
+What the pink round left behind is worth keeping: the ink is now **one exported
+constant** (`ASTRO_INK` in `stage/layout.ts`), asked for by the synapse scene, the
+big neuron, the miniature, the dendrite cells and D17 alike. It had been a literal
+repeated in six places across four files, which is how a colour code drifts. A
+guard holds it green-dominant and a measured distance from both charge inks, and a
+second guard holds that no drawing file carries a private copy.
+
+
+**Reconciliation — the second astrocyte, and the channel glyphs (21c-3c,
+2026-09-05).** Three handovers in one round: `astrocyte-thick.svg`,
+`EAAT.svg`, `snat.svg` — all stroke-only outlines, no fill, black.
+
+**`astrocyte-thick.svg` REPLACES `blue-astrocyte-9214b4f5.svg`** (user:
+"astrocyte still looks bad. Trace astrocyte-thick.svg instead"). One closed
+path, viewBox 145 × 180, and the important thing about it is that it is drawn
+**already thick and already cropped**: the processes are fat enough to watch a
+ball travel down without any help, and the file's own straight edges are the
+crop. So the whole dilation apparatus invented for the first file is retired —
+`ASTRO_FATTEN` is 0, the traced outline IS the cell's boundary rather than a
+centreline, and the cell is drawn the way a traced cell should be, filled with
+its cytoplasm and stroked once round its edge. That also puts the doors back on
+a real membrane by construction, instead of in the middle of a process.
+
+Changed, with reasons: the INK stays the glial green at two strengths (edge
+0.62, body 0.2 — the 21c-3b ruling); the placement was re-solved, because this
+cell's arms fan more widely and the previous seat put processes across both
+neurons (swept at two frame sizes, the seat chosen is the one with ZERO cell ink
+on either neuron); and the tip that reaches the cleft is now chosen as the
+LONGEST arm pointing the right way rather than the best-aimed one, since the
+scale is set by that arm and a stub would blow the whole cell up.
+
+**`EAAT.svg` and `snat.svg` are the channel glyphs.** Three closed shapes each —
+two subunits and the piece between them. Adopted as SHAPES, not as ink: this
+app's doors carry a colour CODE saying which protein family they belong to
+(21c-3b), so each glyph is traced and painted in its family's own two tones,
+with the pore left as a hole in the outside's own ink.
+
+Changed, with reasons, and this one is a real modification: **SNAT's two staves
+are moved 2.7 units further apart.** A transmitter ball is 6.4 px across and has
+to pass through the opening — the user's standing requirement — and at any size
+the scene can afford, `snat.svg`'s own gap is narrower than the ball. Scaling
+the whole protein up until the gap fits made SNAT nearly twice EAAT's size for
+no reason but its file's proportions. Opening its gap keeps both proteins the
+same size on the wall (measured: both 23 px tall with a 7.7 px pore). The SHAPE
+of each subunit is untouched — only the distance between them. The pore is
+MEASURED off each trace rather than declared, so it cannot drift from the
+drawing.
+
+⚠ **Still missing, and asked for**: the CALCIUM PUMP / EXCHANGER (PMCA or NCX)
+has no glyph and wears EAAT's for now, which is honest only about its being a
+transporter. VGLUT, the vesicle filler, is not drawn as a protein at all.
+
+
+**Reconciliation — PMCA and VGLUT (21c-3e, 2026-09-05).** Two more handovers,
+and the first two that MOVE: `PMCA.svg` and `VGlut.svg` (user: "both svgs
+account for being movable"). Each is three closed stroke-only shapes — two
+gates and the piece between them — in a ~52 × 61–72 box.
+
+**The rotation, as specified**: both gates turn about ONE point — the right
+border of the LEFT gate, at its own vertical middle — so the pair opens like a
+jaw rather than each leaf turning on its own hinge. The hinge is read off the
+trace, so it moves with the file. `SWING_RAD` is 0.34: enough to read as a
+machine working, not so far the protein comes apart.
+
+**ATP is a hexagon** (the user's own instruction), amber, sitting in PMCA's slot
+below the membrane. It is SPENT, not decorative: full before the gates move,
+gone after, and gradually between — the pump pays for this and the picture says
+so. The app has no other hexagon, so the shape alone says "fuel".
+
+Changed, with reasons:
+
+1. **Fitted by the GATE's height, not the box's.** PMCA carries its ATP site on
+   a tail hanging BELOW the membrane — anatomically right, and it makes the box
+   half as tall again. Fitting the box to the wall shrank the gates until the
+   pore was 3.9 px, narrower than the calcium ion crossing it. What has to match
+   the membrane is the part that is IN the membrane.
+2. **VGLUT is purple `#7e22ce`, not the teal it was first given.** `#0f766e` is
+   `TRANSMITTER_INK.dark` exactly — the protein was painting itself in its own
+   cargo's colour. Caught by the guard that counts transmitter ink to prove no
+   ball is ever minted. Checked clear of K⁺'s violet (a light ion body against
+   this dark protein) and of the SNARE's fuchsia.
+
+**VGLUT is the first door on a VESICLE'S own membrane**, on the side facing the
+terminal's standing pool, and the refilling balls now go in through it. Until
+this round they simply appeared inside the bubble — the very fault the
+astrocyte's doors were fixed for, left standing on the vesicles because VGLUT
+was not drawn at all.
+
+⚠ **Nothing is missing now.** Every protein the loop names is drawn: EAAT, SNAT
+(both directions), PMCA, VGLUT, and the voltage-gated calcium channels the
+active zone already had.
+
+
+**Correction — where ATP binds (21c-3j, 2026-09-06).** The user asked: *"Does
+PMCA use ATP? If so, does ATP bind in the outside of the cell, as we've
+displayed?"* It does use ATP, and we had displayed it on the wrong side.
+
+**PMCA is a P-type ATPase and hydrolyses ATP directly** — unlike NCX, the
+other calcium exit, which runs on the sodium gradient. So drawing an ATP at all
+commits the picture to PMCA specifically, and the info block should not offer
+the two as interchangeable.
+
+**The nucleotide-binding domain of every P-type ATPase is CYTOPLASMIC.** That is
+what makes it a pump the cell can drive: the fuel is spent on the inside, and the
+ion is put out. Measured before the fix, both hexagons sat OUTSIDE the terminal
+(at 65, 272 and 94, 209), because the side had never been solved — it fell out of
+whichever way the wall's tangent happened to point. `caAtpAt` now solves it
+against the bouton's own outline and turns the glyph with it, so the handover's
+ATP lobe points into the cytoplasm too.
+
+⚠ The stroke's ORDER was already right and stays: the calcium binds on the
+inside, the gates shut while the ATP is spent, the far side opens, the calcium
+leaves. That is the P-type cycle, and it is the reason the pushback in 21c-3f
+put the spend between the two openings rather than before the load.
+
+## S14 — clathrin & dynamin (illustration handover of 2026-09-06)
+
+The input: a three-panel textbook figure. **A** — a clathrin triskelion: three
+legs bent like a pinwheel from a central hub, each leg a thick teal HEAVY CHAIN
+with a thinner orange LIGHT CHAIN lying along its inner half. **B** — coat
+architecture: the assembled lattice of overlapping triskelions around a budding
+vesicle, with **dynamin drawn as a coil of about four turns wrapped round the
+neck**. **C** — CCV composition: the same bud annotated with PIP₂ falling on the
+coat side, rising at the neck, and BAR-domain proteins at the neck.
+
+### Reconciliation
+
+- **The triskelion is adopted as a SHAPE**: three legs from one hub, pinwheel
+  chirality, each leg bent at a knee — drawn by one function
+  (`stage/clathrin.ts`) that both the endocytosis panels and the SNARE bench
+  call, so the coat is one object across the app.
+- **The light chain keeps the family's own light tone, not the handover's
+  orange.** Orange is spoken for twice over (rab, SNAT); this app's grammar for
+  "two parts of one protein" is two tones of one family, so the heavy chain is
+  the coat's cyan and the light chain its lighter cyan.
+- **Dynamin is a COIL, as drawn** — turns around the neck, not a bar across it
+  (the bar it replaces was also wearing NSF's fuchsia, a straight colour
+  collision). Its ink is blue (`#60a5fa`): the handover's navy is unreadable on
+  this app's dark ground, and blue is the nearest free hue — sky is the calcium
+  pump's, indigo is EAAT's.
+- **The coat is the motor.** Panel B's lattice curving the membrane is adopted
+  as behaviour, not only as a look: the bud's depth is a function OF the coat's
+  coverage — one number drives both, so more triskelions IS the sucking-in.
+- **Panel C is out of scope, and recorded rather than half-drawn.** PIP₂ and
+  BAR-domain proteins are real and belong to a chemistry this exhibit does not
+  teach; drawing two more molecule kinds on a 300-px panel would cost more than
+  it says. Noted here so the decision is visible.

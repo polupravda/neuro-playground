@@ -204,7 +204,21 @@ export function tracePath(
  *  A fixed number of steps per curve, not an adaptive flattener: the shapes here
  *  are small and the answer feeds a placement, not a hit test. */
 export function flattenPath(segs: readonly Seg[], per = 24): { x: number; y: number }[] {
-  const out: { x: number; y: number }[] = []
+  return flattenSubpaths(segs, per).flat()
+}
+
+/** ⚠ THE SAME FLATTENING, WITH THE SUBPATHS KEPT APART (21c-1a). A silhouette
+ *  traced from an illustration is often several closed rings — the astrocyte's
+ *  is two — and "is this point inside the cell?" cannot be answered from one
+ *  concatenated list: the join between two rings is a line that was never in
+ *  the drawing, and a ray crossing it counts a crossing that does not exist.
+ *  `flattenPath` is this function joined up, so there is only one flattener. */
+export function flattenSubpaths(
+  segs: readonly Seg[],
+  per = 24,
+): { x: number; y: number }[][] {
+  const rings: { x: number; y: number }[][] = []
+  let out: { x: number; y: number }[] = []
   let x = 0
   let y = 0
   let startX = 0
@@ -217,6 +231,8 @@ export function flattenPath(segs: readonly Seg[], per = 24): { x: number; y: num
       continue
     }
     if (s.kind === 'move') {
+      if (out.length) rings.push(out)
+      out = []
       x = s.x
       y = s.y
       startX = x
@@ -248,6 +264,7 @@ export function flattenPath(segs: readonly Seg[], per = 24): { x: number; y: num
     x = s.x
     y = s.y
   }
-  return out
+  if (out.length) rings.push(out)
+  return rings
 }
 

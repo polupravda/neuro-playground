@@ -210,7 +210,7 @@ export function drawCapacitor(
   }
 
   // The wall.
-  drawLipids(ctx, { midY: CAP_WALL_Y, from: 0, to: CAP_W })
+  drawLipids(ctx, { midY: CAP_WALL_Y, from: 0, to: CAP_W, ms })
 
   // The skin: marks hugging the faces, minus inside when the voltage is
   // negative, flipping together when it crosses zero.

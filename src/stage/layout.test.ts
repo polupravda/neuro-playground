@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { AXON_DIAMETER_UM, MEMBRANE_THICKNESS_UM, SOMA_DIAMETER_UM } from '../core/membrane'
 import {
-  AXON_DIAMETER_UM,
-  MEMBRANE_THICKNESS_UM,
-  SOMA_DIAMETER_UM,
-} from '../core/membrane'
-import {
+  ASTRO_INK,
   ASTROCYTES,
   AXON_POLYLINE,
   MAP_ASTROCYTES,
@@ -54,6 +51,7 @@ import {
   SOMA_OUTLINE,
   DENDRITE_MEMBRANE_T,
   trunkHalfWidthAt,
+  tubeHalfWidthOf,
   ARBOR_TAIL_PX,
   arborFronts,
   DENDRITE_ASTROCYTES,
@@ -63,6 +61,14 @@ import {
   terminalArrival,
   terminalReach,
 } from './layout'
+
+// The drawing files' own source, seen exactly as the build sees it — the same
+// device `__offline.test.ts` uses to make a claim ABOUT the code checkable.
+const SOURCES = import.meta.glob('../**/*.{ts,tsx}', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 
 const MARGIN = 8
 
@@ -134,8 +140,10 @@ describe('zoom targets', () => {
       { id: 'axon-membrane', centre: AXON_POLYLINE, half: AXON_W / 2 },
       {
         id: 'dendrite-membrane',
+        // ⚠ The TUBE's width, not the tapered ribbon's (21c-8): at membrane
+        // zoom the branch is drawn by drawProcessTube at the stroke's max.
         centre: DENDRITE_TRUNKS[1].path,
-        half: trunkHalfWidthAt(DENDRITE_TRUNKS[1], DENDRITE_MEMBRANE_T),
+        half: tubeHalfWidthOf(DENDRITE_TRUNKS[1]),
       },
     ]
     // Every framed target is covered by one of these cases.
@@ -149,37 +157,40 @@ describe('zoom targets', () => {
       let nearest = Infinity
       for (let i = 0; i <= 4000; i++) {
         const p = polylinePoint(c.centre, i / 4000)
-        nearest = Math.min(
-          nearest,
-          Math.hypot(p.x - target.center.x, p.y - target.center.y),
-        )
+        nearest = Math.min(nearest, Math.hypot(p.x - target.center.x, p.y - target.center.y))
       }
       expect(nearest, c.id).toBeCloseTo(c.half, 2)
     }
   })
 
-  it('A1: a patch is cut with the width the DRAWING puts there, not the soma’s', () => {
+  it('A1 (21c-8): the patch is cut with the width the ZOOMED drawing puts there', () => {
+    // ⚠ The 2026-09-04 version of this guard pinned the TAPERED width — the
+    // right rule measured against the wrong register. At the membrane zoom the
+    // branch is drawn by drawProcessTube at the stroke's constant MAX width,
+    // and cutting the frame from the ribbon put the camera 1288 screen px off
+    // the drawn wall: the same empty-water view, back again (user, 2026-09-06:
+    // "'dendrite membrane' zoomed view is missing lipids").
     const trunk = DENDRITE_TRUNKS[1]
-    const half = trunkHalfWidthAt(trunk, DENDRITE_MEMBRANE_T)
-    // The branch tapers, so the patch's width is NOT the soma-end width —
-    // which is the whole reason the frame and the drawing came apart.
-    expect(half).toBeLessThan(trunk.segs[0].w / 2)
-    // It is the width of a seg that really is drawn at that point: the seg
-    // owning t contains the point the frame is cut at.
-    const here = polylinePoint(trunk.path, DENDRITE_MEMBRANE_T)
-    const owner = trunk.segs.find((seg) => {
-      if (Math.abs(seg.w / 2 - half) > 1e-9) return false
-      const L = Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1)
-      const off =
-        Math.abs(
-          (here.x - seg.x1) * (seg.y2 - seg.y1) - (here.y - seg.y1) * (seg.x2 - seg.x1),
-        ) / L
-      const proj =
-        ((here.x - seg.x1) * (seg.x2 - seg.x1) + (here.y - seg.y1) * (seg.y2 - seg.y1)) /
-        (L * L)
-      return off < 1e-6 && proj >= -1e-9 && proj <= 1 + 1e-9
-    })
-    expect(owner).toBeDefined()
+    const half = tubeHalfWidthOf(trunk)
+    // The tube's width is the stroke's max — the soma end, on this trunk.
+    expect(half).toBeCloseTo(Math.max(...trunk.segs.map((sg) => sg.w)) / 2, 9)
+    // …and it is NOT the tapered width, which is measurably thinner here and
+    // was the 1288 px miss.
+    expect(half).toBeGreaterThan(trunkHalfWidthAt(trunk, DENDRITE_MEMBRANE_T) + 0.1)
+    // THE CLAIM ITSELF: the camera's centre sits ON the tube-drawn wall, to a
+    // small fraction of a scene pixel — at ×2300 even 0.05 px is 100 on screen.
+    const target = ZOOM_TARGETS.find((t) => t.id === 'dendrite-membrane')!
+    let nearest = Infinity
+    for (let i = 0; i <= 8000; i++) {
+      for (const side of [1, -1] as const) {
+        const w = wallSample(trunk.path, half, side, i / 8000)
+        nearest = Math.min(
+          nearest,
+          Math.hypot(w.at.x - target.center.x, w.at.y - target.center.y),
+        )
+      }
+    }
+    expect(nearest, 'the camera is off the drawn wall').toBeLessThan(0.05)
   })
 
   it('only claims built content for the membrane targets', () => {
@@ -206,10 +217,7 @@ describe('zoom targets', () => {
       let nearest = Infinity
       for (let i = 0; i <= 200; i++) {
         const p = polylinePoint(AXON_POLYLINE, i / 200)
-        nearest = Math.min(
-          nearest,
-          Math.hypot(p.x - target.center.x, p.y - target.center.y),
-        )
+        nearest = Math.min(nearest, Math.hypot(p.x - target.center.x, p.y - target.center.y))
       }
       expect(nearest).toBeLessThan(1)
     }
@@ -219,9 +227,9 @@ describe('zoom targets', () => {
     for (const a of ZOOM_TARGETS) {
       for (const b of ZOOM_TARGETS) {
         if (a === b) continue
-        expect(
-          Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y),
-        ).toBeGreaterThan(MARKER_R * 2 + 8)
+        expect(Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y)).toBeGreaterThan(
+          MARKER_R * 2 + 8,
+        )
       }
     }
   })
@@ -516,18 +524,17 @@ describe('which dendrites light', () => {
 })
 
 describe('the astrocytes on the map (21b-1b)', () => {
-  it('two cells flank the outgoing synapse, each reaching for its own mouth', () => {
+  it('A3 (21c-1): ONE cell, on the RIGHT of the outgoing synapse, reaching its mouth', () => {
     const s = {
       x: (OUTGOING.bouton.x + OUTGOING.tip.x) / 2,
       y: (OUTGOING.bouton.y + OUTGOING.tip.y) / 2,
     }
-    expect(ASTROCYTES.length).toBe(2)
-    // One LEFT of the synapse, one right — the pair the landed view's two
-    // flanking fingers turn into. They flanked above/below while the camera
-    // turned a quarter on the way in; it no longer turns (2026-09-04), so the
-    // scene's flanks and the view's flanks are the same two sides.
-    const sides = ASTROCYTES.map((a) => Math.sign(a.soma.x - s.x))
-    expect(sides[0] * sides[1]).toBe(-1)
+    // ⚠ Supersedes "two cells flank" (21b-1b). The user reversed the
+    // two-finger ruling on 2026-09-04 — "place one astrocyte on the right" —
+    // and a marker's job is to say WHAT IS ON SCREEN, so the map may not keep
+    // a cell the scene no longer draws.
+    expect(ASTROCYTES.length).toBe(1)
+    expect(Math.sign(ASTROCYTES[0].soma.x - s.x)).toBe(1)
     for (const a of ASTROCYTES) {
       const d = Math.hypot(a.soma.x - s.x, a.soma.y - s.y)
       // A separate neighbouring cell: off the synapse, but of its neighbourhood.
@@ -537,6 +544,63 @@ describe('the astrocytes on the map (21b-1b)', () => {
       // on its own side.
       expect(Math.hypot(a.reach.x - s.x, a.reach.y - s.y)).toBeLessThan(16)
       expect(Math.sign(a.reach.x - s.x)).toBe(Math.sign(a.soma.x - s.x))
+    }
+  })
+
+  it('A3 (21c-1b): map, big neuron and demo all put the cell on the PRESYNAPTIC side', () => {
+    // User, 2026-09-05: "map astrocyte, same as 'whole picture' astrocyte, are
+    // located below the synapse. Demo one — above. Align on either of the
+    // views, for consistency." Aligned on the demo, whose placement was the
+    // measured one — a body below the synapse throws the cell's processes
+    // across the postsynaptic spine.
+    const s = {
+      x: (OUTGOING.bouton.x + OUTGOING.tip.x) / 2,
+      y: (OUTGOING.bouton.y + OUTGOING.tip.y) / 2,
+    }
+    // Which way IS presynaptic in this view? Asked of the geometry, not
+    // assumed: the side the bouton is on.
+    const pre = Math.sign(OUTGOING.bouton.y - s.y)
+    expect(pre).toBe(-1)
+    for (const a of [...ASTROCYTES, ...MAP_ASTROCYTES]) {
+      expect(Math.sign(a.soma.y - s.y)).toBe(pre)
+      // …and the reach still lands at the synapse, from that side.
+      expect(Math.hypot(a.reach.x - s.x, a.reach.y - s.y)).toBeLessThan(16)
+      expect(Math.sign(a.reach.y - s.y)).toBe(pre)
+    }
+  })
+
+  it('A1 (21c-1c): the astrocyte wears ONE ink, and it stays CLEAR OF THE CHARGE COLOURS', () => {
+    // ⚠ The bug this exists for (user, 2026-09-05, after seeing pink in the
+    // app): "the pink tint of astrocytes conflicts with red & blue charge
+    // color-coding. Bring back the previous color, for all views." The palette
+    // reserves red `#ef4444` for POSITIVE charge and sky `#0ea5e9` for
+    // negative; a cell wash near either of them reads as charge.
+    const rgb = ASTRO_INK.split(',').map((n) => Number(n.trim()))
+    expect(rgb.length).toBe(3)
+    for (const c of rgb) expect(Number.isFinite(c) && c >= 0 && c <= 255).toBe(true)
+    const [r, g, b] = rgb
+    // GREEN-dominant: a hue no charge mark uses.
+    expect(g).toBeGreaterThan(r)
+    expect(g).toBeGreaterThan(b)
+    // …and far from both reserved charge inks, in plain channel distance.
+    const far = (cr: number, cg: number, cb: number) =>
+      Math.hypot(r - cr, g - cg, b - cb)
+    expect(far(239, 68, 68), 'clear of + charge red').toBeGreaterThan(120)
+    expect(far(14, 165, 233), 'clear of − charge sky').toBeGreaterThan(120)
+  })
+
+  it('A1 (21c-1c): every view reads that one constant — no literal copies left', () => {
+    // The ink used to be a literal repeated in six places across four files,
+    // which is how a colour code drifts. Each drawing site now asks for it.
+    for (const rel of [
+      './drawScene.ts',
+      './synapseScene.ts',
+      '../ui/NeuronMapPanel.tsx',
+    ]) {
+      const src = SOURCES[rel]
+      expect(src, rel).toBeTruthy()
+      expect(src, rel).toContain('ASTRO_INK')
+      expect(src, rel).not.toContain('134, 184, 158')
     }
   })
 
@@ -558,9 +622,7 @@ describe('the astrocyte glyph (traced from astrocyte.svg, re-created 2026-09-04)
       // The soma is the traced STAR: six contiguous groups of far-out
       // samples (the SVG has six points, not the first pass's five), with
       // concave valleys well inside between them.
-      const far = shape.soma.map(
-        (p) => Math.hypot(p.x - a.soma.x, p.y - a.soma.y) > a.r * 0.85,
-      )
+      const far = shape.soma.map((p) => Math.hypot(p.x - a.soma.x, p.y - a.soma.y) > a.r * 0.85)
       let groups = 0
       for (let i = 0; i < far.length; i++) {
         if (far[i] && !far[(i + far.length - 1) % far.length]) groups++
@@ -590,8 +652,7 @@ describe('the astrocyte glyph (traced from astrocyte.svg, re-created 2026-09-04)
       const branch = shape.processes[1]
       for (const p of branch) {
         const t =
-          ((p.x - root.x) * (a.reach.x - root.x) +
-            (p.y - root.y) * (a.reach.y - root.y)) /
+          ((p.x - root.x) * (a.reach.x - root.x) + (p.y - root.y) * (a.reach.y - root.y)) /
           ((a.reach.x - root.x) ** 2 + (a.reach.y - root.y) ** 2)
         expect(t).toBeGreaterThan(0)
         expect(t).toBeLessThan(1)
@@ -600,7 +661,9 @@ describe('the astrocyte glyph (traced from astrocyte.svg, re-created 2026-09-04)
   })
 
   it("the map's cells sit ON the sheet — a star the kid cannot see teaches nothing", () => {
-    expect(MAP_ASTROCYTES.length).toBe(2)
+    // ONE cell since 21c-1 — the map says what is on screen.
+    expect(MAP_ASTROCYTES.length).toBe(1)
+    expect(MAP_ASTROCYTES[0].soma.x).toBeGreaterThan(OUTGOING.bouton.x)
     const box = NEURON_MAP_BOX
     for (const a of MAP_ASTROCYTES) {
       // The body (soma and most of each arm) inside the map's box.
@@ -637,9 +700,7 @@ describe('the neuron as traced from neuron (1).svg (re-drawn 2026-09-04)', () =>
     expect(TERMINALS.length).toBe(7)
     for (const t of TERMINALS) {
       // The route starts at the axon's tip…
-      expect(Math.hypot(t.path[0].x - AXON_END.x, t.path[0].y - AXON_END.y)).toBeLessThan(
-        1,
-      )
+      expect(Math.hypot(t.path[0].x - AXON_END.x, t.path[0].y - AXON_END.y)).toBeLessThan(1)
       // …ends on the bouton's centre…
       const last = t.path[t.path.length - 1]
       expect(Math.hypot(last.x - t.end.x, last.y - t.end.y)).toBeLessThan(1)
@@ -750,7 +811,10 @@ describe('the neighbours are whole neurons (corrections 2026-09-04)', () => {
         x: centroid(input.fan.flat()).x - input.soma.x,
         y: centroid(input.fan.flat()).y - input.soma.y,
       }
-      const toSite = { x: input.site.x - input.soma.x, y: input.site.y - input.soma.y }
+      const toSite = {
+        x: input.site.x - input.soma.x,
+        y: input.site.y - input.soma.y,
+      }
       const along =
         (away.x * toSite.x + away.y * toSite.y) /
         (Math.hypot(away.x, away.y) * Math.hypot(toSite.x, toSite.y))
@@ -792,9 +856,9 @@ describe('the neighbours are whole neurons (corrections 2026-09-04)', () => {
       expect(tip.x).toBeCloseTo(d.to.x, 6)
       expect(tip.y).toBeCloseTo(d.to.y, 6)
       // Rooted on its own soma, reaching back toward us.
-      expect(
-        Math.hypot(d.path[0].x - OUTPUT.soma.x, d.path[0].y - OUTPUT.soma.y),
-      ).toBeLessThan(OUTPUT.somaR * 2.4)
+      expect(Math.hypot(d.path[0].x - OUTPUT.soma.x, d.path[0].y - OUTPUT.soma.y)).toBeLessThan(
+        OUTPUT.somaR * 2.4,
+      )
       // It stands UNDER the arbor now, so its dendrites reach UP.
       expect(tip.y).toBeLessThan(OUTPUT.soma.y)
     }
@@ -818,9 +882,9 @@ describe('the neighbours are whole neurons (corrections 2026-09-04)', () => {
       expect(toBouton - SPINE_HEAD_R - BOUTON_R * 0.85).toBeGreaterThan(2)
       // The head is a head and the neck is a neck: the neck runs inward,
       // back along the dendrite, not out into the gap.
-      expect(
-        Math.hypot(neck.x - input.bouton.x, neck.y - input.bouton.y),
-      ).toBeGreaterThan(toBouton)
+      expect(Math.hypot(neck.x - input.bouton.x, neck.y - input.bouton.y)).toBeGreaterThan(
+        toBouton,
+      )
       // And the neck really is on the dendrite, not floating beside it.
       const near = Math.min(...path.map((p) => Math.hypot(p.x - neck.x, p.y - neck.y)))
       expect(near).toBeLessThan(SPINE_HEAD_R)
@@ -851,10 +915,7 @@ describe('the arbor signal and the glia around it (corrections 2026-09-04)', () 
     // spike forking rather than a lamp brightening.
     expect(arborFronts(null).length).toBe(0)
     expect(arborFronts(0).length).toBe(0)
-    const counts = Array.from(
-      { length: 40 },
-      (_, i) => arborFronts((i + 0.5) / 40).length,
-    )
+    const counts = Array.from({ length: 40 }, (_, i) => arborFronts((i + 0.5) / 40).length)
     // It starts as ONE dot…
     expect(counts[0]).toBe(1)
     // …and at some point there are several travelling at once.
@@ -862,9 +923,7 @@ describe('the arbor signal and the glia around it (corrections 2026-09-04)', () 
     // Never more than one per route, and never a stack of coincident dots.
     for (const n of counts) expect(n).toBeLessThanOrEqual(TERMINALS.length)
     for (let i = 0; i < 40; i++) {
-      const at = arborFronts((i + 0.5) / 40).map((f) =>
-        polylinePoint(TERMINALS[f.ti].path, f.t),
-      )
+      const at = arborFronts((i + 0.5) / 40).map((f) => polylinePoint(TERMINALS[f.ti].path, f.t))
       for (let a = 0; a < at.length; a++) {
         for (let b = a + 1; b < at.length; b++) {
           expect(Math.hypot(at[a].x - at[b].x, at[a].y - at[b].y)).toBeGreaterThan(1)
@@ -902,18 +961,12 @@ describe('the arbor signal and the glia around it (corrections 2026-09-04)', () 
       expect(a.soma.y - a.r).toBeGreaterThan(0)
       expect(a.soma.y + a.r).toBeLessThan(STAGE_H)
       // Clear of the cell body and of every door the child can click.
-      expect(Math.hypot(a.soma.x - SOMA.x, a.soma.y - SOMA.y)).toBeGreaterThan(
-        SOMA_R + a.r,
-      )
+      expect(Math.hypot(a.soma.x - SOMA.x, a.soma.y - SOMA.y)).toBeGreaterThan(SOMA_R + a.r)
       for (const z of ZOOM_TARGETS) {
-        expect(Math.hypot(z.center.x - a.soma.x, z.center.y - a.soma.y)).toBeGreaterThan(
-          a.r,
-        )
+        expect(Math.hypot(z.center.x - a.soma.x, z.center.y - a.soma.y)).toBeGreaterThan(a.r)
       }
       // Its reach ENDS on a dendrite: that contact is what it is for.
-      const reachOff = Math.min(
-        ...pts.map((p) => Math.hypot(p.x - a.reach.x, p.y - a.reach.y)),
-      )
+      const reachOff = Math.min(...pts.map((p) => Math.hypot(p.x - a.reach.x, p.y - a.reach.y)))
       expect(reachOff).toBeLessThan(1)
       // And the glyph really lands there.
       const shape = astroShape(a)
@@ -925,9 +978,7 @@ describe('the arbor signal and the glia around it (corrections 2026-09-04)', () 
     for (const a of DENDRITE_ASTROCYTES) {
       for (const b of DENDRITE_ASTROCYTES) {
         if (a === b) continue
-        expect(Math.hypot(a.soma.x - b.soma.x, a.soma.y - b.soma.y)).toBeGreaterThan(
-          a.r * 2,
-        )
+        expect(Math.hypot(a.soma.x - b.soma.x, a.soma.y - b.soma.y)).toBeGreaterThan(a.r * 2)
       }
     }
   })
@@ -1000,9 +1051,7 @@ describe('every cell body carries a nucleus (2026-09-04)', () => {
       // points — the body is only ~0.6 r where the outline dips, and a
       // nucleus poking out through a valley is not inside the cell.
       const soma = astroShape(a).soma
-      const valley = Math.min(
-        ...soma.map((p) => Math.hypot(p.x - a.soma.x, p.y - a.soma.y)),
-      )
+      const valley = Math.min(...soma.map((p) => Math.hypot(p.x - a.soma.x, p.y - a.soma.y)))
       expect(n.r).toBeLessThan(valley)
     }
   })

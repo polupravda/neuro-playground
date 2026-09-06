@@ -97,12 +97,7 @@ export interface WallSample {
 
 /** A point on one wall of a tube-shaped process, with the local directions
  *  needed to draw membrane structure there. `side` picks which wall. */
-export function wallSample(
-  centre: Pt[],
-  halfWidth: number,
-  side: 1 | -1,
-  t: number,
-): WallSample {
+export function wallSample(centre: Pt[], halfWidth: number, side: 1 | -1, t: number): WallSample {
   const eps = 0.002
   const a = polylinePoint(centre, Math.max(0, t - eps))
   const b = polylinePoint(centre, Math.min(1, t + eps))
@@ -609,7 +604,10 @@ export const SOMA_R = Math.round(
 export const BOUTON_R = 10
 
 /** Trace units → scene pixels. */
-const nxf = (p: Pt): Pt => ({ x: SOMA.x + p.x * NEURON_K, y: SOMA.y + p.y * NEURON_K })
+const nxf = (p: Pt): Pt => ({
+  x: SOMA.x + p.x * NEURON_K,
+  y: SOMA.y + p.y * NEURON_K,
+})
 const nxfAll = (cs: TraceCubic[], n: number): Pt[] => traceFlat(cs, n).map(nxf)
 
 /** The soma's own traced outline (closed), for every renderer that used to
@@ -651,7 +649,10 @@ export function reachTransform(fix: Pt, from: Pt, onto: Pt): (p: Pt) => Pt {
 }
 
 /** The traced axon's ends, in trace units. */
-const TRACE_AXON_ROOT: Pt = { x: NEURON_TRACE.axon[0][0], y: NEURON_TRACE.axon[0][1] }
+const TRACE_AXON_ROOT: Pt = {
+  x: NEURON_TRACE.axon[0][0],
+  y: NEURON_TRACE.axon[0][1],
+}
 const TRACE_AXON_TIP: Pt = {
   x: NEURON_TRACE.axon[NEURON_TRACE.axon.length - 1][6],
   y: NEURON_TRACE.axon[NEURON_TRACE.axon.length - 1][7],
@@ -727,10 +728,7 @@ export function spineHead(
   // dendrite, never from the neighbouring sample: the traced strokes are
   // sampled every few pixels, so a one-sample tangent is noise.
   const back = [...dendrite].reverse()
-  const inward = polylinePoint(
-    back,
-    Math.min(1, (SPINE_HEAD_R * 4) / (pathLength(back) || 1)),
-  )
+  const inward = polylinePoint(back, Math.min(1, (SPINE_HEAD_R * 4) / (pathLength(back) || 1)))
   const dir = norm(sub(inward, head))
   return {
     head,
@@ -992,9 +990,7 @@ export const TERMINALS: Terminal[] = NEURON_TRACE.terminalPaths.map((raw, i) => 
 
 /** The arbor's eight branch strokes, verbatim from the trace — what the
  *  renderers draw between the axon tip and the boutons. */
-export const TERMINAL_BRANCHES: Pt[][] = NEURON_TRACE.branchStrokes.map((s) =>
-  nxfAll(s, 6),
-)
+export const TERMINAL_BRANCHES: Pt[][] = NEURON_TRACE.branchStrokes.map((s) => nxfAll(s, 6))
 
 /** Each terminal route's arc length, and the longest — the ruler the arbor
  *  wave's clock is measured against. */
@@ -1034,8 +1030,7 @@ export function arborFronts(head: number | null): { ti: number; t: number }[] {
     const t = terminalReach(head, ti)
     if (t <= 0 || t >= 1) continue
     const at = polylinePoint(TERMINALS[ti].path, t)
-    if (out.some((o) => Math.hypot(o.at.x - at.x, o.at.y - at.y) < BOUTON_R * 0.35))
-      continue
+    if (out.some((o) => Math.hypot(o.at.x - at.x, o.at.y - at.y) < BOUTON_R * 0.35)) continue
     out.push({ ti, t, at })
   }
   return out.map(({ ti, t }) => ({ ti, t }))
@@ -1151,7 +1146,10 @@ export const INPUTS: InputNeuron[] = SYNAPSE_TRUNKS.map((trunk) => ({
     // The arbor, at the cell's own scale, hung off that hub.
     const A = (p: Pt): Pt => {
       const q = parts.T(p)
-      return { x: q.x + hub.x - parts.axonTip.x, y: q.y + hub.y - parts.axonTip.y }
+      return {
+        x: q.x + hub.x - parts.axonTip.x,
+        y: q.y + hub.y - parts.axonTip.y,
+      }
     }
     const stretch = reachTransform(parts.coneRoot, parts.axonTip, hub)
     return {
@@ -1163,14 +1161,9 @@ export const INPUTS: InputNeuron[] = SYNAPSE_TRUNKS.map((trunk) => ({
       fan: parts.fan,
       // Soma cone → hub along its own traced arc, then hub → bouton along the
       // traced arbor route: one continuous path, ending exactly on the cleft.
-      axon: [
-        ...parts.axon.map(stretch),
-        ...NEURON_TRACE.terminalPaths[bFar].map(A).slice(1),
-      ],
+      axon: [...parts.axon.map(stretch), ...NEURON_TRACE.terminalPaths[bFar].map(A).slice(1)],
       branches: NEURON_TRACE.branchStrokes.map((s) => traceFlat(s, 5).map(A)),
-      otherBoutons: NEURON_TRACE.boutons
-        .filter((_, bi) => bi !== bFar)
-        .map((b) => A(b.c)),
+      otherBoutons: NEURON_TRACE.boutons.filter((_, bi) => bi !== bFar).map((b) => A(b.c)),
       bouton,
       site,
       trunk,
@@ -1242,9 +1235,7 @@ const TARGET_TIPS: Pt[] = TARGET_TERMINALS.map((ti) => ({
  *  being stretched out of its own scale, centred under the three. */
 const OUT_SOMA: Pt = {
   x: TARGET_TIPS.reduce((a, p) => a + p.x, 0) / TARGET_TIPS.length,
-  y:
-    Math.max(...TARGET_TIPS.map((p) => p.y)) +
-    NEURON_FAN_UNITS * (OUT_R / NEURON_R_UNITS),
+  y: Math.max(...TARGET_TIPS.map((p) => p.y)) + NEURON_FAN_UNITS * (OUT_R / NEURON_R_UNITS),
 }
 
 /** The target is a whole traced cell too, turned so it PROJECTS onward — away
@@ -1288,7 +1279,10 @@ export const OUTPUT: OutputNeuron = (() => {
   // "the outgoing synapse", so the one the target stands NEAREST is put there
   // — while the left→right order the stubs need is otherwise kept.
   const nearest = dendrites
-    .map((d, i) => ({ i, d: Math.hypot(d.to.x - OUT_SOMA.x, d.to.y - OUT_SOMA.y) }))
+    .map((d, i) => ({
+      i,
+      d: Math.hypot(d.to.x - OUT_SOMA.x, d.to.y - OUT_SOMA.y),
+    }))
     .sort((a, b) => a.d - b.d)[0].i
   if (nearest !== 1) {
     ;[dendrites[1], dendrites[nearest]] = [dendrites[nearest], dendrites[1]]
@@ -1312,6 +1306,24 @@ export const OUTGOING = {
   tip: OUTPUT.dendrites[1].to,
 }
 
+/** ⚠ THE ASTROCYTE'S OWN INK — the glial green, in ONE place.
+ *
+ *  ⚠ PINK WAS TRIED AND REJECTED, ON THE PICTURE (2026-09-05). The user asked
+ *  for pink tones, matching their reference figure; seen in the app the answer
+ *  came back the same day: "the pink tint of astrocytes conflicts with red &
+ *  blue charge color-coding. Bring back the previous color, for all views."
+ *  The palette reserves red for POSITIVE charge and sky for negative, and a
+ *  large pink cell in the same frame as those badges reads as charge. The
+ *  green sits in a hue no charge mark uses, which is exactly why 21b-1d chose
+ *  it when the first astrocyte handover arrived red. Recorded so pink is not
+ *  proposed a third time.
+ *
+ *  What the pink round DID leave behind is this constant. The ink used to be a
+ *  literal repeated in six places across four files; a colour CODE only works
+ *  if every register asks the same question, so the scene, the big neuron, the
+ *  miniature, the dendrite cells and D17 now all read it from here. */
+export const ASTRO_INK = '134, 184, 158'
+
 /** ⚠ THE TWO ASTROCYTES at the outgoing synapse (21b-1b, user: "since we
  *  display 2 fingers, draw 2 astrocytes").
  *
@@ -1329,9 +1341,23 @@ export const ASTROCYTES: { soma: Pt; r: number; reach: Pt }[] = (() => {
     x: (OUTGOING.bouton.x + OUTGOING.tip.x) / 2,
     y: (OUTGOING.bouton.y + OUTGOING.tip.y) / 2,
   }
+  // ⚠ ONE CELL, ON THE RIGHT (21c-1, user: "place one astrocyte on the right")
+  // — the left one is gone with the left finger it owned. A marker's job is to
+  // say what is on screen, so the map may not keep a cell the scene no longer
+  // draws.
+  // ⚠ ABOVE the synapse, not below (user, 2026-09-05: "map astrocyte, same as
+  // the whole-picture astrocyte, are located below the synapse. Demo one —
+  // above. Align on either of the views, for consistency"). Aligned ON THE
+  // DEMO, because the demo's placement is the MEASURED one: the bouton is on
+  // the presynaptic side, so a body below the synapse throws the processes
+  // across the postsynaptic spine. In this view the presynaptic side is up,
+  // because `OUTGOING.bouton` sits above `OUTGOING.tip`.
   return [
-    { soma: { x: s.x - 82, y: s.y + 52 }, r: 26, reach: { x: s.x - 11, y: s.y + 2 } },
-    { soma: { x: s.x + 86, y: s.y + 46 }, r: 23, reach: { x: s.x + 11, y: s.y + 2 } },
+    {
+      soma: { x: s.x + 86, y: s.y - 46 },
+      r: 23,
+      reach: { x: s.x + 11, y: s.y - 2 },
+    },
   ]
 })()
 
@@ -1352,9 +1378,13 @@ export const MAP_ASTROCYTES: { soma: Pt; r: number; reach: Pt }[] = (() => {
     x: (OUTGOING.bouton.x + OUTGOING.tip.x) / 2,
     y: (OUTGOING.bouton.y + OUTGOING.tip.y) / 2,
   }
+  // One cell, on the right — the scene's own arrangement since 21c-1.
   return [
-    { soma: { x: s.x - 46, y: s.y + 22 }, r: 15, reach: { x: s.x - 8, y: s.y + 2 } },
-    { soma: { x: s.x + 48, y: s.y + 20 }, r: 14, reach: { x: s.x + 8, y: s.y + 2 } },
+    {
+      soma: { x: s.x + 48, y: s.y - 20 },
+      r: 14,
+      reach: { x: s.x + 8, y: s.y - 2 },
+    },
   ]
 })()
 
@@ -1471,7 +1501,10 @@ const ASTRO_FRAME = (() => {
  *  inside the body at every register, and the body is only ~0.6 r where the
  *  outline dips. */
 export const ASTRO_NUCLEUS_F = 0.3
-export function astroNucleus(a: { soma: Pt; r: number }): { at: Pt; r: number } {
+export function astroNucleus(a: { soma: Pt; r: number }): {
+  at: Pt
+  r: number
+} {
   return { at: a.soma, r: a.r * ASTRO_NUCLEUS_F }
 }
 
@@ -1480,8 +1513,7 @@ export function astroShape(a: { soma: Pt; r: number; reach: Pt }): {
   processes: Pt[][]
 } {
   const k = a.r / ASTRO_FRAME.rTip
-  const rot =
-    Math.atan2(a.reach.y - a.soma.y, a.reach.x - a.soma.x) - ASTRO_FRAME.reachAng
+  const rot = Math.atan2(a.reach.y - a.soma.y, a.reach.x - a.soma.x) - ASTRO_FRAME.reachAng
   const cos = Math.cos(rot)
   const sin = Math.sin(rot)
   const T = (p: Pt): Pt => ({
@@ -1495,10 +1527,7 @@ export function astroShape(a: { soma: Pt; r: number; reach: Pt }): {
   // allows), the side-branch riding the same map so it stays attached.
   const main0 = traceFlat(ASTRO_TRACE.arms[0].main, 10).map(T).reverse()
   const S = reachTransform(main0[0], main0[main0.length - 1], a.reach)
-  const processes: Pt[][] = [
-    main0.map(S),
-    traceFlat(ASTRO_TRACE.arms[0].branch, 8).map(T).map(S),
-  ]
+  const processes: Pt[][] = [main0.map(S), traceFlat(ASTRO_TRACE.arms[0].branch, 8).map(T).map(S)]
   for (const arm of ASTRO_TRACE.arms.slice(1)) {
     processes.push(traceFlat(arm.main, 10).map(T))
     processes.push(traceFlat(arm.branch, 8).map(T))
@@ -1511,14 +1540,29 @@ export function astroShape(a: { soma: Pt; r: number; reach: Pt }): {
 // Re-anchored to the traced anatomy (2026-09-04): the fan now spreads
 // up-left, the axon DIPS below the cell before rising to the arbor, and the
 // seven boutons hang to the right of AXON_END.
-export const LABELS: Array<{ part: NeuronPartId; text: string; x: number; y: number }> = [
+export const LABELS: Array<{
+  part: NeuronPartId
+  text: string
+  x: number
+  y: number
+}> = [
   { part: 'dendrites', text: 'dendrites', x: SOMA.x - 130, y: SOMA.y - 190 },
   // Down-LEFT of the soma, clear of the axon's dip on the right.
   { part: 'soma', text: 'soma', x: SOMA.x - 36, y: SOMA.y + SOMA_R + 36 },
   // Under the dip's outside — the axon's own lowest reach.
-  { part: 'axon', text: 'axon', x: axonPoint(0.25).x - 14, y: axonPoint(0.25).y + 36 },
+  {
+    part: 'axon',
+    text: 'axon',
+    x: axonPoint(0.25).x - 14,
+    y: axonPoint(0.25).y + 36,
+  },
   // Below the arbor's lowest bouton.
-  { part: 'terminals', text: 'axon terminals', x: AXON_END.x + 30, y: AXON_END.y + 160 },
+  {
+    part: 'terminals',
+    text: 'axon terminals',
+    x: AXON_END.x + 30,
+    y: AXON_END.y + 160,
+  },
 ]
 
 /** ⚠ WHICH TERMS THE SCENE SAYS ALOUD (F04) — one predicate, asked by every
@@ -1570,9 +1614,7 @@ export interface ZoomTarget {
  *  showing: out there you can fire an input and pick a part of the neuron, and
  *  in here neither means anything. */
 export function isOwnView(target: ZoomTarget | undefined): boolean {
-  return (
-    target !== undefined && (target.frame !== undefined || target.presents !== undefined)
-  )
+  return target !== undefined && (target.frame !== undefined || target.presents !== undefined)
 }
 
 const mid = (a: Pt, b: Pt): Pt => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
@@ -1587,7 +1629,9 @@ function membraneFrame(centre: Pt[], halfWidth: number, t: number): WallSample {
   return upper.inward.y > 0 ? upper : wallSample(centre, halfWidth, -1, t)
 }
 
-/** ⚠ THE HALF-WIDTH THE DRAWING ACTUALLY USES AT THIS POINT ON A TRUNK.
+/** ⚠ THE HALF-WIDTH THE RIBBON REGISTER USES AT THIS POINT ON A TRUNK — the
+ *  low-zoom `taperedRibbon`, NOT the membrane zoom's tube, which draws at the
+ *  stroke's constant max width (see `tubeHalfWidthOf`, 21c-8).
  *
  *  A dendrite TAPERS since the trace landed (2026-09-04), and the patch frame
  *  was still being cut with `segs[0].w` — the width at the soma end. At the
@@ -1613,9 +1657,26 @@ export function trunkHalfWidthAt(trunk: DendriteTrunk, t: number): number {
 
 /** Where along the dendrite trunk the patch is cut. */
 export const DENDRITE_MEMBRANE_T = 0.3
+
+/** ⚠ THE WIDTH THE MEMBRANE ZOOM ACTUALLY SEES (21c-8, user: "'dendrite
+ *  membrane' zoomed view is missing lipids, fix" — the second time this view
+ *  has arrived on empty water).
+ *
+ *  At ×2300 a branch is drawn by `drawProcessTube` at its stroke's MAX width;
+ *  the tapered ribbon — whose width `trunkHalfWidthAt` reads — is the LOW-zoom
+ *  register, handed over long before the bilayer appears. The 2026-09-04 fix
+ *  stated the right rule ("a frame and the drawing it frames must be cut from
+ *  ONE measurement") and then measured the wrong drawing: the ribbon, not the
+ *  tube. Measured this time at the zoom the frame exists for: the tube's wall
+ *  sat 0.56 scene px — 1288 SCREEN px — from the frame cut at the tapered
+ *  width. The frame is cut from the tube's own constant. */
+export function tubeHalfWidthOf(trunk: DendriteTrunk): number {
+  return Math.max(...trunk.segs.map((sg) => sg.w)) / 2
+}
+
 const DENDRITE_MEMBRANE = membraneFrame(
   DENDRITE_TRUNKS[1].path,
-  trunkHalfWidthAt(DENDRITE_TRUNKS[1], DENDRITE_MEMBRANE_T),
+  tubeHalfWidthOf(DENDRITE_TRUNKS[1]),
   DENDRITE_MEMBRANE_T,
 )
 /** Where along the axon the membrane patch is cut, 0→1.
@@ -1850,19 +1911,12 @@ export const DENDRITE_ASTROCYTES: { soma: Pt; r: number; reach: Pt }[] = (() => 
   for (let x = Math.min(...xs) - R; x <= Math.max(...xs) + R; x += 7) {
     for (let y = Math.min(...ys) - R; y <= Math.max(...ys) + R; y += 7) {
       const p = { x, y }
-      if (x - R < 10 || x + R > STAGE_W - 10 || y - R < 10 || y + R > STAGE_H - 10)
-        continue
+      if (x - R < 10 || x + R > STAGE_W - 10 || y - R < 10 || y + R > STAGE_H - 10) continue
       if (Math.hypot(p.x - SOMA.x, p.y - SOMA.y) < SOMA_R + R + 8) continue
       if (AXON_POLYLINE.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < R + 10)) continue
-      if (
-        ZOOM_TARGETS.some(
-          (t) => Math.hypot(t.center.x - p.x, t.center.y - p.y) < R + MARKER_R,
-        )
-      )
+      if (ZOOM_TARGETS.some((t) => Math.hypot(t.center.x - p.x, t.center.y - p.y) < R + MARKER_R))
         continue
-      if (
-        INPUTS.some((n) => n.axon.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < R + 6))
-      )
+      if (INPUTS.some((n) => n.axon.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < R + 6)))
         continue
       const n = nearest(p)
       // Clear of the branches, yet plainly among them.
@@ -1916,10 +1970,7 @@ export const SCENE_INK_Y: { min: number; max: number } = (() => {
     OUTPUT.soma.y - OUTPUT.somaR,
     OUTPUT.soma.y + OUTPUT.somaR,
     ...OUTPUT.dendrites.flatMap((d) => d.path.map((p) => p.y)),
-    ...[...ASTROCYTES, ...DENDRITE_ASTROCYTES].flatMap((a) => [
-      a.soma.y - a.r,
-      a.soma.y + a.r,
-    ]),
+    ...[...ASTROCYTES, ...DENDRITE_ASTROCYTES].flatMap((a) => [a.soma.y - a.r, a.soma.y + a.r]),
     ...LABELS.map((l) => l.y),
   ]
   return { min: Math.min(...ys), max: Math.max(...ys) }
@@ -2000,9 +2051,7 @@ export type NeuronRegion = 'dendrites' | 'soma' | 'hillock' | 'axon' | 'terminal
 export function regionPoints(region: NeuronRegion): Pt[] {
   switch (region) {
     case 'dendrites':
-      return SYNAPSE_TRUNKS.map((trunk) =>
-        polylinePoint(DENDRITE_TRUNKS[trunk].path, 0.45),
-      )
+      return SYNAPSE_TRUNKS.map((trunk) => polylinePoint(DENDRITE_TRUNKS[trunk].path, 0.45))
     case 'soma':
       return [SOMA]
     case 'hillock':
@@ -2031,9 +2080,7 @@ export function regionPoints(region: NeuronRegion): Pt[] {
  *  not, which is exactly why it lives here now — one function, both readers. */
 export function litTrunks(firedInputs: readonly number[] | null): number[] {
   if (firedInputs === null) return [...SYNAPSE_TRUNKS]
-  return firedInputs
-    .map((i) => INPUTS[i]?.trunk)
-    .filter((t): t is number => t !== undefined)
+  return firedInputs.map((i) => INPUTS[i]?.trunk).filter((t): t is number => t !== undefined)
 }
 
 /** Which part of the cell a zoom target sits on, for lighting a miniature. Null
@@ -2041,8 +2088,7 @@ export function litTrunks(firedInputs: readonly number[] | null): number[] {
  *  milestones). */
 export function regionOfZoom(id: string | null): NeuronRegion | null {
   if (id === 'dendrite-membrane') return 'dendrites'
-  if (id === 'axon-membrane' || id === 'axon-signal' || id === 'axon-passive')
-    return 'axon'
+  if (id === 'axon-membrane' || id === 'axon-signal' || id === 'axon-passive') return 'axon'
   if (id === 'outgoing-synapse' || id === 'active-zone') return 'terminals'
   if (id === 'hillock') return 'hillock'
   return null

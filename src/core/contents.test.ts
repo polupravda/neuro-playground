@@ -8,6 +8,7 @@ import {
   notBuiltYet,
 } from './contents'
 import { FRONTIER_SHORT } from './neuron'
+import { RETRIEVALS } from './retrieval'
 import { ZOOM_TARGETS } from '../stage/layout'
 import { planFor, travels } from '../state/contentsNav'
 
@@ -192,6 +193,42 @@ describe('A2: the planned rows, and how they stay honest', () => {
     // are later, not because they are planned.
     const II = entriesIn('II')
     expect(II.map((e) => e.lecture)).toEqual([...II.map((e) => e.lecture)].sort((a, b) => a - b))
+  })
+
+  it('A1 (21c-3n): the synapse row names the round trip, and S14 sits with the machinery it deepens', () => {
+    // ⚠ (user, 2026-09-06: "rename 'the synapse: arrival to binding' to reflect
+    // updated demo", and "place it closer to 'Vesicles & the SNARE machinery',
+    // we will display it in a drawer".)
+    const III = entriesIn('III')
+    const synapse = III.find((e) => e.id === 'synapse')
+    expect(synapse).toBeDefined()
+    // ⚠ THE ROW MUST NOT PROMISE AN ENDING THE RUN NO LONGER HAS. Since 21c the
+    // demo goes past the receptors, round the glutamate–glutamine loop, and
+    // closes on the frame it opened with — so neither the name nor the question
+    // may still stop at binding.
+    expect(synapse?.title).not.toMatch(/binding/i)
+    expect(synapse?.asks).not.toMatch(/binding/i)
+    // ⚠ AND S14 IS THE ROW AFTER THE SNARE BENCH. The menu is sorted by
+    // lecture, so the lecture it is filed under IS its position: it was filed
+    // under 10, as a journey leg of its own, and it is a deeper look at the
+    // machinery this view already runs.
+    const i = III.findIndex((e) => e.id === 's14')
+    expect(i, 'S14 has left the menu').toBeGreaterThan(0)
+    expect(III[i - 1].id, 'S14 is not beside the SNARE bench').toBe('snare')
+    // ⚠ BUILT NOW (21c-4), and built as what the move said it was: a DRAWER
+    // over the view it deepens, not a place of its own. It was a promise with
+    // `to: null` until 2026-09-06.
+    expect(III[i].planned).toBeFalsy()
+    expect(III[i].to).toEqual({ zoom: 'outgoing-synapse', drawer: 's14' })
+    // ⚠ AND ITS NAME IS WHAT IS BEHIND IT (21c-4d, user: "the name says
+    // clearance and recycling. But what I see is the type of vesicle merge
+    // mechanisms"). "Clearance & recycling" covers about sixteen mechanisms;
+    // this exhibit shows THREE, all from the recycling half, and every one of
+    // the clearance ones is the round trip's job already. A row that promises a
+    // topic and opens a corner of it is a claim about the app that has rotted.
+    expect(RETRIEVALS.length, 'the exhibit grew past the fork').toBe(3)
+    expect(III[i].title, 'the row promises clearance').not.toMatch(/clearance/i)
+    expect(III[i].asks, 'the question promises clearance').not.toMatch(/clearance/i)
   })
 
   it('keeps `inCourseOrder` to what a child can actually reach', () => {

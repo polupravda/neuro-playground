@@ -143,6 +143,13 @@ export interface LipidRun {
    *  traveller rather than part for it (2026-08-28). Pushing molecules apart
    *  along the membrane is what "making room" actually looks like. */
   pushAt?: (x: number) => number
+  /** ⚠ THE THERMAL CLOCK — screen time (21c-7, user: "replace static lipids
+   *  for 'jiggly lipids'"). Given, every molecule in the run jostles the way
+   *  the lipid lab's do: each on ITS OWN beat, each leaflet independently,
+   *  because two lipids facing each other across the oily middle are not a
+   *  molecule — they are neighbours. Absent, the run stands still, which is
+   *  what a caller that never passes a clock has always drawn. */
+  ms?: number
 }
 
 // ── The one phospholipid this app draws ────────────────────────────────────
@@ -353,7 +360,22 @@ export function drawLipids(ctx: CanvasRenderingContext2D, run: LipidRun): void {
         ctx.translate(-x, -midY)
       }
       for (const side of [-1, 1] as const) {
+        if (run.ms === undefined) {
+          drawLipid(ctx, x, midY, side, jitter)
+          continue
+        }
+        // ⚠ EACH LEAFLET ON ITS OWN BEAT (21c-7, user: "lipids move
+        // individually, not in bond with an opponent"). The identity is the
+        // SLOT, not the pushed x: `pushAt` moves a molecule every frame while
+        // the wall parts, and an identity that moves with it re-rolls the
+        // phase — a shimmer, not a jostle.
+        const j = lipidJiggle(slot * 2 + (side === -1 ? 0 : 1), run.ms, false)
+        ctx.save()
+        ctx.translate(x + jitter + j.dx, midY + j.dy)
+        ctx.rotate(j.dth)
+        ctx.translate(-(x + jitter), -midY)
         drawLipid(ctx, x, midY, side, jitter)
+        ctx.restore()
       }
       if (bent) ctx.restore()
     }
@@ -406,6 +428,10 @@ export interface PaveOptions {
   /** Index of the FIRST sample in the wall's own absolute numbering, so each
    *  molecule keeps its jitter however much of the wall is on screen. */
   first: number
+  /** ⚠ THE THERMAL CLOCK (21c-6). Given, the wall's molecules jostle the way
+   *  the lipid lab's do — a membrane is a liquid. Absent, they stand still,
+   *  which is what every caller written before this expects. */
+  ms?: number
   /** How far a molecule may wander, as a fraction of its own size. */
   jitter?: number
   /** How many samples at each end fade out. Zero for a CLOSED wall — a
@@ -421,6 +447,30 @@ export interface PaveOptions {
  *  The taper is not decoration: a run of wall is capped in length, so without it
  *  the molecular membrane STOPS at a hard edge mid-picture. Fading the last
  *  stretch turns a cut into detail running out. */
+/** ⚠ THERMAL JIGGLE — a pure function of the clock and the lipid's identity, so
+ *  there is no per-lipid state and nothing to shimmer. Free lipids tumble more
+ *  than lipids packed in a wall.
+ *
+ *  ⚠ IT LIVES HERE NOW (21c-6, user: "make lipids jiggle and make them uneven.
+ *  Copy from 'The phospholipid bilayer'"). It was the lipid lab's, and the
+ *  paver could not reach it without importing upwards. The lab still owns the
+ *  wording; the maths has one home, in the module the membrane is made in.
+ *  Amplitude raised 2026-08-27 on review: the wall read as still, and a bilayer
+ *  is a liquid crowd, not a parked one. */
+export function lipidJiggle(
+  i: number,
+  ms: number,
+  free: boolean,
+): { dx: number; dy: number; dth: number } {
+  const a = free ? 1.2 : 0.9
+  const p = i * 2.399
+  return {
+    dx: a * Math.sin(ms * 0.0016 + p),
+    dy: a * Math.sin(ms * 0.0013 + p * 1.7),
+    dth: (free ? 0.12 : 0.07) * Math.sin(ms * 0.0011 + p * 2.3),
+  }
+}
+
 export function paveMembrane(
   ctx: CanvasRenderingContext2D,
   samples: readonly WallPoint[],
@@ -445,6 +495,7 @@ export function paveMembrane(
     const k = first + i
     const along = (lipidJitter(k, 1) - 0.5) * geom.headR * 2 * jitter
     const across = (lipidJitter(k, 2) - 0.5) * geom.halfMem * 2 * jitter * 0.3
+
     ctx.save()
     // ⚠ MULTIPLIED, never assigned — a caller's own fade has to survive this.
     ctx.globalAlpha *= fade
@@ -455,8 +506,22 @@ export function paveMembrane(
     const localY = { x: -w.tangent.y, y: w.tangent.x }
     if (w.inward.x * localY.x + w.inward.y * localY.y < 0) ctx.scale(1, -1)
     ctx.translate(along, across)
-    drawLipidAt(ctx, -1, geom, outer)
-    drawLipidAt(ctx, 1, geom, inner)
+    // ⚠ EACH LEAFLET ON ITS OWN BEAT (21c-7): one jiggle applied to the pair
+    // moved a head and the head facing it as one rigid object, which is a
+    // molecule the bilayer does not contain.
+    for (const side of [-1, 1] as const) {
+      const jig =
+        opts.ms === undefined ? null : lipidJiggle(k * 2 + (side === -1 ? 0 : 1), opts.ms, false)
+      if (jig) {
+        ctx.save()
+        ctx.translate(jig.dx, jig.dy)
+        ctx.rotate(jig.dth)
+        drawLipidAt(ctx, side, geom, side === -1 ? outer : inner)
+        ctx.restore()
+      } else {
+        drawLipidAt(ctx, side, geom, side === -1 ? outer : inner)
+      }
+    }
     ctx.restore()
   })
 }

@@ -531,6 +531,12 @@ export function drawSide(
   ctx.fillRect(0, WALL_Y, sideW, sideH - WALL_Y)
 
   // The wall it is built into — this app's own bilayer, parted for it.
+  // ⚠ STATIC LIPIDS, BY THE RULE (21c-8, user: "restore static lipids in 'ion
+  // channel structure'"). This view at rest is a STILL — a labelled anatomy,
+  // nothing moving until Send is pressed — and a jostling wall under a still
+  // drawing reads as noise, not as heat. The rule (03-architecture → Jiggly
+  // lipids): jiggle where the resting view already moves, or where the bilayer
+  // is itself the actor; a still view keeps still lipids.
   drawLipids(ctx, {
     midY: WALL_Y,
     from: 0,

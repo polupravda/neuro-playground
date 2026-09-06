@@ -282,19 +282,13 @@ export function LipidLab() {
 
           {/* Row 1 — the molecule and the bag it can close into, side by side
               and given the height; row 2 — the wall, shorter, given the width. */}
-          {/* ⚠ OUTSIDE THE PICTURE (user, 2026-09-04). This exhibit's canvas
-              is dense edge to edge, so a switch laid over any corner of it
-              covers something the exhibit is for. It sits above the picture
-              instead, right-aligned — chrome beside the drawing rather than
-              on it. */}
-          <div className="flex shrink-0 justify-end">
-            <LabelsSwitch
-              on={labelsOn}
-              onToggle={() => useLabelsStore.getState().toggleLabels()}
-              titleOn="Hide the names on the picture"
-              titleOff="Show the names on the picture"
-            />
-          </div>
+          {/* ⚠ ONE SWITCH (21c-7, user: "'phospholipid bilayer' has 'labels'
+              switch duplicated, remove one"). The 2026-09-04 move that put the
+              switch outside the picture landed a second copy in its own row
+              while the button row already carried one — two controls for one
+              state, which is two places for the child to learn. The button
+              row's copy stays: it is outside the picture, right-aligned, which
+              is everything the move was for. */}
           <div className="flex items-start gap-4">
             <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-2">
               <canvas

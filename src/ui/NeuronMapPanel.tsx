@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ASTRO_INK,
   AXON_POLYLINE,
   AXON_SIGNAL_T,
   BOUTON_R,
@@ -638,13 +639,13 @@ export function NeuronMapPanel() {
             return (
               <g
                 key={`astro-${i}`}
-                stroke="rgba(134, 184, 158, 0.85)"
+                stroke={`rgba(${ASTRO_INK}, 0.9)`}
                 strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
               >
-                <path d={dOf(shape.soma, true)} fill="rgba(134, 184, 158, 0.45)" />
+                <path d={dOf(shape.soma, true)} fill={`rgba(${ASTRO_INK}, 0.5)`} />
                 {/* Its nucleus, from the same decision the canvas asks. */}
                 <circle
                   cx={astroNucleus(a).at.x}

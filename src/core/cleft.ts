@@ -315,7 +315,11 @@ export function cleftFacts(run: CleftRun): TeachingPara[] {
     },
     {
       icon: '🧤',
-      text: 'Watch WHERE the escaping balls end up. The two pale fingers hugging the synapse belong to an ASTROCYTE — a third cell, not a neuron — and its transporters catch most of what leaves the gap: for this transmitter, glutamate, the astrocyte does most of the clearing (up to about nine parts in ten), the neuron itself only a little. Each catch is paid for with the sodium gradient — the pump’s stored work. The balls that stay in the gap really do linger: the transporters work on a slower clock than this run.',
+      text: 'Watch WHERE the escaping balls end up. The pale cell reaching in from the right is an ASTROCYTE — a third cell, not a neuron — and its transporters catch most of what leaves the gap: for this transmitter, glutamate, the astrocyte does most of the clearing (up to about nine parts in ten), the neuron itself only a little. Each catch is paid for with the sodium gradient — the pump’s stored work. The balls that stay in the gap really do linger: the transporters work on a slower clock than this run.',
+    },
+    {
+      icon: '♻️',
+      text: 'Then watch them come BACK. Inside the astrocyte each ball changes kind — it turns orange, because glutamate has been made into GLUTAMINE, which is safe to send through the outside where loose glutamate would be a signal nobody meant. It leaves by a door of its own, crosses to a door on the terminal, and is turned back into glutamate inside. ⚠ THREE THINGS ARE STRETCHED OR SIMPLIFIED HERE, and it is worth knowing which. (1) THE CLOCK: catching the transmitter really takes thousandths of a second, but the round trip takes seconds to minutes — no single clock can be honest about both, so this stretch is choreography. (2) IT IS A STORE, NOT A RELAY: the returning material joins a POOL the terminal already keeps, and vesicles are filled from that pool. A vesicle does not wait for the very molecule it released — it is refilled and ready long before that molecule could get home. (3) THE LOOP LEAKS: the astrocyte burns some of what it takes in, and makes fresh material from sugar to replace it, using an enzyme neurons do not have. So this is a budget that mostly balances, not a closed circle.',
     },
     {
       icon: '🔑',

@@ -155,10 +155,26 @@ export const STAGES: Stage[] = [
     id: 'load',
     title: 'Refilled',
     watch: 'The transporter trades sour for sweet: protons out, transmitter in. Full again — exactly where this began.',
-    share: 0.1,
+    // ⚠ 0.1 → 0.62 (21c-3o, user: "grow the run to pay for it"). VGLUT now runs
+    // a real transport cycle here, one molecule at a time, and twenty-two
+    // molecules through one pore in a second of screen time is 45 ms a turn —
+    // a flutter, not a machine working. At this share the trade gets ~5 s and a
+    // turn is ~0.22 s.
+    //
+    // ⚠ AND THE RUN GROWS TO PAY FOR IT rather than the other stages being
+    // squeezed: `SNARE_SCREEN_MS` is scaled by `STAGE_WEIGHT`, so every stage
+    // before this one keeps the absolute screen time it was tuned to. The same
+    // rule the synapse's own legs follow.
+    share: 0.62,
     hold: 0.2,
   },
 ]
+
+/** ⚠ THE SHARES ARE WEIGHTS, NORMALISED (21c-3o) — so a stage can be given the
+ *  time it needs without re-tuning every other number by hand, and so the RUN
+ *  pays for it instead of its neighbours. `STAGE_SPANS` divides by this; the
+ *  drawer's screen length multiplies by it. */
+export const STAGE_WEIGHT = STAGES.reduce((sum, s) => sum + s.share, 0)
 
 /** Where each stage begins and ends in the run, 0→1. Derived from the shares
  *  rather than typed, so the two can never disagree. */

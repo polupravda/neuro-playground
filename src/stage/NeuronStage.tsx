@@ -55,7 +55,7 @@ import {
   SYNAPSE_END_HOLD_MS,
 } from './synapseScene'
 import { useSnareStore } from '../state/snareStore'
-import { useReuptakeStore } from '../state/reuptakeStore'
+import { useRetrievalStore } from '../state/retrievalStore'
 import { synapseRun } from '../core/synapse'
 import { cleftRun } from '../core/cleft'
 import { drawLeaky, leakyLabels } from './leakyScene'
@@ -276,7 +276,9 @@ export function NeuronStage() {
    *  myelin' pattern"). Same machinery as the axon view above it, one target
    *  further down the same cable. */
   const atPassive = zoom === 'axon-passive'
-  /** S12 leg 1 — the synapse, arrival to binding. A place like the axon views,
+  /** S12 leg 1 — the synapse, the whole round trip (renamed 2026-09-06; it runs
+   *  past binding, round the glutamate–glutamine loop, and back to its own first
+   *  frame). A place like the axon views,
    *  with its own layer and its own arrival gate. */
   // The synapse view serves TWO places: the whole synapse and its active
   // zone, four times deeper — the same run, watched closer.
@@ -1245,21 +1247,22 @@ export function NeuronStage() {
             </span>
             <span className="whitespace-nowrap">Vesicles & the SNARE machinery</span>
           </button>
-          {/* ⚠ THE DOOR INTO D17, open since step 21b-2. It was reserved and
-              disabled from 2026-09-04 ("add now, disabled") because a dead
-              door is worse than none; the drawer has landed, so the door
-              behaves like its sibling beside it. Two doors at one place need
-              two icons — 🫧 for what gets OUT, ♻️ for where it goes. */}
+          {/* ⚠ TWO DOORS AT ONE PLACE NEED TWO BUTTONS, not one menu (21c-4).
+              This view is now the door into both drawers that deepen it, and
+              the second is filed beside the first in the contents for the same
+              reason: it is a deeper look at the machinery this scene runs. Only
+              THIS view's chrome advertises them — a drawer knows which view it
+              extends. */}
           <button
             type="button"
-            onClick={() => useReuptakeStore.getState().openBench()}
-            title="Where the released transmitter goes — the astrocyte's transporters, and the round trip home."
+            onClick={() => useRetrievalStore.getState().openBench()}
+            title="Three ways the terminal takes a vesicle's membrane back."
             className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
           >
             <span aria-hidden className="text-base leading-none">
               ♻️
             </span>
-            <span className="whitespace-nowrap">Where the transmitter goes</span>
+            <span className="whitespace-nowrap">Synaptic vesicle endocytosis</span>
           </button>
         </div>
       )}

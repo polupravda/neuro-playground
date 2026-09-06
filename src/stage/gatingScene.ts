@@ -509,6 +509,7 @@ export function drawFamilyPanel(
     from: -half,
     to: half,
     gaps: [[-fits, fits]],
+    ms,
     ...(grow > 0.001 ? { pushAt: shoveAt } : {}),
     // Local coordinates: x here is panel px divided by SCALE, and the origin
     // is already at the bottom of the dip — so the wave is how far this

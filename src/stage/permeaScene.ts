@@ -478,6 +478,10 @@ export function drawPermea(
   motes: readonly Mote[],
   aquaporin: boolean,
   labelsOn = true,
+  /** ⚠ The thermal clock, screen time (21c-7): the wall's molecules jostle
+   *  whether or not a mote is crossing. Defaults still, so tests written
+   *  before the clock stay deterministic. */
+  ms = 0,
 ): void {
   const counts = crossedCounts(motes)
   // The wall OPENS around whoever is crossing: its molecules are shoved aside
@@ -555,7 +559,7 @@ export function drawPermea(
   const gap: Array<readonly [number, number]> = aquaporin
     ? [[AQP_X - 14, AQP_X + 14] as const]
     : []
-  drawLipids(ctx, { midY: WALL_Y, from: 0, to: PT_W, gaps: gap, pushAt })
+  drawLipids(ctx, { midY: WALL_Y, from: 0, to: PT_W, gaps: gap, pushAt, ms })
   if (aquaporin) {
     // ⚠ ITS OWN PROTEIN, not an ion channel wearing a different tint (user,
     // 2026-08-30). It used to borrow the generic gated-channel drawing with
