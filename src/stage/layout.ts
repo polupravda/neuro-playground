@@ -10,6 +10,7 @@ import { ION_FACTS } from '../core/ions'
 import { LEAK_FACTS, PUMP_FACTS } from '../core/proteins'
 import { CHANNELS, CHANNEL_OVERVIEW } from '../core/channels'
 import { VOLTAGE_FACTS } from '../core/voltage'
+import { SPINE_HONESTY, SPINE_PARTS } from '../core/spine'
 
 // Geometry of the whole scene: three input neurons, the focus neuron, and its
 // target. Partners are drawn small and clipped by the canvas edges — the
@@ -820,6 +821,23 @@ export const AXON_VIEW_SCALE = Math.round(AXON_VIEW_PX / AXON_W)
  *  big the terminal is drawn and the camera follows it. */
 export const SYNAPSE_VIEW_SCALE = Math.round((STAGE_W * 0.42) / (1 * PX_PER_UM))
 
+/** The spine framing's magnification — see the target for why it is this. */
+export const SPINE_VIEW_SCALE = SYNAPSE_VIEW_SCALE * 2.4
+/** Where the presynaptic wall lands on screen at that framing: just under the
+ *  view's top chrome, so the membrane is not sitting behind the timeline. */
+export const SPINE_TOP_PX = 120
+
+/** ⚠ HOW FAR DOWN THE CAMERA DROPS to leave the terminal behind and put the
+ *  spine in the middle of the frame, in scene units.
+ *
+ *  ⚠ AND IT IS SET BY THE MARKER RULE, not by taste. Two doors at one place
+ *  need a marker's own diameter of clearance between them; at 34 this sat 22px
+ *  from the active zone's marker and the guard rejected it. It has to clear the
+ *  cleft anyway — this is the first synapse place on the FAR side of it — so
+ *  the two requirements point the same way. */
+export const SPINE_DROP = 52
+
+
 /** Which way this stretch of axon runs, radians. Measured over the STRETCH a
  *  view frames (±1% of the cable), not at a point — the traced arc curves,
  *  and it is the stretch that has to lie level on screen. */
@@ -1606,7 +1624,7 @@ export interface ZoomTarget {
   /** Arriving here replaces the scene with a view of its own, so the
    *  whole-neuron controls have nothing left to act on. A membrane patch is one
    *  of these already, by having a `frame`; this names the others. */
-  presents?: 'axon' | 'synapse'
+  presents?: 'axon' | 'synapse' | 'spine'
 }
 
 /** Whether arriving at this target puts up a view of its own rather than a
@@ -1858,6 +1876,38 @@ export const ZOOM_TARGETS: ZoomTarget[] = [
     turn: 0,
     promise:
       'The release machinery at working distance: one calcium door, the vesicles it serves, and the receptors across the gap.',
+    roadmap: 'Synapse milestone',
+  },
+  {
+    // ⚠ S13 — THE RECEIVING SIDE, AND THE CAMERA GOES DOWN AS WELL AS IN
+    // (user, 2026-09-11: "shift the camera position down, in comparison to
+    // 'synapse' view. place dendritic spine in focus"). Everything the other
+    // three synapse places show happens in the TERMINAL; this is the first that
+    // crosses the gap, so the camera has to leave the bouton behind rather than
+    // magnify it.
+    id: 'spine',
+    // ⚠ A VIEW OF ITS OWN (user, 2026-09-11: "Do not place 'spine' in the same
+    // wiev, it represents a different neuron and a different concept"). It
+    // re-implements only its FRAME; every membrane, bubble, receptor and ion in
+    // it is drawn by the round trip's own code — see `stage/spineScene.ts`.
+    presents: 'spine',
+    label: 'The receiving spine',
+    center: {
+      x: mid(OUTGOING.bouton, OUTGOING.tip).x + 38,
+      y: mid(OUTGOING.bouton, OUTGOING.tip).y + SPINE_DROP,
+    },
+    // ⚠ x2.4, SOLVED, NOT CHOSEN (21c-37). The three things this framing has to
+    // do — spine dominant, presynaptic membrane visible under the chrome, and
+    // the receptors ON SCREEN — pick the magnification between them. Measured
+    // across the candidates: at x4 the five receptors span 1365px of a 1060px
+    // stage and the outer ones are simply not in the picture; x3 still overruns
+    // at 1024px; x2 fits but leaves the spine only 45% of the frame. x2.4 is
+    // the only one that does all three, at 819px and 54%.
+    scale: SPINE_VIEW_SCALE,
+    turn: 0,
+    promise:
+      'What the message does when it lands: two kinds of receptor, the magnesium that guards one of them, and what it takes to get past it.',
+    content: [...SPINE_PARTS, ...SPINE_HONESTY],
     roadmap: 'Synapse milestone',
   },
 ]

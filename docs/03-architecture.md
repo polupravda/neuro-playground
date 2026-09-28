@@ -2433,6 +2433,519 @@ cent, the fix is legs, not speed. Slow the leg, never the item — the map is
 linear inside each leg, so nothing ever moves at a pace the model did not give
 it, and a test walks the clock to prove it.
 
+## Guard the MIDDLE of a transition, not only its ends (2026-09-06)
+
+*A guard you have not broken is a guess* — and D18's break round found the next
+turn of that screw: **a guard you broke with a fixture that is already past the
+moment cannot fail either.**
+
+Three deliberate mutations to the synapsin ropes survived: tying every vesicle
+instead of the reserve, never moving a freed vesicle, and assigning
+`globalAlpha` outright instead of multiplying it. All three looked like solid
+guards. All three were measured on a fixture that had hammered the terminal
+until `freed` reached 1 — by which point the reserve pool is empty, no rope is
+drawn on that frame at all, and the mutated code never runs.
+
+The ropes have **three** states — tied, going slack while the reserve comes
+forward, gone — and only the ends were being asserted. The middle one is the
+only one a child actually watches.
+
+So: when a thing changes over time, **build a fixture for the moment it is
+changing**, not only for before and after, and assert the in-between: present,
+part-way, and strictly between where it started and where it is going. The same
+round also deleted an `if (s.freed >= 1) return []` that no mutation could make
+matter — **code a break cannot reach is not a rule, it is decoration.**
+
+**And a journey has more than one leg** (2026-09-06). D18's transmitter balls
+wait in the bubble, cross the mouth, then drift down the gap — three branches.
+Two mutations survived a whole round by hiding in the crossing leg alone: no
+assertion ever sampled a moment when a ball was on it. Count the branches in the
+function and make sure a fixture lands on each; "before and after" is two
+fixtures for a three-legged journey.
+
+**Ask for what the budget PROMISED, not merely for the absence of collision**
+(2026-09-06). The pools' seats are solved to leave `GAP_X` of clear air between
+neighbours. A break that spaced them on the vesicle's *ring* instead of its
+outer radius left 94.8 px between 92 px bubbles — 2 px of air, visibly wrong,
+and a guard asking "do any two overlap?" passed it. A solved layout exports the
+pitch it solved for, and the guard asks for that number.
+
+## When a request needs a molecule drawn, change the COUNT, not the molecule (2026-09-06)
+
+*Level of detail cuts both ways* says: draw less than the app owns when the
+molecules would be smaller than a pixel. D18 met the case where the user wants
+them anyway — "make vesicles have visible lipids" — and the arithmetic was
+brutal: a pool vesicle was **31 px across while one shared lipid is 32.7 px
+thick.** The molecule was larger than the object.
+
+There are only three ways out, and two of them are bad. Shrinking the lipid to
+fit is drawing something sub-pixel. Exaggerating the lipid alone breaks *one
+protein, one drawing* and leaves a bubble that is mostly skin. The third is to
+**make the object big enough to be made of something** — which meant cutting the
+counts from 5/6/9 to 3/4/6, and that was the user's call to make, so it was put
+to them with the numbers.
+
+The rule: when an exhibit must show what a thing is MADE of, the thing's size is
+no longer free. Solve it from the molecule up, put the cost — fewer of them — to
+the user, and declare whatever exaggeration is left beside the true proportion.
+D18's lipid head is 3x its honest size and says so; its COUNT is not
+exaggerated, and neither is its structure.
+
+## Everything that opens the wall opens it for EVERYONE (2026-09-07)
+
+D18's reported tear. Every fusion inserts its vesicle's membrane into the wall,
+so it pushes the wall's molecules aside — and **it pushes the other fusions
+aside too.** The bubbles were drawn at their parking spaces while the gaps they
+were meant to fill had moved. Measured on the drawn molecules: two bubbles
+merging together tore a **59 px hole**, at a place neither of them was.
+
+One fusion alone was always sound, which is the trap: the bug needed a burst to
+appear, and every fixture in the guard suite used a single spike.
+
+Two rules come out of it:
+
+- **When several instances of an effect share a surface, each one is subject to
+  the others.** Compute the displacements first, then place every actor in the
+  displaced frame. Do not place actor *i* from the undisplaced geometry.
+- **Keep the material frame and the drawn frame apart, and know which one each
+  question belongs in.** "Which side of this opening is that molecule on?" is
+  asked in the wall's own undisplaced coordinates — that is the frame the
+  pushing is *decided* in. "Where do I paint this bubble?" is asked in displaced
+  ones. Mixing them is exactly what tore the membrane.
+
+## A sampler must be told which molecule will pave it (2026-09-07)
+
+Two drawings of one membrane in a single picture, reported as *"lipids in
+membrane and vesicles are different, unify"*. The size gap was the visible part;
+the cause was structural.
+
+**A lipid's shape is a RATIO, not a size.** `drawLipidAt` seats the head at
+`halfMem − headR` and stops the tail at `headR × MID_SEAM`, so the tail's length
+is `halfMem − 1.75 × headR`. Scale a lipid by changing only one of the two
+numbers and you have not scaled it — you have drawn a different molecule. The
+wall's ratio was 5.0, the vesicles' 2.5: a small head on long tails beside a fat
+head on stubs.
+
+**And the shared samplers silently allowed only one molecule.** `omegaRing`,
+`wallPoints` and `ringPoints` each computed their sample spacing from a private
+constant pinned to the default lipid. Any caller paving with a different one got
+heads strung out in a dotted line — and could not even express the fix. The
+packing rule now lives once, in `bilayer.ts` as `lipidSpacing(geom)`, and every
+sampler takes the spacing of the molecule that will pave it.
+
+So, generally: **wherever a routine SAMPLES a path for something else to draw
+on, the sampling density is part of that something else, and must travel with
+it.** A default is fine; a hard-coded constant that only suits one caller is a
+rule that cannot be followed. And when the same routine has a fast path (here, a
+resting ring short-circuiting to `ringPoints`), thread the parameter through it
+too — otherwise the object changes appearance the moment it stops being still,
+which is precisely the bug this exhibit shipped.
+
+## True geometry can still read as a fault — and the register decides (2026-09-09)
+
+*"Membrane gets gaps at exocytosis."* Measured, there was no tear: every gap
+away from the fusion was the wall's own molecular spacing. The gaps were the
+fusion MOUTH, and the mouth was geometrically exact — a sphere collapsing into a
+plane opens a crater, 120 px wide at the half-merge.
+
+**Correct and unreadable are not exclusive.** At the SNARE bench the same
+geometry reads perfectly, because one vesicle fills the frame and conserving its
+membrane molecule by molecule IS that bench's lesson. On a wide panel where the
+wall is a long straight line, an opening that size reads as the line breaking.
+
+So the question is never "is it right?" alone, but **"is the thing it is right
+about this view's subject?"** Here the subject is a pool running out; the
+membrane's continuity is context that must not distract, so the opening is
+capped at a pore and the wall carries on across. There the subject is the fusion
+itself, so every molecule is accounted for. One biology, two registers, each
+declaring what it gives up.
+
+**And a drawing that stops conserving must stop drawing the conserved thing.**
+`omegaRing` unrolls a sunken bubble's molecules along the wall; once the wall
+draws its own across that stretch, taking the whole ring would lay the membrane
+two deep — at four fifths of a merge, 66 of the ring's 85 molecules. Only the
+dome is taken. **A guard hunting for gaps cannot see this**, because too much
+ink leaves no hole: it needed a guard that counts.
+
+## Ink drawn UNDER something must go when that something does (2026-09-09)
+
+D18's docking-site mark is a tint on the wall, painted under the wall's
+molecules on purpose: seen through them it reads as a denser stretch of
+membrane, which is what an active zone is. Then a bubble merges there, the wall
+gives up its molecules across that stretch — and the tint is left alone on the
+canvas as a bare grey block.
+
+Nothing about either piece was wrong. The fault was in the **dependency**: ink
+that is designed to be seen through a layer has no meaning without that layer,
+and the layer had a perfectly good reason to leave.
+
+So, whenever something is drawn to be seen THROUGH or UNDER something else, ask
+what it looks like when the thing above it is gone — and tie the two together
+so they leave and return in the same frame. Here the tie was already available
+in the meaning: the mark says "an empty parking space", and a space with a
+bubble merging out of it is not empty. **Fixing it at the meaning rather than at
+the ink is what makes it come back at the right moment too.**
+
+## An object travels; a CONCENTRATION fades (2026-09-08)
+
+This app forbids fading things into existence, and for a good reason: 21c-14
+rewrote the clathrin coat because pinwheels were swelling out of nothing, and a
+protein arrives from the cytosol and binds — it does not condense out of the
+air. So when D18 needed to show a retrieved vesicle being refilled with
+transmitter, the rule appeared to bite.
+
+It does not, and the line is worth drawing. **An OBJECT has a place it came
+from, so it must travel.** A protein, a vesicle, an ion: draw the journey.
+**A CONCENTRATION does not** — "more of it than there was" is the whole event,
+and there is no path to show. When five drawn balls stand for thousands of
+molecules being pumped in, the honest picture is the amount going up.
+
+The test: *could you point at where it came from?* If yes, it travels. If the
+answer is "from all around, a molecule at a time", it is a concentration, and
+fading — or better, appearing one at a time so the reading is a COUNT — is the
+truthful idiom rather than a shortcut.
+
+## When the user IS the variable, a second panel is answering nothing (2026-09-08)
+
+D18 spent several rounds hardening a two-terminal comparison against a child who
+hammers the button — patterns, refractories, rests — and then the user's own
+testing dissolved the problem: *"kids would press the fire button continuously…
+that's what the kid already does."*
+
+The insight is sharper than "the burst is redundant". **If the child's own input
+already supplies the variable being compared, a second panel is invisible**, not
+merely unnecessary: the child cannot perceive that one panel is doing something
+their finger is not, so the difference between the panels has no cause they can
+see. The comparison was real in the model and unobservable in the room.
+
+So the test to apply before building any A/B exhibit: **can the viewer see what
+makes A different from B?** If the difference is a stimulus they themselves are
+generating, they cannot — and the honest exhibit is ONE subject with the
+viewer's own behaviour as the variable, which is also how the experiment is
+really done (same synapse, two rates; not two synapses).
+
+**What replaces the comparison is a prediction.** With one terminal, five
+countable bubbles and one message per press, the exhibit says: count them, press
+that many times, and the next press is the one that fails. A thing the child can
+predict beats a thing they can compare, because it makes them commit first.
+
+**And the input still needs a limit that belongs to the subject, not the hand.**
+A refractory — real, and the reason a neuron has one — means hammering asks more
+often without making the terminal fire faster. Without it the exhibit measures
+the child's wrist.
+
+## A comparison must survive the child (2026-09-07)
+
+D18 put two terminals side by side and let the child tap a shared button. The
+user saw the flaw before the guards did: *"kid will fire signal button
+continuously… both sides get the same amount of sparks in the end. comparison
+idea does not work."*
+
+Measured, it was worse than suspected: from a tap every 800 ms downwards the two
+sides were **identical in every column**. Both were throttled by the same
+per-message spacing and by the same resupply ceiling, so hammering collapsed
+them into the same terminal drawn twice.
+
+**Two things a comparison needs, and the second is easy to forget:**
+
+1. The two sides must differ in something the user cannot flatten.
+2. **The user's input must not be able to become the dominant variable.** A free
+   button that injects events lets the child's wrist overwrite the very
+   parameter being compared.
+
+The fix that generalises: **an input should TRIGGER a behaviour, not inject
+one.** Each side turns a tap into its own pattern — count, spacing, and a
+refusal to start another until it has rested — so tapping faster asks more
+often and changes nothing else. It is also the truer model: what is being
+compared is two firing patterns, not two button-press counts, and a real neuron
+has a refractory period for exactly this reason.
+
+**Before shipping any comparison, drive it at the extremes** — as slow as a
+patient adult and as fast as a child can hit it — and check the difference
+survives. Ours did not, and only a measurement said so.
+
+## An unguarded change is a change that may not have happened (2026-09-07)
+
+One of five requested edits in this round silently did not apply: the string it
+was meant to replace had drifted, the replace was a no-op, the suite stayed
+green, and the feature was reported as done. It surfaced only because a
+break-round mutation could not find its own pattern either.
+
+Nothing about the code was wrong. What was missing was a guard: no test asked
+where that glow was drawn, so nothing could tell the difference between "moved
+it" and "did not move it".
+
+So: **every item on the action list needs an assertion that fails if it was not
+done** — before it is reported as done. It is the same reason a break round
+exists, one step earlier: a green suite only means the things it asks about are
+true.
+
+## When one drawn thing stands for MANY, the rules change with it (2026-09-07)
+
+D18 was asked to make each drawn vesicle represent a large group, so five
+bubbles could stand for the whole pool near a patch of wall. That is a drawing
+decision with a modelling consequence, and missing it would have been a
+scientific error.
+
+**A per-item probability does not survive quantisation.** Release probability is
+a property of an individual vesicle — a few tenths — and the model rolled it for
+each drawn bubble. Correct while a bubble was a bubble; wrong the moment one
+stood for hundreds, because the average of hundreds of coin flips is a steady
+share, not a gamble. Drawing it as a dice roll would have overstated the noise
+by an order of magnitude, and it was also what made the picture uncountable: two
+identical taps gave different answers.
+
+So: **whenever a drawn item is promoted to a stand-in for a group, re-derive
+every per-item rule attached to it.** Probabilities become fractions. Discrete
+events become rates. "This one either goes or does not" becomes "this much of it
+goes". And say in the info block what one drawn thing means, because the child's
+arithmetic depends on it — "the last bubble has gone" has to mean "this patch
+has spent what it had nearby", not "the synapse is dead".
+
+## Some requests cannot both be met — do the arithmetic and say so (2026-09-07)
+
+D18 was asked for merges that never overlap AND for a strong signal that visibly
+exhausts the terminal. They are arithmetically exclusive: a parking space frees
+itself partway through a fusion and storage refills it at once, so messages
+spaced far enough apart not to overlap always find the row refilled. Simulated
+before building: a strong signal sent `1,1,1,1,1` and nothing ever ran out.
+
+The useful move was not to pick one silently, and not to ask an open question
+either. It was to **work out the exclusion exactly, quote the simulation, and
+put the concrete alternatives with their costs in numbers** — merges overlapping
+0.65 s apart, or seven messages instead of five, or the exhaustion moving to the
+next tap. The user then supplied a decision RULE rather than a choice ("whatever
+makes clearer differentiation between yes and no"), which settled it and would
+have settled the next three questions too.
+
+**Ask for the rule, not just the answer.** A user who has told you what they are
+optimising for has armed you for every trade that follows.
+
+## A threshold's job is to reject the NEAR MISS (2026-09-07)
+
+D18's gauge has a line on it marked *signal received*, and the first guard for
+it asked only that a failed message stayed below the line. A mutation dropping
+the line to a quarter of its value survived the whole break round.
+
+The reason is worth keeping: **a total failure produces exactly zero, and every
+positive threshold is above zero.** The case a threshold exists to reject is
+never the empty one — it is the NEAR MISS: here, the couple of stray balls of a
+neighbour's cargo still crossing when a message finds nothing to send. A guard
+that only tries the empty case is testing that the number is positive.
+
+So: when a rule turns a continuous reading into a yes/no, find the largest input
+that must say *no* and the smallest that must say *yes*, and pin the line
+between them — in the constants, so it cannot drift when they change.
+
+## A failure must be drawn, or the exhibit teaches the opposite (2026-09-07)
+
+The sharpest correction this app has had. Asked what conclusion the pools
+exhibit was meant to support, the user answered: *"no matter how intense and how
+many signals the bouton gets, it manages to pass down the signal"* — the exact
+inverse of synaptic depression, which is the whole reason the exhibit exists.
+
+The model was never wrong: 190 messages, 40 vesicles, 84% of messages releasing
+nothing. **The failures simply had no ink.** A message that released nothing was
+drawn as a flash arriving and then nothing happening — and *nothing happening
+reads as nothing to look at*, never as "that one failed". What did have ink was
+the successes, which kept coming, and the reserve mobilisation, which looks like
+a rescue. A viewer assembles the story from what is drawn, so they assembled the
+opposite one.
+
+**The rule: if an exhibit's subject is that something FAILS, the failure needs a
+mark of its own.** Absence is not a mark. Ask of every exhibit: what does the
+negative case look like, and would a viewer who saw only negative cases know
+anything had happened at all?
+
+The fix that generalises is to **draw the consequence, not the mechanism's
+absence**. Here that meant giving the gap its far side: the receiving cell,
+lighting up by exactly as much transmitter as reaches it. A success is a light,
+a weak release is a dim light, and a failure is a flash arriving and the far
+side staying dark — which is a *visible event*, not an absence. The negative
+case now has ink because the positive case has a place to happen.
+
+Two measurements that shaped it, both worth repeating elsewhere:
+
+- **Check the reading is not saturated.** Scaled against one vesicle, the light
+  was full for one bubble and full for three: "a lot got through" and "a little
+  did" looked identical. Scale a reading against the MOST that could happen, not
+  against a typical case, and check the ends differ.
+- **An answer must follow its cause closely enough to be recognised as its
+  answer.** The first version lit up 4.4 seconds after the message, because the
+  journey was expressed as a fraction of another clock instead of as a real
+  crossing. Anything the viewer is meant to read as a consequence must be timed
+  in absolute terms against the thing that caused it.
+
+## Stillness is what makes motion readable (2026-09-07)
+
+*"Vesicles are all the time moving around, I am not able to track which are
+gone."* Measured: something moving in **100% of frames**, and three or four
+objects pushed off the panel entirely.
+
+Both causes were fixes from the round before — a wall that slid to conserve
+membrane, and a crowd that closed ranks after every departure. Each was right in
+isolation and each added a *global* movement in response to a *local* event.
+Together they meant nothing on screen ever stood still, and a picture where
+everything moves shows nothing.
+
+The rule: **an event should move what it happens to, and nothing else.** Before
+adding a motion, ask how many objects it moves per event and how often the event
+fires. One release firing a movement of all thirteen objects, twice a second, is
+not an animation — it is noise.
+
+Two corollaries, both of which fell out of this:
+
+- **Conservation inside a frame is a register question.** Making room by pushing
+  everything aside is honest when one object fills the picture. In a small
+  window on a much larger structure, the real answer is that the disturbance
+  dies away long before the frame's edge — so the honest drawing moves nothing,
+  and the material is accounted for locally instead (here: the wall simply does
+  not draw its own molecules where the vesicle's membrane now is).
+- **Gaps are a reading.** Once things stop shuffling, the holes they leave
+  become countable, and "how many have gone" is answerable by looking. Closing
+  ranks destroys exactly that information while adding motion — it costs twice.
+
+And **a place must be visible for its emptiness to be**: the docking sites are
+marked, faintly, so an empty one reads as empty rather than as background.
+
+## Draw what a thing is tied TO (2026-09-07)
+
+*"I don't understand what is that yellow 'rope' that connects vesicles?"* The
+ropes ran from bubble to bubble, with one string going off to an anchor point
+that was never drawn. "Tied down" cannot read when there is nothing to be tied
+to; without its other end a rope is just a line between two things.
+
+**Anything whose meaning is a RELATION must have both ends on the page.** A
+tether needs its anchor, a pump needs the gradient it works against, a scaffold
+needs to be drawn before anything can be attached to it. Where the other end is
+real — here, the actin network a terminal's reserve is genuinely tethered to by
+synapsin — draw it, quietly, as furniture; it costs one muted object and turns
+an unreadable line into a picture that explains itself.
+
+## Two kinds of motion, and only one of them eases (2026-09-07)
+
+D18's reported teleporting, and the shape of the fix generalises.
+
+Things on screen move for two quite different reasons:
+
+- **A change of PLACE** — it docked, it closed ranks, the reserve came forward.
+  This is a journey. It must be eased, or it is a teleport.
+- **Being CARRIED** — a bubble stuck to a membrane that is being shoved aside by
+  an opening. This is not a journey at all. It must be rigid: the same instant,
+  the same amount, no easing.
+
+Easing both makes the carried thing lag the surface it is attached to — and then
+jump when something forces them to line up. Easing neither leaves the teleports.
+Getting it wrong in either direction was measured at 307–529 px in one frame.
+
+**The mechanism that separates them without special cases.** One function gives
+the exact position — seat or schedule, plus whatever the surface is doing under
+it — together with a **key naming the rule that produced it**. The animator eases
+only the DIFFERENCE between one rule and the next: when the key changes, the
+whole discrepancy becomes an offset (which leaves the thing exactly where it
+was) and a critically damped spring walks that offset to nothing. Everything
+continuous passes through untouched and on time.
+
+It covers discontinuities you have not found yet, which a list of hand-handled
+transitions does not: D18 had four, and three of them only appeared under
+measurement.
+
+**Use a spring, not a decay.** An exponential decay toward a target is fastest
+at the very start — measured, a bubble moved 19.3 px in its first frame and then
+crawled, reading as a dart. Critical damping sets off from rest, has no
+overshoot, and carries velocity, so a target that moves mid-journey bends the
+path instead of restarting it.
+
+**And a teleport does not scale with the frame.** Real motion covers twice the
+ground in twice the time; a jump is the same size however often you look. Walk
+the run at two framerates and require the worst movement to roughly double — a
+guard that needs no magic number for "how far is too far", and that no absolute
+threshold can fake.
+
+## Slowing an animation is a CHAIN, not a number (2026-09-07)
+
+"Make the animation much slower" looked like one constant. It was four, in a
+strict order, and the order is what the guards now pin:
+
+    FUSE_MS  <  CARGO_MS  <=  RECOVER_MS
+
+A bubble's cargo has to outlast the fusion that let it out, or the balls vanish
+before they have been seen leaving. A bubble must not rejoin the crowd while its
+own cargo is still falling down the gap, or both teleport. So the later constants
+are **derived** from the earlier ones rather than typed, and slowing the first
+one carries the rest with it.
+
+**And the slower drawing charged the model rent.** A fusion holds its parking
+space, so three spaces at three seconds each cap a terminal at one release a
+second — below what the exhibit needs. The sweep's cheapest answer was to raise
+the release probability, which would have been *bending the biology to protect
+the demonstration*: the thing *never quietly protect the story* exists to stop.
+
+The two levers that paid instead were both **artifacts of the drawing, not
+facts about the cell**:
+
+- **The occupancy was fictional.** A real fusion clears its site in about a
+  millisecond; the seconds this exhibit spends on one are demonstration. What
+  the picture actually needs is only that a fresh vesicle is not painted over
+  one still standing proud of the wall — which the geometry dates precisely
+  (p = 0.812). So the space frees itself at 0.85, and a guard MEASURES the
+  clearance rather than trusting the number.
+- **A count was understated.** Four docked spaces instead of three cost no
+  drawing (the widest rank was already four) and moved *toward* the biology, not
+  away: a real readily-releasable pool runs to five or ten.
+
+They paid well enough that the release probability came **down**, 0.55 → 0.50.
+
+The rule: **when a pacing change starves the model, look first for the constants
+that are artifacts of the drawing.** They are free to move. The ones that
+describe the cell are not — and if only those are left, say so and put the
+trade to the user rather than nudging them.
+
+## A stronger signal is MORE, never BIGGER (2026-09-06)
+
+The user asked for "a small flash of light" against "a big flash of light" to
+tell one message from a burst. That reads instantly, and it teaches something
+false: an action potential is **all-or-none**, every spike the same size, which
+the spike-train bench already teaches. A burst is more spikes.
+
+Raised as a conflict rather than resolved (the standing rule), and the user took
+the honest option: five identical flashes, arriving as a train a child can
+count. It is also the better picture — five things in one glance beats a
+brightness a child has nothing to compare against.
+
+Generally: **when a quantity in the biology is a rate or a count, draw a rate or
+a count.** Reaching for size or brightness to encode it is how an exhibit ends
+up teaching that a big stimulus makes a big spike.
+
+**And the count a child reads comes from the model.** D18's burst icon is
+`'⚡'.repeat(BURST_N)` — so the bolts in the headline, the bolts on the button
+and the flashes on the canvas cannot drift apart. A hand-typed "⚡⚡⚡⚡⚡"
+is a fourth copy of a number that already exists.
+
+
+
+## Measure the claim where the CHILD reads it (2026-09-06)
+
+D18's whole claim is "the burst terminal runs dry and the gentle one keeps up".
+The first guard measured it on the leftover docked count — and failed with the
+two terminals **inverted**: the hammered terminal held 4 parked vesicles and the
+gentle one 2.
+
+The model was right. A hammered terminal **mobilises its reserve**, so late in a
+run it genuinely holds more parked bubbles than a gentle one — which is real
+biology (it is why hard use can strengthen a synapse for a moment, and it is in
+the info block). The internal count was simply not the claim.
+
+What the child sees is the **puff in the gap**. Re-measured there: the burst
+terminal fails 0.67 of its messages against the gentle one's 0.33, and releases
+0.45 per message against 1.00 — a difference that reads on screen, and the one
+the exhibit is actually making.
+
+This is *Ask the DECISION, not the ink* pointed at the model rather than the
+drawing: pick the quantity the exhibit's sentence is about. A guard on a nearby
+internal number can be perfectly true, perfectly green, and about something
+else — or, as here, true and pointing the wrong way.
+
 ## A fade must be a property of the surface, not of the ink (2026-08-31)
 
 Canvas `globalAlpha` is **set, not multiplied.** A drawing that assigns its own
@@ -2903,6 +3416,1342 @@ short-lived "schematic register" that had been invented to accommodate a
 textbook-flat reference). An incoming reference is reconciled there in
 writing — and any conflict with a standing rule is put to the user as explicit
 questions **before** the spec is written, never resolved silently.
+
+## An opening is sized off the SHEET, not off what must pass through it (2026-09-11)
+
+> "membrane gets gaps at exocytosis" — user, 2026-09-09
+> "there's still no seamless merge, gaps appear. fix" — user, 2026-09-11
+
+The same complaint twice, and the first fix was real. A vesicle sinking into a
+flat wall geometrically opens a **crater** — measured on D18, 45 px a quarter of
+the way through a merge and **120 px at the half**. Capping that to a pore and
+letting the wall carry its own molecules across the rest took the worst opening
+down to 25 px. The membrane was continuous everywhere a probe could walk it: the
+worst hole on the wall line or on the merging bubble's dome was **3.9 px**.
+
+And the child still saw a gap, because **25 px was being judged against the
+wrong number**. The cap had been sized off the thing that has to get out —
+`cargoR * 1.3`, a pore wide enough to pass a transmitter ball whole. But nobody
+looks at a hole and thinks "is that wide enough for the cargo". They look at it
+against **the wall it is in**, and in that wall neighbouring lipid heads sit
+**0.11 px apart**. A 25 px opening is 230× a normal gap and five missing
+molecules. Of course it reads as a break.
+
+**So size the opening off the material, not off the payload.** The wall now
+stands aside by **half its own packing pitch**, which removes exactly the one
+head nearest the site. Measured per leaflet, the clear span goes **25.4 px →
+4.8 px** — one molecule's step — and because the two leaflets are staggered the
+sheet as a whole never opens past **2.3 px**.
+
+The payload is then wider than the hole it leaves by, and that is the right way
+round: a real fusion pore is 1–2 nm against a 40 nm vesicle, so the drawing's
+sin was always the cargo's size and never the pore's. It is declared beside the
+real number in the info block, as every exaggeration here is.
+
+### Measuring it
+
+Three things this cost, all of them guard-shaped:
+
+- **Measure a gap as a CLEAR SPAN, and in ONE leaflet.** Centre-to-centre
+  distance is not what an eye sees — subtract the two heads. And a bilayer's two
+  rows are staggered, so a hole in one leaflet is filled, in projection, by the
+  other's heads: measuring the band as a whole reported 2.3 px where the leaflet
+  that actually had the hole was open by 4.8 px. Collapsing the two hid the very
+  thing being measured.
+- **Bound it against the packing.** "Less than `G.r * 0.6`" is a number with no
+  meaning in it. `one molecule missing` is `2 x pitch - 2 x headR`; `two missing`
+  is `3 x pitch - 2 x headR`, half again as wide. A bound between them says what
+  it is guarding, and fails the moment a second molecule goes.
+- **Walk every leg that opens the wall.** Exocytosis and endocytosis both open
+  it, and the *bud* was the worse of the two (25.4 px against 20.9). A guard that
+  walked only the merge would have gone green while the picture was still broken
+  where the child watches a new bubble being made. Breaking the fix confirmed it:
+  the worst point reported was at 0.35 **of a bud**.
+
+### And the older lesson underneath
+
+The first round's reasoning still stands and is not superseded: a crater is the
+*true* geometry, and at the SNARE bench — one vesicle filling the frame, where
+conserving its membrane molecule by molecule IS the lesson — it reads as an
+opening and is drawn. On a wide panel with a long straight wall it reads as a
+break. **The register decides**, and what D18 gives up is the other bench's
+material conservation, which is that bench's lesson and not this one's.
+
+## Ink a guard cannot see is a claim you cannot make (2026-09-11, D07)
+
+Two guards on D07 went green while measuring nothing, for two different
+reasons, and both are traps any future exhibit can walk into.
+
+### `fillRect` lays no vertices
+
+`strictCanvas` records **path vertices** — `moveTo`, `lineTo`, `rect`, `arc` and
+the curves. `fillRect` and `strokeRect` are ink-laying calls, so they reach
+`alphas` and `inks`, but they put **nothing in `points`**. A wash painted with
+`fillRect` is therefore in the picture and invisible to every positional guard:
+the test asking "is the negative wash painted on the INSIDE of the cell?" found
+no marks below the membrane at all and could only fail with `undefined`, never
+with a wrong answer. The bar under each panel was the same — three `fillRect`s,
+zero points, a guard that could not tell a bar from no bar.
+
+**So draw a rectangle you intend to make claims about as a path** —
+`beginPath`, `rect`, `fill`. It is the same pixels and it is measurable. Where
+a `fillRect` really is decoration, leave it, but then do not pretend a guard
+covers it.
+
+### Isolate a measurement by DIFFERENCE, not by picking the most X
+
+The second failure was subtler. The guard for "the inside reads blue while the
+magnesium blocks" pulled every colour the panel laid down and took the one
+leaning furthest to blue. It passed, and it was reading a **lipid**: this app's
+slate is `148, 163, 184`, which leans blue by 36, and at a mild depolarisation
+the wash's own tint is weaker than that. The guard was true, green, and pointed
+at the wrong object — the *Measure the claim where the CHILD reads it* failure
+in its purest form, one level further in.
+
+The fix is not a better heuristic. **Change only the variable under test and
+diff the two renders.** Every colour that differs between a panel at −70 mV and
+the same panel at +20 mV belongs to the wash, because nothing else in the frame
+depends on the voltage. No filter, no ranking, no way for a lipid to creep in.
+The same shape works for any "does X respond to Y?" claim on a busy canvas.
+
+## One number, one picture — or they will disagree (2026-09-11, D07)
+
+> "at −15 mV … the Mg block lifts up, but after the channel opens it 'falls'
+> back to the top of the channels, covering the entrance. Yet, the ions pass
+> through this channel. Fix this inconsistency." — user
+
+Two drawings in one frame were both showing the magnesium block. The stone drew
+it as a **depth** — how far down the pore it sat, scaled by how far the pore had
+opened. The seven travelling ions drew it as a **count** — a seeded coin per
+crossing, against the same fraction. Each was defensible alone. Together they
+contradicted each other in front of the child: a stone parked over the doorway
+while ions streamed past it.
+
+**A fraction may be spent once.** When one drawn thing stands for many, the rule
+is already written here — a probability becomes a fraction of something
+countable — and the mistake was applying it to the ions and not to the stone. A
+single stone has only its own TIME to spend, so a 47% block is a stone in its
+seat 47% of the time, flickering in and out. Which is also what magnesium really
+does, far faster than an eye can follow.
+
+Then the ions stopped rolling their own coin and started **asking the stone**:
+a traveller gets in exactly when the stone was out as it arrived. One decision,
+two views of it, no way to disagree.
+
+### The aggregate is not the claim
+
+The first guard written for this compared the share of ions that get in against
+the share of time the stone is out of its seat. **Both drawings passed it** —
+the old one and the new one — because the disagreement was never in the rate.
+Both renderings produce the same rate; they differed instant by instant, which
+is the only place a viewer ever looks.
+
+So the guard had to be per-traveller: each ion's decision against the stone **at
+the moment that ion reached the mouth**, which meant the drawing had to hand
+back when that moment was. And the companion guard — "it never parks in the
+doorway" — had to be measured as the **share of time spent part-way** between
+its two places, because that is the only measurement that tells a stone which is
+travelling from a stone which has stopped. The old drawing scores 100% at any
+middling voltage; the new one at most a tenth.
+
+Both were caught only by the break round. Written and passing, neither could
+fail: one band was 8.8 px wide against a fault that parked the stone 17 px in,
+and the other was asking about averages. **A guard you have not broken is a
+guess** — and this was two of them in one commit.
+
+## A wobble is a FRACTION of what wobbles (2026-09-11, the bilayer)
+
+> "the lipids layer keeps looking very uneven: lipids are grouped, overlapping
+> on z-direction. Unify height" — user
+
+`lipidJiggle`'s amplitude was an absolute **0.9 px**, tuned by eye in the lipid
+lab where a head is 2.84 px across the radius — a wander of **0.32 head radii**,
+which reads as a liquid. The synapse view paves its walls with the same molecule
+at a third the size, and there the same 0.9 px is **0.9 head radii**. Measured:
+**1.2 head radii of scatter across the wall** and **0.68 of the packing pitch
+along it**, so heads climbed over each other and the row lost its line.
+
+**This app draws at magnifications thousands apart, so a part's size is a
+fraction of the thing it belongs to and never a number of pixels.** It is the
+same lesson the charge badges cost once already (`BADGE_FRACTION`, and a
+`BADGE_MIN_SCREEN_PX` that callers must convert themselves). Motion is a part
+too: an amplitude tuned in one view is a different motion in every other.
+
+The fractions were calibrated so the view they were tuned in comes out
+byte-identical — which is what makes such a fix safe to make at all, and is
+worth a guard of its own.
+
+### Guard the WIRING, not just the rule
+
+The first guard called `lipidJiggle` directly at three scales and required the
+same fraction. It passed — and it went on passing when the paver stopped handing
+`geom.headR` down at all, because the guard never went through the paver. A rule
+can be right in the one place a test looks and unused everywhere the drawing
+actually happens.
+
+So the second guard paves a straight wall at two molecule sizes and measures the
+**drawn scatter** in head radii off the canvas. It fails the moment the size
+stops being passed: 2.71 head radii against 1.78.
+
+## Two views of one law are aligned by their RANGES, not by their drawings (2026-09-13)
+
+> "'the block lifts, it never opens' — this is not what you have displayed in
+> 'AMPA & NMDA receptors' drawer. Align across visualisations." — user
+
+The drawer shows the magnesium coming out of the channel. The spine says it
+never does. Both are drawn by the same two functions, and at any given voltage
+they give the same answer to the pixel.
+
+**What differs is not the drawing, it is how far each view can GO.** The drawer
+has a dial that reaches +20 mV, where the block is 9% and the stone is out nine
+times in ten. A spine driven only by its own catchers tops out at −16.4, where
+it is still in the way more than half the time.
+
+So the alignment is not a change to either picture — it is **saying where one
+ends and the other begins, on the control the child is actually touching**. A
+dashed mark on the dial at the spine's ceiling, and a line in each view's notes
+pointing at the other. Past the mark the child is doing what other synapses, or
+the cell's own back-propagating spike, would have to do — which is the fact the
+whole exhibit is built on, not a discrepancy to be smoothed away.
+
+⚠ And the number on the mark is MEASURED from the other view's model, with a
+guard that runs a long burst and requires it to land there. A stated ceiling
+that nothing checks is a caption, not an alignment.
+
+## A moment is where the INK crosses, not where the tag turns over (2026-09-13)
+
+> "redness still is happening too late. Expected start: 15.1 ms." — user
+
+Two separate reasons the answer was late, and both were in how the moment was
+being FOUND rather than in anything drawn.
+
+**The probe's own sampling.** A 240-step sweep of the run steps 63 ms of screen
+at a time, which is a quarter of a model millisecond where this falls — so it
+returned the first SAMPLE after the crossing rather than the crossing, and
+landed at 15.35 against a true 14.6. *The user's eye was reading the moment more
+precisely than the measurement was.* Bisect for a threshold; do not sweep for it.
+
+**And the cast's own label.** A sodium dot is tagged `'spine'` only once it has
+finished SETTLING — measured, 15.3 model ms against a crossing at 14.4. The tag
+is about the ball's phase in its journey; the child's question is *when did it
+get in*, and getting in is crossing the wall. **Ask the geometry, not the
+bookkeeping**: is it below the membrane?
+
+### And a dot on a bar is a claim with the same problem
+
+Every event on the timeline is a moment in the MODEL, and for most of them the
+drawing is at that moment too. Sodium is not: the model has it crossing at
+12.9 ms and the cast, which pauses it at the mouth and eases it through, does not
+put one inside until 14.6. A dot nearly two milliseconds before the thing it
+names is a dot pointing at nothing — and it is the dot the reading is checked
+against. Date it off the ink.
+
+⚠ Guard a placement as ARITHMETIC, not as a string. A break that kept the
+`e.id === 'sodium-in'` branch and put the model's own moment back inside it
+passed a `toContain` check perfectly.
+
+## One control per interaction, and a pause is not one of them (2026-09-13)
+
+> "no need of two action buttons. Remove send a message. Keep play." — user
+
+Three rounds on this one control, and the shape only settles once the
+INTERACTION is named. This view's interaction is *tap again and again*:
+
+- one button that swapped ⚡ for ▶/⏸ meant every press during a run **paused**
+  it — the burst could not be delivered at all;
+- two buttons delivered the burst and were redundant furniture;
+- one button that always sends, and also starts the run if nothing is running,
+  is the whole interaction and nothing else.
+
+**A pause costs the burst, and the burst is the exhibit**, so there isn't one:
+taking hold of the scrubber stops the run where you put it, which is the same
+affordance the round trip already has. *Borrow a neighbouring view's styling,
+never its state machine.*
+
+## A transport moves the PICTURE; make it move the model too (2026-09-13)
+
+> "when I'm dragging the timeline, the background change does not occur."
+> — user
+
+The drawing is a pure function of the run's position, so scrubbing works on it
+perfectly. The receiving cell's model is an integrator, stepped by wall time —
+so while the child dragged the bar, the picture moved and the voltage, the
+magnesium, the cascade and the ions carried on at their own pace, with the one
+reading the scrubber exists for not following it at all.
+
+**A view with a transport has one clock, and everything in it reads that clock.**
+Step the model by the change in the run's own position, not by the frame's.
+
+⚠ **But never backwards.** A drawing rewinds because it is a function; a model
+cannot un-tap a message or un-admit an ion. Clamp the step at zero and let the
+model hold while the picture scrubs back.
+
+## An unobservable drawn is an assertion you did not mean to make (2026-09-13)
+
+> "Depolarization is a cause of an NMDA activation and not its result. Pushback
+> if I'm wrong and if I'm right, fix." — user, and they were right
+
+The model had the causality correct all along: the voltage is driven by AMPA
+alone and the block follows the voltage. Two pieces of INK said otherwise.
+
+**The stone's depth was multiplied by how open the gate was.** So at rest, with
+no glutamate anywhere near it, the magnesium was drawn hanging *above* the
+channel. The child met the resting state as "the pore is clear", watched the
+stone drop IN as the gate opened, and only then saw it lift — the story exactly
+backwards. A 96% block is a plugged pore; that is what rest looks like.
+
+**And the block's flicker was drawn on a shut channel.** `stoneSeated` spends the
+block as a fraction of TIME, so even a 96% block has a spell in every
+twenty-eight where the stone is up — MEASURED, one landed at 3.6 s, seven seconds
+before anything had happened at all.
+
+Which way a block flickers on a channel with no current through it is
+**unobservable**. Drawing it is not honesty about the physics; it is asserting
+something the physics does not say, in the one place where the child is reading
+for cause and effect. Hold it still where it cannot be seen, and leave the
+fraction untouched everywhere it can.
+
+### Guard the order as an ORDER
+
+Not as a set of facts about each part. Record the millisecond each beat first
+happens and assert the sequence: head warms ≤ block eases ≤ conducts ≤ ions
+cross, with none of them simultaneous. A chain of individually-correct states
+says nothing about the order they play in.
+
+⚠ And guard the DRAWN position, not only the model's number. Here the model said
+1.0 — fully seated — throughout, and the drawing painted it at the top of its
+travel. A break that restored that multiplication moved no number any guard was
+asking about.
+
+## Two models of one event need their clocks put beside each other (2026-09-13)
+
+> "bg is blue after Na ions pnentrated." — user, after two rounds on the colour
+> and one on where it was painted
+
+Third cause, and the deepest. The receiving cell's model and the picture were
+running on clocks nobody had measured against each other:
+
+| | |
+| --- | --- |
+| the head's colour peaks | **1.0 s** after the tap |
+| …and is back to zero by | **8 s** |
+| the drawn sodium gets inside at | **10.9 s** |
+
+So the effect played, and then its cause was drawn — three seconds after the
+answer had finished. Every guard on the model was right, every guard on the ink
+was right, and the exhibit taught nothing, because *when* was never asked.
+
+**When one press drives two models, measure the lag between them before
+believing either.** The round trip ruled on exactly this on 2026-09-02 ("the
+sodium didn't even penetrate the cell, but the yellow aura is already there")
+and the answer is the same: **the reading is paced by the DRAWN thing.** Here
+that is one line — the pulse begins when the ions land, and a waveform returns
+zero until its start.
+
+⚠ And the lag is MEASURED off the cast, never typed, so it follows the clock and
+the legs. A hand-written delay is a second copy of the schedule.
+
+### A lag is a remainder, not a constant
+
+A tap that lands mid-run is not a full lag from its answer — it is however much
+of the run is LEFT before the moment arrives. Scheduling every tap a full lag
+ahead pushes each one further into the future than the last, and a burst never
+overlaps at all.
+
+### And a control swapped away is a control that cannot be pressed
+
+Borrowing the round trip's action plate brought its ⚡→▶ swap, which is right for
+a view with ONE stimulus per run. This view's entire interaction is tapping
+again and again — so with the bolt gone, every press during a run paused it, and
+a burst could not be delivered. **Match a control to the interaction, not to the
+neighbouring view's layout**; share the styling, not the state machine.
+
+## The right ink in the wrong PLACE is the same as no ink (2026-09-13)
+
+> "bg of the dendritic does not get red at depolarization." — user, after the
+> previous round had already fixed the colour and the opacity
+
+And it was being laid: measured, `rgba(247, 113, 113, 0.42)` on every hot frame.
+Two rounds of work on WHICH colour and HOW STRONG, both correct, and the child
+still saw no red — because the question nobody had asked was WHERE.
+
+The wash is a vertical gradient from above the face to the foot of the whole
+picture. At this framing its strongest stop lands at y = 409 and the head's face
+is at 465 — so the peak fell in the cleft, which the clip then threw away. What
+reached the head was the tail: 0.30 at the top, 0.09 at the bottom, **fading out
+precisely across the thing it was drawn for**.
+
+**A fill's geometry is as much a claim as its colour**, and a guard on "is the
+ink there" will not see it. Ask where the ink LANDS relative to the shape it is
+for.
+
+### And ask whether a gradient is a claim you meant to make
+
+A gradient says *this end is more than that end*. That is true of a patch of a
+big cell, which is why the round trip has one. It is false of a spine head,
+which is isopotential at this scale: the whole of it is at one voltage, so the
+whole of it gets one colour. The soft edge a gradient was also doing is the
+clip's job, and the rim's own fade already does it.
+
+⚠ Guard it by counting the STOPS. A flat fill lays one; a gradient lays several,
+and the ones that land inside the shape are the weak ones. "Exactly one stop, at
+full strength" catches the geometry, the strength and the fade at once.
+
+## A ramp built around NEUTRAL is the wrong instrument for something never neutral (2026-09-13)
+
+> "'depolarized cell bg' was supposed to get red, which does not happen. Why?"
+> — user
+
+Two faults, and each alone was enough to hide the effect.
+
+**The opacity was `|t|`.** The app's charge wash paints harder the further from
+neutral a compartment is, which is right when the subject is *how charged is
+this*. A cell CHANGING from negative to less negative passes through neutral —
+so measured, the wash faded to **alpha 0.000 on every run**, at exactly the
+moment the exhibit was about. *Let the colour carry the reading and the opacity
+say only how much there is to read.*
+
+**And the ramp runs blue → SLATE → red.** The spine head is never neutral: it
+goes from very negative to less negative and never once has no charge, so the
+slate is a colour it has no business wearing. Measured, its entire working range
+came out between rgb(96,123,149) and rgb(170,113,127) — slate to a mauve barely
+distinguishable from it.
+
+**Same two inks, one stop skipped.** A cold-to-hot span keeps the visual
+language exactly and simply does not pass through the colour of no charge.
+Measured after: rest sky-blue, one message warm, a burst red.
+
+⚠ Guard a palette claim against the PALETTE, never against the new function's
+own endpoints — a first version compared each step to `span(0)` and `span(1)`,
+which is circular, and a break that started the walk at the slate was perfectly
+linear between its own ends and passed.
+
+⚠ And test a reading at the rate a HAND can produce. A claim measured only at
+the model's fastest tapping is a claim about a speed nobody can deliver.
+
+## A COINCIDENCE needs a mark of its own (2026-09-13)
+
+> "display an NMDA receptor activation … the magnesium block lifts up, opens the
+> channel, calcium and sodium ions flow in the cell. Displayed or pushed back if
+> there is a scientific misconception." — user
+
+Everything the chain needs was already drawn: the gate opening on glutamate, the
+stone in the throat, the aura reddening, the ions crossing. What was missing was
+a mark for the one state the receptor exists to detect — **both at once**. A
+ligand-bound NMDA at rest looked exactly like a conducting one, so the picture
+could not say which of them it was showing.
+
+**When a thing's whole point is that two conditions coincide, the coincidence is
+a state, and a state needs ink.** Name it (`nmdaLive`), draw it in the grammar
+the app already has for "current is flowing" — a glow under the protein, growing
+with the current — and guard each half separately: ligand without depolarisation
+must not light it, depolarisation without ligand must not light it, and both
+together must be many times either.
+
+⚠ Guard its SIZE, not its presence. It grows with the current, so a barely
+conducting receptor has one too and a count is 1 either way.
+
+### The pushback, and it is a measurement
+
+"The magnesium block lifts up, opens the channel" is right about the lift and
+wrong about the opening, and the difference matters because the whole exhibit
+rests on it. Woodhull at this synapse:
+
+- **96%** blocked at rest;
+- **57%** at the very best one synapse can do to itself — and tripling the
+  messages after that moves it by under four points, because the voltage
+  saturates at the receptors' reversal.
+
+So the stone spends less of its TIME in the throat — about eleven spells in
+twenty instead of nineteen — and what gets through is a trickle that got twelve
+times bigger, not an open pore. That is enough: the calcium threshold is
+crossed by a trickle over time, not by an open channel. Keep the real numbers in
+the info block rather than smoothing them into the story.
+
+## A reading is of a CHANGE when the absolute never moves (2026-09-13)
+
+> "Na entering the cell should depolarize it, give red tint." — user
+
+The spine's aura was the app's charge ramp fed the spine's absolute voltage,
+which is correct and unreadable. MEASURED: rest is −70 mV and a burst through
+three receptors reaches −22.6, so on absolute polarity the aura runs from −0.77
+to −0.30 — **blue to slightly-less-blue**. Everything about it was true and the
+child could not see the thing it was drawn to show.
+
+**When the quantity the exhibit is about never leaves one end of a scale, the
+reading is of the CHANGE, not the value.** Here: the departure from rest,
+stretched over the range this synapse can actually reach, so full red means "as
+far as this synapse goes" — and the number the stretch is against is MEASURED
+(the peak a burst through three receptors reaches), never chosen.
+
+Then say so. The absolute millivolts stay in the info block, and the note that
+a spine head never goes positive stays with them: the exaggeration is in the
+ink, not in the claim.
+
+⚠ The test of whether it worked is not the tint at the top of the range but the
+DIFFERENCE the exhibit exists to show: the same single message must be visibly
+redder with three catchers than with one. Measured, −0.32 against +0.23.
+
+## An inherited default is not a decision (2026-09-13)
+
+> "glutamate is gone from NMDA before it gets activated, which is wrong. Why did
+> you make this decision?" — user
+
+Nobody had. The seat window every receptor's ligand was released on came from
+`receptorOpenWindow`, which is AMPA's: bound for about a millisecond. NMDA's
+glutamate stays bound for hundreds of milliseconds, and **that slow unbinding is
+the whole reason NMDA is the slow one** — so the receptor was being drawn opening
+on its own clock while its ligand left on somebody else's.
+
+This is the third time in two days that borrowing a picture has silently
+borrowed a schedule with it (see *Reusing a picture means inheriting its CLOCK*
+and *A cast is keyed to a CAST LIST*). The pattern is worth naming on its own:
+
+**When one actor in a borrowed scene behaves differently, mark it in the DATA
+the scene carries, not in the drawing.** One flag on the geometry — which seat is
+slow — and the cast, the windows and the picture all agree, because there is one
+place to disagree from.
+
+And when asked "why did you decide X", check whether it was decided at all. "I
+inherited it and did not notice" is a more useful answer than a reconstructed
+rationale, and it points at the class of bug rather than the instance.
+
+## Two correct drawings of one object, with nothing in between, is a teleport (2026-09-13)
+
+> "adjust snare removal animation. Currently teleports. Expected: smooth
+> animation." — user
+
+A SNARE complex before fusion is a rope standing between the bubble and the
+wall. After fusion it is a cis-complex lying flat IN the wall, a vesicle-radius
+away. Both drawings were right, both were carefully reasoned, and the change
+between them happened in one frame.
+
+**Nobody had drawn it wrong. There was simply nothing there.** This is the
+failure mode of a picture assembled from correct states: every state is
+defended, and the transitions are whatever falls out. The same fault was sitting
+next to it — a carrier that reached the wall and vanished, with a receptor
+appearing in its place.
+
+Ask, of every pair of states: **is this a substitution, or is it one thing
+changing?** A trans-complex becoming a cis-complex is not two ropes, it is the
+same four helices zipping the rest of the way. A carrier reaching the wall is
+not a bubble swapped for a protein, it is a piece of membrane opening into
+another piece of membrane. When it is one thing changing, the ends TRAVEL — and
+travel eased, because a change of place is a journey.
+
+### Tie the transition to the event it belongs to
+
+Not to a timer of its own. The SNARE zips flat over the window in which the
+bubble FLATTENS, because that is when a trans-complex becomes a cis-complex.
+Then the two cannot drift apart, and neither can be tuned without the other.
+
+### What the transition is FOR
+
+The merge was not decoration. It is the only moment the app can show a
+lumen-facing catcher becoming an outward-facing one — a whole teaching note,
+previously asserted in prose and never drawn. **A transition is often where the
+lesson is**, because a state can only show you what a thing is, and the lesson
+is usually how it got there.
+
+⚠ And guard the direction as a DECISION, not as ink: nothing a guard can count
+on a canvas tells you which way a protein faces. A break that walked the catcher
+into the wall still upside-down moved no marks at all and was invisible to an
+ink test measuring the same place.
+
+## Draw a flow by QUANTISING it, never by animating beside it (2026-09-13)
+
+The cascade at the spine was driven by a calcium number nobody could see
+arriving. The obvious repair — draw some ions crossing the channel — is also the
+obvious trap: a second animation, tuned by eye, running alongside the number
+that actually decides.
+
+**Quantise the thing that decides.** `nmdaFlow` is the whole of what gets past
+the block: the calcium that accumulates is its integral, and the ions that cross
+are that same integral in lumps of a declared size. One drawn ion per quantum.
+Nothing about the threshold had to be re-tuned to draw them, because the amount
+is computed exactly as it was — and the picture cannot show a trickle while the
+model counts a flood.
+
+### A gate the picture can see
+
+An ion may cross only while the throat is visibly clear, by the same call the
+stone's own position is drawn from. A quantum that comes due against a seated
+stone does not vanish — it **waits at the mouth**, which is what a block looks
+like from outside, and goes on the next lift.
+
+Three things had to be true for that to hold, and each was a separate bug:
+
+- **The crossing must FIT inside the clear hold.** Derive it from the spell
+  (`spell × (1 − 2·move) × 0.8`), never type it. At 280 ms against a 134 ms hold
+  the stone came back down on top of an ion that was still in the pore — which
+  is the exact inconsistency this app was corrected for once already.
+- **Look ahead before setting off.** Clear *now* is not enough; the rule is a
+  pure function of time, so ask it for the far end of the crossing too.
+- **A throat with an ion in it is not blocked.** The spell is
+  `hash(k) < plug`, and `plug` drifts with the voltage — so a spell that was
+  clear at launch can turn *under* the ion. Commit the throat clear for the
+  crossing.
+
+⚠ But keep the commitment out of the GATE. Asking the committed value where the
+gate is decided lets the tail of one ion's commitment open the door for the next
+— and, worse, **masks the gate entirely**: a break that let ions through
+whatever the stone was doing passed every consistency check, because each launch
+forced the stone out. The gate asks the raw rule; the commitment is for the
+picture.
+
+### Order of events is a measurement
+
+How common to draw the interesting species is not a matter of taste. MEASURED at
+one-in-three, the first calcium got past the stone at 3.6 s while CaMKII had
+already latched at 2.8 — the cascade lighting off a calcium the child never saw
+arrive, which is the very thing the step existed to fix. One-in-two puts the
+calcium in at 1.3 s, the climb starting at 1.7 and latching at 2.8. **Cause on
+screen, then effect** — and the exaggeration that buys it is declared beside the
+others.
+
+### And a commitment that softens a rule needs a bound
+
+The commitment costs a little of the block. How little is the measurement, and
+the bound on it is what keeps the look-ahead a rule rather than decoration:
+0.7 points of block given up with it, 1.7 without.
+
+## A cast is keyed to a CAST LIST — carry it, don't re-derive it (2026-09-13)
+
+> "NT bind the wrong place. Expected: bind receptors." — user
+
+Eleven separate functions asked `receptorSites(g)` for the row of receptors:
+who catches which transmitter ball, when a channel may show itself bound, where
+sodium crosses, when the departing flash launches, when the timeline's "bound"
+dot falls. Each of them was right, and all of them were asking a function that
+returns the ROUND TRIP's five seats at the round trip's spacing about the round
+trip's centre.
+
+The spine draws two, tightly clustered, at a centre of its own. MEASURED: a
+seated ball could be **535px from the nearest drawn receptor**, spread over
+twelve columns, one of them off the side of the stage. Four of the five columns
+of sodium poured through bare membrane. Every one of those eleven functions was
+individually correct and the picture was nonsense.
+
+**The set of actors is data, and it travels with the scene.** Put the row the
+framing actually drew onto the geometry, give it one accessor, and have every
+consumer ask that. One list, one answer — instead of eleven copies of a default
+that only one view is entitled to.
+
+This is *one number, one picture* at the scale of a whole cast: two derivations
+of "which receptors are there" in one frame will contradict each other, and the
+one that draws the circles is not necessarily the one that decides where the
+balls go.
+
+### What it fixes on the way
+
+A cast list is also a set of INDICES. Once the row is carried, "receptor i" means
+the same receptor to the drawing and to the clock — so the NMDA's own seat
+window is simply the last index, and it stops showing itself bound off the tap
+seconds before its glutamate is drawn arriving.
+
+### Guarding it
+
+The cast-level claim (a seated ball is within a receptor's mouth of a drawn
+receptor) is necessary and not sufficient: the drawing builds its own geometry,
+so it can pass while the scene never hands the row over. Measure the INK too —
+and by DIFFERENCE, because a crowded gap always has a wandering ball near some
+x. Render the same run at the same moment with and without the framing's flag:
+the wanderers are identical in both, so what differs is exactly who is seated.
+
+⚠ And check the mirror claim is actually measurable before asserting it. "More
+ink at the drawn seats" is not: one or two seated balls are swamped by the crowd.
+Where a ball can ONLY be a seated ball is at the seats nobody drew.
+
+## Chrome takes its room from the MAGNIFICATION, and the room is for the ACTORS (2026-09-13)
+
+> "add timeline, shift the whole view down, so the timeline does not cover
+> vesicle release." — user
+
+The spine view kept 104px clear at the top "for the timeline". That was room for
+the MEMBRANE, and the membrane is not what happens there: a docked vesicle
+stands above the wall, not on it. MEASURED at that framing the middle bubble's
+top sat at y = −69, sixty-nine pixels off the top of the picture, and everything
+of it that was on screen was behind the bar.
+
+**Size the gutter off the tallest thing that has to be seen in it**, not off the
+line the thing is attached to.
+
+### And solve it, because the two are coupled
+
+Pushing the wall down shrinks the picture, and a smaller picture has a smaller
+vesicle, which needs less room. So it is a fixed point, not a nudge:
+
+    TOP − rise·k(TOP) = CHROME + GAP,   k(TOP) = SHARE·(H − TOP) / 2·ry
+
+⚠ **And ask which actors.** "Every docked bubble in frame" does not converge —
+the bouton's floor is a curve, the outermost bubble stands 166px above the wall
+against the middle one's 56, and buying clearance for it walks the picture down
+without limit. The right set is the ones that *do something*: the bubbles this
+run opens. Have the guard ask the RUN which those are, so the drawing's filter
+and the claim cannot drift apart. (A first version filtered on `≤ half the
+active zone` and excluded the slots sitting at *exactly* half, by a rounding
+error — 30px short, and green.)
+
+### What pays for it
+
+**The magnification.** `SPINE_SHARE` is untouched — the head still fills the
+share of the frame it was asked to — there is simply less frame: 3.10× → 2.33×.
+You cannot have more chrome and the same absolute zoom, and saying which one
+gives is part of the change.
+
+⚠ Then **do not re-tune the zoom guard to match**, or it measures nothing. Ask
+the legibility question instead: *how wide is a receptor on screen?* That claim
+does not move when the chrome does.
+
+## A layout has TWO frames, and only one of them is the camera (2026-09-13)
+
+> "Move them to the left along the membrane, so that they appear centered in
+> relation to the screen." — user
+
+The camera could not do it. MEASURED, the spine head is wider than the stage, so
+a frame holding the left flank cannot also centre the middle of the active zone
+— the two are 337px apart and no offset gives both. Neither can the zoom:
+satisfying both needs k ≤ 1.83 against the 2.33 the rest of the view is solved
+at.
+
+So the answer was not the camera at all: the DENSITY moved. A postsynaptic
+density is not a point under the middle of an active zone; the zone is a stretch
+of apposed membrane and the density sits somewhere on it.
+
+**When a framing request cannot be met by the camera, ask whether the SUBJECT
+has any freedom** — and if it does, spend that instead, with the anatomy's own
+limit as the clamp. Here: the density may move anywhere on the active zone and
+nowhere off it, because a density opposite no release site is not a synapse. The
+clamp is the guard.
+
+⚠ And the anchor is then **handed DOWN, not recomputed.** It is solved from the
+camera, the camera belongs to the view, and the drawing must never work it out
+for itself or there are two answers to one question. Everything that belongs to
+the synapse — the seats, the queue in the wall beside it, the cascade under it,
+the carriers waiting to reach it — takes the same anchor.
+
+### Inside a shape is not the same as below its top
+
+Pushing those carriers deeper and further apart put one of them 5px THROUGH the
+wall. Its depth was right and its spread was right; nothing was asking whether
+the head was still that wide down there — it narrows toward the neck. **Anything
+placed in a body's interior is clamped to the outline's own span at that
+depth**, read off the same cubics that draw it.
+
+## One membrane, one paving rule — or the two halves meet at a corner (2026-09-13)
+
+> "adjust bilayer orientation on the left side of the spine, by connecting the
+> membrane 2 parts." — user
+
+The spine's wall was paved by two different rules that had grown up separately.
+The flanks were walked along the outline's own cubics, by ARC LENGTH, with the
+tangent they actually have. The face was laid by a loop over X — a molecule
+every step of *x*, every one of them standing STRAIGHT DOWN.
+
+Across the active zone those two agree, because the face is nearly flat there,
+which is why this survived so long. At the shoulder they do not: the face falls
+away on a quarter-ellipse at about 45°, and MEASURED the flank's last molecule
+sat at (134, 503) while the face's first was at (140, 468) — 35px apart on a
+1.62px pitch, a 108px hole at the spine's magnification, with the two halves
+meeting at a right angle.
+
+**Two rules for one surface is a seam.** A surface gets ONE paving rule, one
+inward-normal rule, and one step, and the two stretches then meet by
+construction rather than by luck.
+
+### The three things that were separately wrong
+
+- **A step in x is not a step along the curve.** Where a wall approaches
+  vertical, a fixed x-step is an unbounded arc-length step. March by
+  `step / √(1 + slope²)` instead: tiny steps where it is steep, full ones where
+  it is flat. A thousand *even* steps in x still left the first two molecules
+  8px apart.
+- **A tangent of (1, 0) is a claim, not a default.** If a wall can slope, read
+  its slope.
+- **"Which way is in" cannot be decided from X alone.** The old rule took
+  whichever normal pointed back at the spine's axis, which is only meaningful on
+  a roughly vertical wall — and a face, a shoulder and a cap's underside are
+  not. Point it at the structure's own INTERIOR and one rule covers every
+  stretch, including the ones that face downward.
+
+### Guarding a seam
+
+⚠ **A nearest-neighbour sweep cannot see a gap between two dense runs.** Every
+molecule at the end of a tightly packed run still has a close neighbour behind
+it, so "does everything have a neighbour?" is green across a hole. A first
+version of this guard also took the two molecules nearest the join and found
+them both on the same side of it.
+
+**Ask each PART for its own nearest molecule and measure the gap between
+those.** And guard the orientation across the seam too: walk the join and
+require the inward direction to change by no more than the packing's own step
+could turn it — the broken version stepped about 90° there.
+
+## A journey along a surface is the SURFACE's path (2026-09-13)
+
+> "if we plan to 'drag' an AMPA along the membrane into synaptic cleft, let's
+> shift camera so that the left side of the spine is in view. So we can follow
+> the membrane and channel's path." — user
+
+A receptor climbing the spine's neck was placed by interpolating x from the
+neck's half-width to the surface pool's, and y from the neck to the face. Two
+lerps between two correct endpoints — and everything in between was wrong.
+MEASURED at the spine's framing, the halfway point sat 544px inside the wall it
+was supposed to be in, drifting through open cytoplasm.
+
+Both ends were right, so every guard that looked at the ends was green.
+
+**If a thing is IN a surface, its route is that surface's own path.** Sample the
+outline you already draw, step along it, and take the orientation from the
+tangent — one rule for the whole journey instead of an eased quarter-turn that
+is only correct where it starts and where it stops. Here that turned out to
+matter twice over: the route round a mushroom cap's underside points the protein
+DOWNWARD for a stretch, which no interpolation between "on the left wall" and
+"on the face" can ever produce.
+
+### And then the frame is what gives
+
+Following a real surface costs room, and the room has to come from somewhere.
+Measured, the spine head is 1567px wide at this magnification on a 1060px stage:
+centring it put BOTH flanks outside the picture, so the journey the exhibit was
+built to show happened 253px off the left edge.
+
+One flank can be watched or neither. **A camera that cannot hold the whole
+subject frames the part that is ACTING**, and the rest is simply out of shot —
+which is what a camera does and needs no apology in the drawing. Solve the
+offset from the path itself (`min(path.x) − the protein's own reach + a gutter`)
+so a change to the outline moves the camera rather than quietly pushing the
+journey off the edge again.
+
+The cost is real and must be paid, not absorbed: everything drawn off the head's
+half-width — a mirrored pool at ±0.5 of the active zone, cascade proteins at
+±0.42 of the head — was suddenly past the edge. **Size interior furniture off
+what it BELONGS to** (the proteins under a synapse are the synapse's, so their
+spread is their own diameter) and it survives any camera.
+
+### One line, one definition
+
+Five things shared one stretch of wall here: where a carrier fuses, where two
+climbers are caught, and where two receptors already stand. Four drawings of one
+line is four chances for a protein to stand on another protein. One exported
+function lays the queue out and everything asks it — including the paver that
+punches the holes.
+
+## Reusing a picture means inheriting its CLOCK — keep only the legs you can act (2026-09-13)
+
+> "There's no need to copy behaviour from the earlier view. This view starts
+> with NT release (all release preceding actions are not present in the
+> animation)." — user
+
+The companion to the rule below, and its other half. That one says a borrowed
+picture has to be DRIVEN. This one says it must not be driven blindly.
+
+S13 borrows the round trip's drawing, so it was handed the round trip's whole
+sixty-millisecond run: the spike arriving, the calcium doors, the sensors, and
+then the long glutamate–glutamine loop home through the astrocyte. Two of those
+stretches have no actors on this side at all — the calcium doors were removed
+from this framing, and the astrocyte with them. **A leg whose actors you have
+taken off the stage is screen time spent on an empty stage**, and a journey
+whose destination is not drawn is a journey nobody can follow.
+
+So a borrowing view declares a WINDOW in the run's own model time and keeps the
+legs inside it. Measured: 34.5 s of run became 15.2 s, and the release — the
+thing the view is about — now starts at second zero instead of second seven.
+
+**The shares inside the window are the original's.** Derive the borrowed run's
+screen length from the kept legs (`SYNAPSE_SCREEN_MS × Σ kept share`), never as
+a number of its own, or dropping legs silently stretches the ones that remain
+and the same release plays at two different paces in two views. *Slow the leg,
+never the item* — and do not speed one up by deleting its neighbours either.
+
+⚠ And guard the WINDOW at both ends by naming what must be outside it: not
+"starts at 2.56" (which is circular — move the constant and the guard follows)
+but "starts at or after the calcium doors' leg ENDS, and finishes at or before
+the astrocyte's begins".
+
+## …and a drawing whose CLOCK never ticks is a still (2026-09-13)
+
+> "send message button click does not initiate any process. The only thing I see
+> is the movement of MG block." — user
+
+The companion to the rule below, and the second time this session that a view
+was fully guarded and did nothing.
+
+S13's view draws the round trip's own picture — deliberately, so the app has one
+drawing of a synapse. But that picture animates off the **synapse run's** clock:
+the bubble merging, the transmitter crossing, the receptors opening, the ions in
+flight are all a function of `u`. The spine's own model supplies only the
+voltage, the magnesium and the cascade. So when the run was never advanced at
+this framing, the magnesium moved and nothing else did — which is exactly what
+the user reported, element for element.
+
+**Reusing a drawing means inheriting its clock.** A view that borrows a picture
+has to drive every input that picture animates on, not just the ones it added.
+Three things were missing: the tap fired only the spine's model, the run was not
+advanced unless the camera was at the synapse, and arriving at the spine RESET
+the run out from under the drawing.
+
+### What to guard
+
+Two halves, because neither catches the other:
+
+- **the picture moves** — render it at several points of the run and require the
+  ink to differ. A still picture is a measurable thing.
+- **the wiring exists** — the control drives every clock, and every clock is
+  allowed to advance and to survive at this framing.
+
+A scene test calls the draw function directly with whatever arguments it likes,
+so it will happily paint a beautiful animation that the app never asks for.
+
+## A drawing that is never CALLED fails nothing (2026-09-12)
+
+> "currently, 'the spine' is empty canvas" — user
+
+S13's view had ten guards on its drawing and all of them were green. Its
+`spineFadeRef` was declared, and read to decide how strongly to paint — and the
+one line that raises it toward 1 had been lost while unwinding an earlier
+experiment. So the fade stayed at 0, the layer's `sceneFunc` returned before
+drawing anything, and the view came up blank.
+
+**Nothing failed, and nothing could have.** Every test called `drawSpine`
+directly. The defect was not in the drawing at all; it was that the drawing was
+never called. A view has two halves — what it paints, and the wiring that asks
+it to paint — and a scene test only ever exercises the first.
+
+So the gating is now asked of the wiring itself. For each view of its own, the
+stage's source must contain its fade **declared**, **driven** (`+=`),
+**consumed** (turned into what is shown), and its layer **handed to the
+animation** that redraws it. Source-text guards are usually a smell — they
+assert spelling rather than behaviour — but here the behaviour lives in a React
+component built on a canvas library, and the alternative was another round of
+"it's blank".
+
+The companion half is measurable properly: a target's `scale` and the gate's
+`viewScale` must agree, or the fade is driven and still never arrives.
+
+### The wider shape
+
+This is the *unguarded change* rule seen from the other end. That rule says a
+change needs an assertion that fails if it did not happen; this one says an
+assertion can pass on code the app never runs. When a step adds a view, a
+layer, or anything reached only through a framework's own callback, ask what
+proves it is REACHED — not merely that it is correct once it is.
+
+## A borrowed model keeps its own clock, and the two will not agree (2026-09-13)
+
+> *"postsynaptic spine is supposed to get red background inside the spine as a
+> symbol of depolarization. This should happen the moment sodium ions enter the
+> cell via AMPA channel. But this does not happen"*
+
+S13's model is stepped by the run's own position — `u × SPINE_SCREEN_MS` — so its
+clock unit IS the screen millisecond. Its `TIME_FACTOR` was 70, meaning its
+receptors lived at 70× real time. **The picture they are painted on plays at 275
+screen-ms per real-ms**, measured off `spineClock` at the leg where the sodium
+lands. The cell was answering 3.9× faster than its own cause was arriving: the
+head's tint rose at 10.67 s and was gone by 11.94 — **1.3 seconds of a 15.2
+second run**, a flash rather than an event.
+
+Nothing failed. Fifteen hundred guards were green, because every one of them
+asked the model about the model. The disagreement was between two clocks that had
+never been put beside each other.
+
+**The rule.** When a model is drawn into a picture with a clock of its own, the
+model's rates are not free — they are the picture's pace, measured, not a number
+the model picked for itself. Ask the clock; do not type the answer.
+
+### …but the picture's full pace may be unaffordable, and the LESSON is the budget
+
+Matching 275 exactly puts NMDA's decay at 60 × 275 = **16 500 ms — longer than
+the 15 180 ms run.** Every tap would then overlap every other and tempo would
+stop meaning anything. Measured at 275, seven taps latched the cascade at every
+spacing from 220 ms to 1.5 s alike — which flatly contradicts what the view says
+aloud: *"Tap slowly instead and nothing happens... It is not how many messages —
+it is how close together they are."*
+
+So the factor was found by **walking it**, not chosen:
+
+| `TIME_FACTOR` | NMDA decay | red holds | 1 tap/s |
+| --- | --- | --- | --- |
+| 70 | 4200 | 1.26 s | never |
+| **140** | 8400 | **2.54 s** | **never** ← taken |
+| 200 | 12000 | 3.62 s | 9 taps |
+| 275 | 16500 | 4.46 s | 7 taps — the lesson is gone |
+
+**Read the exhibit's own words before spending a constant.** The info block is
+where the claims are; a pacing change that makes one of them false is not a
+pacing change, it is a rewrite.
+
+### A chain, and the constant to spend is the one the literature pins loosest
+
+`CA_CLEAR_MS` had to move, and both directions were defensible: hold the screen
+value (1800 → 6.5 real ms) or hold the real value (25.7 → 7068 screen ms).
+Scaling it **inverted the tempo reading** — seven taps needed in quick succession
+and only six when spread a second apart, teaching the opposite of the point.
+Holding the real value near 6.5 ms kept the reading the right way round *and*
+moved the number toward the literature (a spine head clears calcium with a tau of
+~12 ms at room temperature, a few ms at body temperature). The constant that gave
+was the one measurement pinned loosest, and it landed better than it started.
+
+### And a threshold is re-derived by BISECTING the near miss, never by scaling
+
+Widening the receptors doubles what a given burst admits. `CA_HALF` was re-solved
+by asking both sides — six taps must still fail, seven must still fire — which
+brackets it at 0.1057…0.1193. Scaling it by the same factor would have been
+arithmetic on the wrong quantity.
+
+### A wrist does not scale, so some claims move whatever you do
+
+`TAP_REST_MS` is 210 ms of wall clock — the fastest a child can press. Stretch the
+cell's clock and the same hammering becomes a **higher frequency in cell time**
+(220 ms is 1.6 real ms at 140 against 3.1 at 70), so the synapse summates further
+and its ceiling really does rise: −16.4 mV → −9.3, and the block at full drive
+46% → 38%. That is the model being honest, not the claim being softened. **Say
+so, re-measure the prose, and guard the CONTRAST rather than the level** — the
+drawer's dial clears the block, one synapse still does not come close.
+
+## One ink cannot carry two readings — split them across hue and strength (2026-09-13)
+
+The head's colour had to say two things at once: *whether* the spine is
+depolarised, and *by how much*. It cannot.
+
+**The palette is the constraint, and it is not negotiable.** `particleStyle`
+reserves its hues by meaning — gold, violet, green and pink are the four
+signalling ions, amber is force and explanation, teal the transmitter, orange
+glutamine — leaving **red and sky for charge sign**. Sky and red are
+near-complementary, so the straight line between them passes close to the grey
+axis whatever route it takes: measured, a lavender-grey at 0.5, a mauve at 0.6,
+not warm until about 0.8. Bowing the path away from grey means borrowing an ion's
+ink — through violet it wears potassium's, through pink calcium's. **Skipping the
+neutral STOP was not enough; the neutral is in the geometry of the two inks.**
+
+So the ink is fixed and the only lever is **where a reading sits on it** — which
+is `SPAN_NEUTRAL`, the crossing of the red and blue channels, solved off the two
+inks rather than typed.
+
+### The proof that one channel is not enough
+
+Four requirements sat on one curve. Measured reaches: one message 0.208, three
+catchers on one message 0.465, a burst through one 0.530, a burst through three
+0.849.
+
+1. one message must clear the crossing (0.587), or it never reads as depolarised;
+2. three catchers must be 0.2 redder than one, on the same message;
+3. three catchers must be 0.2 redder than one, on a burst;
+4. a burst through three must clear 0.9.
+
+From 3 + 4, `f(C) ≤ 0.8`. From 1 + 2, `f(B) > 0.787`. But **B sits below C**, so
+`f(B) ≤ f(C)`. The slot is **1.3 points wide** — satisfiable only exactly on the
+boundary, with no margin. No shaping function rescues it.
+
+**The rule.** When one ink is asked to carry two readings, do the arithmetic
+before tuning. If the range is not there, split the readings across the two
+channels a wash already has: **hue says WHICH, alpha says HOW MUCH.**
+
+`spineWash` had been `0.5 + 0.5 × spineCharge` — the same number painted twice,
+which is this document's own *One number, one picture*. It now reads `spineReach`
+directly, so the two channels cannot both be bent by one constant.
+
+### Guard the COMPOSITE, not either half
+
+A separation asked of the hue alone can be green while the head on screen has
+barely moved; one asked of the alpha alone says nothing about colour. `spineHeadInk`
+composites bath, cytoplasm and wash exactly as the canvas does, and the guards ask
+*that*: one message lands 42.5 from rest, three catchers 20.0 from one, a burst
+through three 24.3 from a burst through one. **Measure the claim where the child
+reads it.**
+
+### And prose carrying a measured number must interpolate it
+
+*"About eleven times out of twenty at the reddest a burst can make it"* was
+measured against the old ceiling. The ceiling moved and the sentence went on
+saying eleven — a claim about the model the model no longer made. The info block
+now interpolates `seatedInTwenty(SPINE_CEILING_MV)`, and a guard reads the prose
+back against `mgBlock`. **A number spoken aloud to the child rots exactly like a
+number in code.**
+
+## When the user IS the variable and they do nothing, the exhibit teaches nothing (2026-09-13)
+
+> *"It's not clear for a kid what has to be done, so the kid played once."*
+
+S13's claim needed a burst, and the burst was the child's to produce. The app's
+own rule had already named this failure — *a comparison must survive the child:
+an input should TRIGGER a behaviour, not inject one, or the user's wrist becomes
+the dominant variable* — and the rule says to **drive it at both extremes before
+shipping.** Driven at the "presses once" extreme, this exhibit taught nothing.
+
+**And the second fault was worse than the first.** Even a child who tapped eight
+times saw ONE drawn release: the model counted the messages, the picture had no
+notion of a second one arriving later, so *"close together"* was never on screen.
+**An interaction the picture cannot draw is an interaction that teaches nothing
+even when it is performed.** Ask of any input: if the child does this five times,
+does the picture show five?
+
+The cure is to let the RUN be the experiment and the child's hand be an
+amplifier. What that buys: the comparison can now be a before/after of the SAME
+stimulus on ONE subject, which is what this document already prefers to a second
+panel — and the failing case (messages spread out) can be **drawn** rather than
+left as a claim the child must discover by not discovering it.
+
+### A scripted run needs legs for the same reason a model does
+
+The burst must be 260 model ms apart or the calcium never stacks; eight releases
+260 ms apart is a blur in which no bubble is seen to open. One number, two
+directions — and a leg is what separates them: the model keeps its gaps, the
+screen gets 2.35× as much of them. *Slow the leg, never the item.*
+
+### A schedule is exact; the firing is QUANTISED — and a refused input is silent
+
+The scripted burst did not fire the cascade at all. A 220 ms gap quantised to a
+16 ms frame lands alternately at 224 and **208**, and 208 is under the terminal's
+210 ms refractory, so `spineFire` dropped those messages. It returns nothing, so
+a refused message is indistinguishable from one never sent: three of eight went
+missing and nothing failed anywhere.
+
+**Two rules.** Any interval a schedule relies on must clear its gate by more than
+a slow frame — a gap tuned to the gate exactly is a gap that misses half the
+time. And when a call can REFUSE, **count what was taken, not what was sent**;
+otherwise the failure is invisible at every level.
+
+### The chapters land on measured moments, not on guesses
+
+Acts four and five are named after events the model decides, so the story is
+built, **walked**, and its boundaries read off that walk. *A chapter whose dot
+does not sit on the thing it names is a dot pointing at nothing.*
+
+### And the WORDS move with the picture
+
+Captions saying *"tap eight times fast"* were instructions for a control that no
+longer existed. The count moved to `core/spine.ts`, because the story, the prose
+and the threshold guard are three claims about one fact, and a guard now reads
+the info block back for the word "tap". **Changing an interaction is a
+documentation change.**
+
+## A receptor JOINS the density — and a count that sizes a layout must be continuous (2026-09-13)
+
+> *"Newly transported AMPAs are overlapped with membrane and do not get active
+> at ion binding."*
+
+**One fault, two symptoms.** The slide's destination was a formula of its own and
+landed the receptor 11 px from the nearest seat. That is "overlapped with
+membrane" — on bare wall between two receptors. It is *also* "does not get active
+at ion binding", because **a transmitter ball is drawn at the SEAT**: a receptor
+eleven pixels away has somebody else's ligand beside it. *A cast is keyed to a
+cast list — carry it, do not re-derive it.* **Ask where a traveller will STAND.**
+
+**And the row jumped.** Its width is a function of how many receptors are in it,
+so `ampa` stepping 1 → 2 → 3 teleported the whole density by 26 px, twice. Both
+drawings were correct, which is why nothing caught it. **A count that sizes a
+layout must be CONTINUOUS**: count an arriving thing as the fraction of the way
+it has come, and the step where the row gains a seat cancels exactly.
+
+⚠ **The decision was already right.** `receptorOpenFrac` reported peak 1.000 for
+every new receptor before anything changed. Only the ink was misplaced — so *ask
+the decision, not the ink* cuts both ways: a decision that is right does not
+prove the picture is.
+
+## Replaying one animation for many events teleports everything in it (2026-09-13)
+
+> *"New Vesicles should not teleport, but arrive from top."*
+> *"Ions should not teleport either. Ideally, ions should have identity."*
+
+Both were the same fault. A drawing that is a pure function of a run's clock
+jumps every time that clock restarts: measured at a message boundary, the model
+went 17.9 → 2.6 ms, the sodium leapt **69 px** back out of the cell, and two of
+three vesicles **un-fused**.
+
+Three rules came out of fixing it.
+
+**Give what must persist an IDENTITY.** Sodium became a list of objects with a
+clock each instead of a formula asked for a position — 69 px a frame became 1.8.
+Nothing the picture does to its phase can move one backwards.
+
+**Quantise it from the flow that decides.** One drawn ion per quantum of the
+conductance, so the potentiated synapse passes visibly more with no second number
+to keep in step — a count for a count. ⚠ The FIRST one is due after a fraction of
+a quantum, not a whole one, or the channel stands open with nothing going through
+it.
+
+**Fill the gap with the transition the picture skipped, and walk it HOME.** A
+message ends with its vesicles fused; the next needs them docked. Rather than
+falling back to rest, the picture holds and fresh bubbles come down from the
+pool — drawn with the same helpers a docked one uses, because a bubble on its way
+and a bubble at the dock are one object at two moments. Then the gap walks the
+phase to the window's END, where the picture is the same as its start in
+everything except the bubbles the restock just brought down, so the wrap changes
+nothing on screen.
+
+⚠ **Two bugs in the doing, both worth keeping.** A fixed restock time exceeded
+the burst's own step and gave NEGATIVE play windows — it is a share of the gap
+now. And one act's restock overlapped the previous act's release, restocking a
+terminal that was still releasing: **a window that fills a gap must be checked
+against what is on either side of it.**
+
+## Two things on the same frame do not read as cause and effect (2026-09-13)
+
+> *"I expected the 2 pink glyphs to do some work… They get color, but it's not
+> visually clear what is their role."*
+
+CaMKII lit and the carriers set off on the same frame. Both correct; neither
+caused the other on screen — the child saw a thing change colour and, elsewhere,
+a thing move. **Give the cause time to arrive before the effect starts**: a
+signal lead, a pulse that travels, and the thing it reaches brightening as it
+lands.
+
+⚠ **And draw the signal in ink that is not already spoken for.** It is a word,
+not a rope — the protein does not tow anything — so it is a RING, because every
+travelling ball in this app is an ion and a pink one setting off from here would
+read as calcium going the wrong way. The compression is declared.
+
+## The transport puts the CELL back, not just the picture (2026-09-13)
+
+> *"timeline does not revert all actions, if dragged backwards"*
+
+⚠ **This reverses an earlier rule of this document, on purpose.** *Never
+backwards — a model cannot un-tap a message* was right while the child's finger
+was the input: a model that rewound would have been inventing a past that never
+happened.
+
+Scripting the messages changed the premise. **A model can be rewound precisely
+when its inputs are reproducible.** A hand is not; a schedule is. So the general
+rule is the test, and "never backwards" was its special case.
+
+### Walk it in fixed steps of the run's own time, never in frames
+
+Stepping by `frame.timeDiff` makes the state depend on how fast the machine is
+drawing — the same moment is a different cell on a slow tab, and scrubbing back
+and forth cannot land on what it left. A cursor that advances in whole steps of
+the run's own clock makes the position decide the state and nothing else. A long
+drag re-walks under a budget, over a frame or two; playing forward costs one step.
+
+## The magnesium stops tossing a coin — a reading spent on TIME is unreadable (2026-09-13)
+
+> *"NMDA open state is easy to miss."*
+> *"Do not demo probability of Mg block, either keep closed or open. Lift or
+> deepen depending on the voltage."*
+
+⚠ **This reverses 21c-35, at the user's word, in both views that draw this
+receptor.** 21c-35 ruled that one drawn stone has only its own TIME to spend, so
+a 47% block was a stone in its seat 47% of the time — *never on how far down it
+hovers*. That is truer to the physics, and it cost the exhibit the one reading it
+exists for: **a channel whose stone flickers never looks open.**
+
+**The rule.** A value drawn as how OFTEN something happens is a value nobody can
+integrate by eye. Spend it on a POSITION and declare the simplification. Truth
+the child cannot read teaches nothing.
+
+### Then check what else was reading it
+
+Three things downstream broke, and each is its own lesson.
+
+**A threshold that worked against a flickering value is all-or-nothing against a
+steady one.** D07's ions asked `stoneIn(…) < 0.5`, which was right while ions
+arriving at different moments met the stone in different states. A depth gives
+every ion the same answer: measured at −30 mV, **0% got in against a block
+leaving 31% of the current flowing.** *When one drawn thing stands for MANY,
+probabilities become fractions* — of the CAST now, not of the clock.
+
+**A gate on top of a quantity already carried is that quantity counted twice.**
+The spine gated ion launches on the stone's depth, and it stopped the exhibit
+dead: a burst through one catcher only takes the block from 96% to 72%, so a
+stone that had to be half out let nothing through, ever. `nmdaFlow` already
+carries `1 − plug`; the quanta arrive slowly all by themselves.
+
+**An eased change needs its CAUSE to run first.** The stone's lift was driven by
+an ion being in the pore, so the ion spent the whole lift inside a half-blocked
+throat — the 2026-09-11 correction happening again, in slow motion. Driving the
+lift from the QUEUE makes it the cause: a quantum comes due, the stone moves,
+then something crosses.
+
+### And a reading nobody can see is worth changing how it is delivered
+
+The pore's ions were already a perfect `na ca na ca` and nobody could see it: one
+ball at a time, seconds apart, is a stream of singles that happen to differ. A
+quantum buys a PAIR now — tight within, long between — so "it passes both" is a
+rhythm rather than an inference. **Still one in the pore at a time.**
+
+And a coincidence that had no mark got two: a pip per condition, in the ink of
+the thing each reports, with the throat lighting only when both are true. One
+function answers all three drawings of it.
+
+## A mark that needs a key is not a reading (2026-09-15)
+
+> *"what are green and pink outlined circles under NMDA receptors?"* → *"ok,
+> remove them."*
+
+Two condition-pips were added to say that NMDA needs both its conditions at once.
+**The question was the answer**: a reader who knows this codebase could not tell
+what they were. Two unlabelled dots are not a reading on a scale, they are a
+legend with the legend missing.
+
+**The test.** If someone has to ask what a glyph means, a child cannot read it.
+Put the mark ON the thing it is about — the throat lighting when both conditions
+hold needs no key, because it is the pore itself — or drop it.
+
+## A protein displaces what it stands among, at the size it is NOW (2026-09-15)
+
+> *"3 new AMPA receptors are covered by a membrane."*
+
+A ligand channel's subunits part as it opens: MEASURED, **8.82 px half-width shut
+and 10.69 open**. The paver punched its hole at the shut width, so the nearest
+lipids stood at 9.5 and every receptor put on shoulder-pads the moment it did its
+job. The thing standing in a wall now says how much room it needs, and the caller
+hands it its current openness.
+
+⚠ **The first measurement pointed the wrong way.** Heads at 3.0 and 6.6 px looked
+like the hole failing entirely — they were the receptor's own glyph arcs at
+another depth. Asking the paver directly, rather than counting marks on a canvas,
+found the real gap. *Ask the decision, not the ink* — and when you do measure
+ink, be sure which ink.
+
+## A container arrives with its contents (2026-09-15)
+
+> *"vesicles should arrive filled, not NT teleport."*
+
+Restocking bubbles came down empty and their transmitter appeared when the next
+message began: cargo teleporting into a container already parked. A vesicle is
+filled at the pool and travels loaded.
+
+⚠ **And when one object is drawn by two callers, both ask ONE layout helper.**
+The cast lays a docked vesicle's seven balls with `cargoIn`; the descending one
+draws all of `cargoIn`. Same helper, same seven, same places — so the hand-over
+moves nothing. Two private layouts would have shifted the cargo at exactly the
+frame the label changed.
+
+## Two populations of one thing, and one of them is a still (2026-09-21)
+
+> *"Give ions identity. Let them go through the channel when the channel opens."*
+
+Giving the CROSSING sodium identity left the waiting ions as a cast asked at a
+frozen millisecond — a still that jiggled and never went anywhere. A child could
+watch a channel open, see ions standing above it, and see a **different** ion
+come through.
+
+**The rule.** When a thing exists in two states, it is one list with one life
+each, not a live list and a frozen one. And the event PICKS from what is already
+there rather than conjuring a fresh instance: the object the child is looking at
+must be the object that acts.
+
+### Size the pool against the busiest moment
+
+A supply that refills only when empty starves the exhibit exactly where the
+demand is highest. MEASURED at two ions per receptor, the burst act sent SIX
+against the spread act's nine — fewer for eight messages close together than for
+three spread out, which is the claim the view exists to make, backwards. Three
+per receptor puts it the right way round.
+
+### A guard that mirrors the drawing has to mirror ALL of it
+
+Three guards failed first run and none of them was the model:
+
+- an ion's position was read as one `0…2` ramp, but its clock restarts each
+  stage — it reported a **17.5 px jump the picture never makes**, because the
+  drawing carries a crossing ion from where it STOOD into the mouth over the
+  first third and the guard started it at the mouth;
+- "it must be SAMPLED waiting before it crosses" — two stages can turn over
+  inside one step, so an item whose turn comes the instant it finishes arriving
+  is never caught in the middle state, and was still drawn there all the while;
+- "the queue was empty before the row arrived" was asked of the frame BEFORE,
+  and the last one can leave in the very step that refills.
 
 ## Alive, not drafted
 

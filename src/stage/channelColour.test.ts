@@ -5,6 +5,10 @@ import { drawLeakChannel } from './leakChannel'
 import { HALF_MEM } from './bilayer'
 import { CHANNELS } from '../core/channels'
 import { GLOSSY_COLORS } from './particleStyle'
+import { drawLigandChannel } from './ligandChannel'
+import { drawReceptor } from './receptorScene'
+import { TRANSMITTER_INK } from './synapseScene'
+import { receptorsStart } from '../core/receptors'
 import type { IonKind } from '../core/ions'
 
 // ACTION LIST 2026-08-30 A4: "check channels color-coding in this demo. K⁺
@@ -79,5 +83,77 @@ describe('a channel wears its ion, in every view', () => {
       const want = dominant(GLOSSY_COLORS[ion].mid)
       expect(styles.some((s) => dominant(s) === want)).toBe(true)
     }
+  })
+})
+
+// ⚠ D07 BROKE THIS RULE ON THE DAY IT WAS BUILT (21c-34, user: "would it make
+// sense to replace receptors in 'vesicle: round trip view' to AMPA
+// (color-coding), for consistency?"). The two views did disagree — but the
+// round trip was the one that had it right, drawing its receptor in sodium's
+// gold. D07 had painted AMPA in the TRANSMITTER's teal, the colour of what it
+// catches, and NMDA in magnesium's stone, the colour of what BLOCKS it.
+describe('the glutamate receptors wear their ions too', () => {
+  it('paints D07’s AMPA exactly as a sodium channel is painted', () => {
+    const direct = paint((c) =>
+      drawLigandChannel(c.ctx, {
+        cx: 0,
+        midY: 0,
+        halfHeight: HALF_MEM,
+        open: 0.5,
+        species: GLOSSY_COLORS.na.mid,
+        speciesDark: GLOSSY_COLORS.na.dark,
+        socket: true,
+      }),
+    )
+    const bench = paint((c) =>
+      drawReceptor(c.ctx, { kind: 'ampa', state: receptorsStart(), ms: 0 }),
+    )
+    expect(direct.length, 'the reference painted nothing').toBeGreaterThan(3)
+    for (const colour of new Set(direct)) {
+      expect(bench, `AMPA is not wearing sodium — ${colour} is missing`).toContain(colour)
+    }
+  })
+
+  it('paints D07’s NMDA in CALCIUM — the ion that makes it a different receptor', () => {
+    const direct = paint((c) =>
+      drawLigandChannel(c.ctx, {
+        cx: 0,
+        midY: 0,
+        halfHeight: HALF_MEM,
+        open: 0.5,
+        species: GLOSSY_COLORS.ca.mid,
+        speciesDark: GLOSSY_COLORS.ca.dark,
+        socket: true,
+      }),
+    )
+    const bench = paint((c) =>
+      drawReceptor(c.ctx, { kind: 'nmda', state: receptorsStart(), ms: 0 }),
+    )
+    for (const colour of new Set(direct)) {
+      expect(bench, `NMDA is not wearing calcium — ${colour} is missing`).toContain(colour)
+    }
+  })
+
+  it('and neither wears what it CATCHES or what BLOCKS it', () => {
+    // The two wrong answers, named so a future edit cannot drift back to them.
+    const wrong = paint((c) =>
+      drawLigandChannel(c.ctx, {
+        cx: 0,
+        midY: 0,
+        halfHeight: HALF_MEM,
+        open: 0.5,
+        species: TRANSMITTER_INK.mid,
+        speciesDark: TRANSMITTER_INK.dark,
+        socket: true,
+      }),
+    )
+    const bench = paint((c) =>
+      drawReceptor(c.ctx, { kind: 'ampa', state: receptorsStart(), ms: 0 }),
+    )
+    const shared = [...new Set(wrong)].filter((colour) => bench.includes(colour))
+    expect(
+      shared.length,
+      `AMPA is still wearing the transmitter's own ink (${shared.join(', ')})`,
+    ).toBeLessThan(new Set(wrong).size)
   })
 })

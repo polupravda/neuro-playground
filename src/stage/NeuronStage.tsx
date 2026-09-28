@@ -22,6 +22,7 @@ import {
   ZOOM_TARGETS,
   cameraDuration,
   clamp01,
+  SPINE_VIEW_SCALE,
 } from './layout'
 import { drawScene, nativeCtx, sceneSpokenTermAt } from './drawScene'
 import { FIT, cameraFor, viewRect, type Camera } from './camera'
@@ -56,6 +57,20 @@ import {
 } from './synapseScene'
 import { useSnareStore } from '../state/snareStore'
 import { useRetrievalStore } from '../state/retrievalStore'
+import { usePoolsStore } from '../state/poolsStore'
+import {
+  drawSpine,
+} from './spineScene'
+import { spineFire, spineStart, spineStep } from '../core/spine'
+import {
+  buildSpineStory,
+  storyModelMs,
+  storyRelease,
+  storyRestock,
+  STORY_STEP_MS,
+  type SpineStory,
+} from './spineStory'
+import { useReceptorStore } from '../state/receptorStore'
 import { synapseRun } from '../core/synapse'
 import { cleftRun } from '../core/cleft'
 import { drawLeaky, leakyLabels } from './leakyScene'
@@ -221,6 +236,10 @@ export function NeuronStage() {
   const axonShownRef = useRef(0)
   const passiveShownRef = useRef(0)
   const synapseShownRef = useRef(0)
+  // S13's own view — the receiving spine — gated exactly like the others.
+  const spineLayerRef = useRef<Konva.Layer>(null)
+  const spineFadeRef = useRef(0)
+  const spineShownRef = useRef(0)
   const selected = useNeuronStore((s) => s.selected)
   const run = useNeuronStore((s) => s.run)
   const zoom = useNeuronStore((s) => s.zoom)
@@ -283,6 +302,26 @@ export function NeuronStage() {
   // The synapse view serves TWO places: the whole synapse and its active
   // zone, four times deeper — the same run, watched closer.
   const atSynapse = zoom === 'outgoing-synapse' || zoom === 'active-zone'
+  // ⚠ A VIEW OF ITS OWN (user, 2026-09-11). It re-implements only its frame;
+  // every drawing in it is the round trip's — see `stage/spineScene.ts`.
+  const atSpine = zoom === 'spine'
+  // ⚠ S13'S MODEL LIVES IN A REF and is stepped by the stage's own animation,
+  // not by React: a spine's voltage, its calcium and its magnesium are per-frame
+  // values, and only the child's taps are events worth re-rendering for.
+  // ⚠ AND IT CARRIES THE STORY'S OWN CURSORS TOO (21c-71): how far the MODEL
+  // has been stepped (which is not the screen's position — the story has legs),
+  // and how many of its scripted messages have been sent.
+  const spineRef = useRef<{
+    at: boolean
+    state: ReturnType<typeof spineStart>
+    /** How far the model has been walked, in the story's SCREEN ms — always a
+     *  whole number of steps, so the state is a function of the position and
+     *  not of the frame rate. */
+    walkedTo: number
+    sent: number
+    story: SpineStory | null
+  }>({ at: atSpine, state: spineStart(), walkedTo: 0, sent: 0, story: null })
+  spineRef.current.at = atSpine
   const axonU = useAxonStore((s) => s.u)
   const axonLead = useAxonStore((s) => s.lead)
   const axonPlaying = useAxonStore((s) => s.playing)
@@ -472,6 +511,24 @@ export function NeuronStage() {
       })),
     [synRun, synCleft],
   )
+  // ⚠ THE STORY, BUILT ONCE FROM THE RUN (21c-71). Everything about this view's
+  // clock comes from here: how long it is, what the model is told and when,
+  // which release the picture is drawing, and where the chapters fall.
+  const spineStory = useMemo(() => buildSpineStory(synRun, synCleft), [synRun, synCleft])
+  spineRef.current.story = spineStory
+  // ⚠ THE BAR CARRIES THE CHAPTERS NOW, not one message's events. A fifty-three
+  // second story whose bar is dated in milliseconds of ONE message is a bar
+  // about the first quarter of itself; what the child needs is which part of
+  // the story they are in, and a way back to one.
+  const spinePoints = useMemo(
+    () =>
+      spineStory.acts.map((a) => ({
+        id: a.key,
+        label: a.what,
+        u: a.from / spineStory.ms,
+      })),
+    [spineStory],
+  )
   const synapseRef = useRef({
     at: atSynapse,
     run: synRun,
@@ -540,7 +597,10 @@ export function NeuronStage() {
   }, [atPassive])
 
   useEffect(() => {
-    if (!atSynapse) useSynapseStore.getState().reset()
+    // ⚠ THE SPINE KEEPS IT TOO. The spine view draws the round trip's own
+    // picture, and that picture animates off THIS run's clock — resetting it on
+    // arrival left the drawing frozen.
+    if (!atSynapse && !atSpine) useSynapseStore.getState().reset()
   }, [atSynapse])
 
   const synRunning = synU !== null
@@ -766,8 +826,23 @@ export function NeuronStage() {
         jiggleRef.current = frame.time * 0.0035
         {
           const syn = synapseRef.current
-          if (syn.at && syn.playing && syn.u !== null) {
-            const next = syn.u + frame.timeDiff / SYNAPSE_SCREEN_MS
+          // ⚠ AT THE SPINE AS WELL (user, 2026-09-13: "send message button click
+          // does not initiate any process. The only thing I see is the movement
+          // of MG block"). The spine view IS this drawing, and everything in it
+          // that moves — the bubble merging, the transmitter crossing, the AMPA
+          // receptors opening, the ions — is clocked by this run. Only the
+          // magnesium and the aura come from the spine's own model, which is
+          // exactly what was still moving.
+          const runLive = syn.at || spineRef.current.at
+          // ⚠ AND THE SPINE'S SWEEP IS ITS OWN LENGTH. Its clock covers a
+          // fraction of the run's legs, so walking it at the round trip's
+          // screen time would play that fraction over the whole 34 s.
+          const screenMs =
+            spineRef.current.at && spineRef.current.story
+              ? spineRef.current.story.ms
+              : SYNAPSE_SCREEN_MS
+          if (runLive && syn.playing && syn.u !== null) {
+            const next = syn.u + frame.timeDiff / screenMs
             // Hold AT the end first — clearing the instant the run finished
             // would wipe the last thing it teaches off the screen — and stamp
             // WHEN it ended, on the stage's own clock, so the reset below can
@@ -784,7 +859,7 @@ export function NeuronStage() {
           // u = 1 by the slider is not yanked back to rest under their thumb.
           if (syn.u !== 1) synEndAtRef.current = null
           else if (
-            syn.at &&
+            runLive &&
             !syn.playing &&
             synEndAtRef.current !== null &&
             frame.time - synEndAtRef.current > SYNAPSE_END_HOLD_MS
@@ -804,6 +879,73 @@ export function NeuronStage() {
         passiveFadeRef.current += (wantPassive - passiveFadeRef.current) * ease
         const wantSynapse = synapseRef.current.at ? 1 : 0
         synapseFadeRef.current += (wantSynapse - synapseFadeRef.current) * ease
+        // ⚠ AND THE SPINE'S. This line went missing when the shared-view
+        // experiment was unwound, and the view came up as an EMPTY CANVAS: its
+        // fade stayed at 0, so its Shape returned before drawing anything, and
+        // nothing failed — the drawing was fully guarded and never called.
+        const wantSpine = spineRef.current.at ? 1 : 0
+        spineFadeRef.current += (wantSpine - spineFadeRef.current) * ease
+        // ⚠ THE FRAME CLAMP LIVES HERE, not in the model — a backgrounded tab
+        // must not hand the spine a ten-second step, and the model must take
+        // whatever time it is given so a test can walk it.
+        if (spineRef.current.at) {
+          // ⚠ THE MODEL IS A PURE FUNCTION OF THE TRANSPORT NOW (21c-73, user:
+          // "timeline does not revert all actions, if dragged backwards").
+          //
+          // It used to HOLD when dragged back, and that was right while the
+          // child's finger was the input: nothing can un-tap a message, so a
+          // model that rewound would have been inventing a past that never
+          // happened. The story sends the messages now — the input is a
+          // SCHEDULE, and a schedule can be replayed — so the model can be put
+          // back exactly, and dragging to 10 s shows the synapse as it was at
+          // 10 s rather than a potentiated one wearing act one's picture.
+          //
+          // ⚠ AND IT IS WALKED IN FIXED STEPS OF THE STORY'S OWN TIME, never in
+          // frames. Stepping by `frame.timeDiff` made the state depend on how
+          // fast the machine was drawing, so the same moment was a different
+          // cell on a slow tab — and scrubbing back and forth could not land on
+          // what it left. One step size, one answer.
+          //
+          // ⚠ THE SCREEN'S CLOCK IS NOT THE MODEL'S (21c-71): the story has
+          // legs, so each step asks `storyModelMs` how much cell-time it is
+          // worth rather than scaling it from `u`.
+          const story = spineRef.current.story
+          const syn = synapseRef.current
+          if (story) {
+            const sp = spineRef.current
+            const target = syn.u === null ? 0 : syn.u * story.ms
+            if (target < sp.walkedTo) {
+              sp.state = spineStart()
+              sp.sent = 0
+              sp.walkedTo = 0
+            }
+            // A budget, so a drag from the end to the start re-walks over a few
+            // frames instead of stalling one. Playing forward costs one step.
+            let budget = 5000
+            while (sp.walkedTo + STORY_STEP_MS <= target && budget-- > 0) {
+              const from = sp.walkedTo
+              const to = from + STORY_STEP_MS
+              while (
+                sp.sent < story.messages.length &&
+                story.messages[sp.sent].fireAt <= to
+              ) {
+                spineFire(sp.state, 0)
+                sp.sent += 1
+              }
+              spineStep(sp.state, storyModelMs(story, to) - storyModelMs(story, from))
+              sp.walkedTo = to
+            }
+          }
+        }
+        // ⚠ AND THE STORY STARTS OVER WHEN THE RUN DOES. The model was never
+        // reset — it did not need to be while the child's finger was the only
+        // input — but a story that has already delivered its receptors replays
+        // as a cell that learned before the lesson began.
+        if (synapseRef.current.u === null && spineRef.current.walkedTo > 0) {
+          spineRef.current.state = spineStart()
+          spineRef.current.sent = 0
+          spineRef.current.walkedTo = 0
+        }
 
         const cam = cameraRef.current
         if (cam.startedAt === null) cam.startedAt = now
@@ -831,6 +973,8 @@ export function NeuronStage() {
         synapseShownRef.current =
           synapseFadeRef.current *
           arrivalSpan(current.scale, SYNAPSE_VIEW_SCALE, SYNAPSE_VIEW_SCALE * 4)
+        spineShownRef.current =
+          spineFadeRef.current * arrivalAt(current.scale, SPINE_VIEW_SCALE)
         // The dive INTO the view: past the synapse's own magnification the
         // layer itself scales about the active zone, so the camera keeps going
         // into the same picture rather than swapping it.
@@ -865,6 +1009,7 @@ export function NeuronStage() {
           axonShownRef.current,
           passiveShownRef.current,
           synapseShownRef.current,
+          spineShownRef.current,
         )
         layer.getNativeCanvasElement().style.opacity = String(1 - hidden)
         // And an invisible cell must not still be clickable underneath the view
@@ -888,6 +1033,7 @@ export function NeuronStage() {
         axonLayerRef.current,
         passiveLayerRef.current,
         synapseLayerRef.current,
+        spineLayerRef.current,
       ].filter(Boolean) as Konva.Layer[],
     )
     anim.start()
@@ -1235,7 +1381,26 @@ export function NeuronStage() {
           (user, 2026-09-01: "replace the magnifying glass with a shortcut
           button, as seen on 'The AP' — both views, bottom left"). */}
       {atSynapse && (
-        <div className="absolute bottom-3 left-3 z-10 rounded-xl border border-slate-700 bg-slate-950/85 p-1.5 shadow-lg backdrop-blur">
+        <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5">
+          {/* ⚠ A PLACE, ON ITS OWN PLATE — not among the drawers below it
+              (user, 2026-09-12: "it shoudl be a separate menu item"). The four
+              buttons underneath open DRAWERS over this scene; this one goes
+              somewhere else entirely, to the other cell. Two kinds of door read
+              as two plates, or a child learns that they all do the same thing. */}
+          <div className="rounded-xl border border-emerald-700/70 bg-slate-950/85 p-1.5 shadow-lg backdrop-blur">
+            <button
+              type="button"
+              onClick={() => zoomTo('spine')}
+              title="Across the gap: what the message does when it lands."
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+            >
+              <span aria-hidden className="text-base leading-none">
+                🌱
+              </span>
+              <span className="whitespace-nowrap">The receiving spine</span>
+            </button>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-950/85 p-1.5 shadow-lg backdrop-blur">
           <button
             type="button"
             onClick={() => useSnareStore.getState().openBench()}
@@ -1264,6 +1429,37 @@ export function NeuronStage() {
             </span>
             <span className="whitespace-nowrap">Synaptic vesicle endocytosis</span>
           </button>
+          {/* ⚠ A THIRD DOOR AT THIS PLACE (D18, 2026-09-06). Three drawers now
+              deepen this one view, and each keeps its own button and its own
+              icon — a menu would hide what is behind them. */}
+          <button
+            type="button"
+            onClick={() => usePoolsStore.getState().openBench()}
+            title="Whether a synapse can run out of things to say."
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
+          >
+            <span aria-hidden className="text-base leading-none">
+              🪫
+            </span>
+            <span className="whitespace-nowrap">Vesicle pools &amp; depression</span>
+          </button>
+          {/* ⚠ A FOURTH DOOR AT THIS PLACE (D07, 2026-09-11), and the first
+              that leads to the FAR side of the gap: everything behind the other
+              three happens in the terminal. Still a button of its own with an
+              icon of its own — four is not yet a menu, and a menu would hide
+              what is behind them. */}
+          <button
+            type="button"
+            onClick={() => useReceptorStore.getState().openBench()}
+            title="Two receptors catch the same chemical — and only one of them answers."
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
+          >
+            <span aria-hidden className="text-base leading-none">
+              🔌
+            </span>
+            <span className="whitespace-nowrap">AMPA &amp; NMDA receptors</span>
+          </button>
+          </div>
         </div>
       )}
       {/* ⚠ THE TIMELINE TOOL here too (user, 2026-09-01): the run's dated
@@ -1348,6 +1544,12 @@ export function NeuronStage() {
               className="pointer-events-auto flex h-[38px] items-center gap-1 rounded-lg border border-slate-700 bg-slate-950/85 p-0.5 shadow-lg backdrop-blur"
             >
               {[
+                // ⚠ TWO FRAMINGS OF ONE THING, and only two (user, 2026-09-12:
+                // "the spine should NOT be side by side with whole synapse and
+                // active zone. Exclude it from the switch"). This switch says
+                // HOW CLOSE, so everything in it has to be the same subject at
+                // a different distance. The spine is a different cell and a
+                // different concept — it gets a door, not a notch on a dial.
                 { id: 'outgoing-synapse', icon: '🕸', label: 'whole synapse' },
                 { id: 'active-zone', icon: '🔍', label: 'active zone' },
               ].map((option) => {
@@ -1372,6 +1574,98 @@ export function NeuronStage() {
             </div>
           </div>
         </div>
+      )}
+      {/* ⚠ THE STORY TELLS ITSELF (21c-71, user: "It's not clear for a kid what
+          has to be done, so the kid played once. We need to pack everything in
+          one animation"). The child presses ▶ and watches; the run sends the
+          messages, spread out and then close together, and the cell does the
+          rest. Their hand is an amplifier, not a prerequisite. */}
+      {atSpine && spineStory && (
+        <>
+          {/* ⚠ THE TIMELINE, in the room `SPINE_TOP` is SOLVED to keep clear
+              (user, 2026-09-13: "add timeline, shift the whole view down, so the
+              timeline does not cover vesicle release"). */}
+          <div className="pointer-events-none absolute inset-x-3 top-3 z-10">
+            <TransportBar
+              className="pointer-events-auto"
+              points={spinePoints}
+              value={synShownU}
+              playing={synPlaying}
+              onScrub={(v) => useSynapseStore.getState().scrubTo(v)}
+              onResume={() => useSynapseStore.getState().resume()}
+              ariaLabel="Position through the story"
+              // ⚠ SECONDS, NOT MODEL MILLISECONDS: the reading was
+              // `spineClock(u) × windowMs`, a position inside ONE message,
+              // which is now a thirteenth of what the bar covers.
+              timer={`${((synShownU * spineStory.ms) / 1000).toFixed(0)}s`}
+            />
+            <div className="mt-2 flex items-start gap-2">
+              {/* ⚠ ▶ IS A TRANSPORT NOW, and only that.
+                  It used to send a message on every press, because the burst was
+                  the child's to produce (user, 2026-09-13: "no need of two action
+                  buttons. Remove send a message. Keep play"). The story sends
+                  them now, so a press that also fired the terminal would be a
+                  press that quietly changed the experiment. */}
+              <button
+                type="button"
+                onClick={() => {
+                  const st = useSynapseStore.getState()
+                  if (st.u === null) st.fire()
+                  else if (st.playing) st.pause()
+                  else st.resume()
+                }}
+                title="Play the whole story — one message, then a few spread out, then a run of them close together."
+                className="pointer-events-auto flex h-[38px] min-w-[128px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-400/80 bg-amber-500/30 px-3 text-[13px] font-semibold text-amber-50 shadow-lg backdrop-blur transition hover:bg-amber-500/45"
+              >
+                <span aria-hidden>{synPlaying ? '⏸' : '▶'}</span>{' '}
+                {synPlaying ? 'Pause' : synShownU > 0 ? 'Play on' : 'Play'}
+              </button>
+              {/* ⚠ EVERY TRANSPORT THAT CAN REACH AN END NEEDS A CONTROL THAT
+                  SAYS START OVER — and this one needs it twice over, because
+                  the cell it drives has LEARNED by the end. Replaying without
+                  putting the spine back would start the lesson at a synapse
+                  that already has its new catchers.
+                  ⚠ AND IT IS THE APP'S ONE RESET, not a sixth (user,
+                  2026-08-30: "adjust 'reset' button across the app"). A restart
+                  glyph drawn here by hand is how five of them happened. */}
+              <ResetButton
+                height={38}
+                className="pointer-events-auto shadow-lg backdrop-blur"
+                onClick={() => {
+                  spineRef.current.state = spineStart()
+                  spineRef.current.sent = 0
+                  spineRef.current.walkedTo = 0
+                  useSynapseStore.getState().reset()
+                  useSynapseStore.getState().fire()
+                }}
+                title="Start the story again, with the synapse back as it was — its new catchers taken away."
+              />
+            </div>
+          </div>
+          {/* ⚠ THE WAY BACK IS A DOOR, not a notch on a dial — the same shape
+              as the door that led here. A scale switch would say this place is
+              a magnification of the terminal, which is exactly what it is not.
+              ⚠ AND AT THE FOOT NOW (user, 2026-09-13: "re-position 'back to the
+              synapse' button away from the timeline"). It stood at `top-3`,
+              where the timeline now runs the full width of the frame — and the
+              room under the bar cannot have it either: that is the room
+              `SPINE_TOP` was re-solved to keep clear for the VESICLES, which is
+              the whole point of 21c-59. The head's lower corner is the one
+              stretch of this picture with nothing drawn in it. */}
+          <div className="absolute bottom-3 right-3 z-10 rounded-xl border border-slate-700 bg-slate-950/85 p-1.5 shadow-lg backdrop-blur">
+            <button
+              type="button"
+              onClick={() => zoomTo('outgoing-synapse')}
+              title="Back across the gap, to the terminal that sent the message."
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-slate-200 transition hover:bg-amber-500/20"
+            >
+              <span aria-hidden className="text-base leading-none">
+                🕸
+              </span>
+              <span className="whitespace-nowrap">Back to the synapse</span>
+            </button>
+          </div>
+        </>
       )}
       {atPassive && (
         <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-amber-400/60 bg-slate-950/90 px-3 py-2 shadow-lg backdrop-blur">
@@ -1710,6 +2004,48 @@ export function NeuronStage() {
             the way in, because this synapse lies along the x axis on the cell
             while the drawing puts the cleft across the middle. The rotation is
             the camera's, not a lie in the picture. */}
+        {/* ⚠ S13'S OWN LAYER — a view of its own (user, 2026-09-11: "it
+            represents a different neuron and a different concept"). It draws
+            nothing of its own making: every membrane, bubble, receptor and ion
+            in it comes from the round trip's code, and only the FRAME is
+            re-implemented. Composited on its own canvas element like the
+            others, so nothing the drawing does to `globalAlpha` escapes it. */}
+        <Layer ref={spineLayerRef} listening={false}>
+          <Shape
+            listening={false}
+            sceneFunc={(ctx) => {
+              const shown = spineShownRef.current
+              if (shown <= 0.002) return
+              // ⚠ THE ROUND TRIP'S OWN PICTURE, framed on the spine — so the
+              // run, the cleft and the clock are the same ones that view uses.
+              const st = synapseRef.current
+              const story = spineRef.current.story
+              if (!story) return
+              const screenMs = st.u === null ? 0 : st.u * story.ms
+              drawSpine(nativeCtx(ctx), {
+                run: st.run,
+                cleft: st.cleft,
+                // ⚠ THE STORY SAYS WHICH MESSAGE IS ON SCREEN (21c-71). It was
+                // `spineClock(st.u)` — one run, one release, the transport
+                // walking it end to end. Now thirteen messages share the bar,
+                // and between them the terminal is at rest, which is a reading
+                // of its own.
+                u: storyRelease(story, screenMs),
+                jiggle: jiggleRef.current,
+                labelsOn: false,
+                fade: shown,
+                spine: spineRef.current.state,
+                // ⚠ THE TERMINAL RESTOCKING between messages (21c-72) — new
+                // vesicles coming down from the pool, rather than the old ones
+                // un-fusing where they stood.
+                restock: storyRestock(story, screenMs),
+                // ⚠ AND THE MARK ACT ONE LEFT, once there is something to
+                // compare it against.
+                mark: screenMs >= story.markFrom ? story.mark : null,
+              })
+            }}
+          />
+        </Layer>
         <Layer ref={synapseLayerRef} listening={atSynapse}>
           <Shape
             listening={false}

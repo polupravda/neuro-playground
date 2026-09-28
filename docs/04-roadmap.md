@@ -13770,3 +13770,3437 @@ pulled the same piece in different directions at different speeds. Measured at
 **Broken and watched fail**: the settle put back on the ratchet (3 down); the
 lead removed so a piece is still arriving when its space opens (1 down); every
 piece entering from one side (1 down). 1318 tests green, typecheck clean.
+
+### Step 21c-16 — D18, the vesicle pools and what a burst costs, 2026-09-06 · awaiting manual test
+
+The last two of the sixteen mechanisms listed under "clearance & recycling"
+(21c-4d) that nothing in the app showed: the **pools** a terminal keeps, and
+**depression** — what happens when messages arrive faster than vesicles come
+back. Opened with four alignment questions; the user took all four
+recommendations: two terminals side by side, the child taps ⚡ themselves as
+fast as they like, the weakening shown by the cloud in the gap thinning (no
+chart), and the reserve tied down by ropes that let go when pushed hard.
+
+**Why a drawer and not a leg of the round trip** — the rule says a drawer must
+be able to say what it does that the view cannot. This one needs a TRAIN of
+spikes and two terminals side by side under one hand; no existing run plays
+either.
+
+**One tap, two meanings.** The left terminal takes one spike per tap, the right
+a whole burst of five, 45 ms apart. Tapping two terminals at two rates would
+test the child's hands; this tests the synapse.
+
+- `core/pools.ts` — the model. `poolsSpike` gives every DOCKED vesicle its own
+  seeded chance (`RELEASE_P` 0.34); slots refill one at a time, oldest waiter
+  first, after `REDOCK_MS`; a fused vesicle rejoins the recycling pool after
+  `RECOVER_MS`. **No depression factor exists**: an empty dock releases nothing
+  because there is nothing in it.
+- `stage/poolsScene.ts` — three ranks, ordered by distance from the wall, drawn
+  entirely from objects the child has already met: the SNARE bench's own
+  `wallPoints` through the shared paver, a vesicle as a lumen with a ring (the
+  synapse view's wide register — **not** paved: level of detail cuts both ways
+  and these are twelve pixels across), and the app's own glossy transmitter dot
+  for the puff. The one new object is the synapsin rope.
+- `state/poolsStore.ts`, `ui/PoolsBench.tsx` — the model in refs, stepped on one
+  clock; two panels in the shared `SideBySide` layout; one ⚡ button that reaches
+  both. A third door on the synapse view (🪫).
+
+**Three faults the guards found, none of them cosmetic:**
+
+- **The model was eating the caller's time.** `poolsStep` clamped its own `dt` at
+  100 ms, so `poolsStep(s, 900)` advanced 100 ms — a dock waiting 620 ms never
+  refilled, and a gentle tapper's spikes all landed inside the mobilise window
+  and cut the ropes. Three guards down at once. The repo's rule is the opposite:
+  carry fractional time, clamp the frame **at the caller**. The clamp moved to
+  the bench's rAF loop.
+- **The exhibit's claim was being measured in the wrong place.** The first
+  version of the burst guard compared the leftover docked count and failed with
+  the terminals INVERTED — the hammered one held 4 and the gentle one 2. The
+  model was right: a hammered terminal mobilises its reserve, so late in a run
+  it genuinely holds more parked bubbles. What fails is the message. Re-measured
+  on what the child actually sees: silent messages 0.67 against 0.33, mean puff
+  0.45 against 1.00.
+- **Dead code claiming to be a rule.** `ropesAt` opened with
+  `if (s.freed >= 1) return []`, and a deliberate break could not make it
+  matter — by the time `freed` reaches 1 the reserve pool is empty, so the
+  filter below already returns nothing. Deleted.
+
+**Broken and watched fail — twenty mutations, three survived the first round:**
+releasing from the recycling pool (4 down); refilling with no wait (2);
+releasing unconditionally (1); `REDOCK_MS` at 1 ms (1); mobilise counted as a
+total instead of a rate (2); the freed reserve never joining the crowd (1);
+`Math.random` for the draw (3); the reserve rank moved forward (3); the ranks
+packed to overlapping (1); the puff sized independently of the release (1); one
+word written on the canvas (1); the thermal clock pinned at 0 (1).
+
+**The three that survived, and why — a rule this round produced:** all three
+mutations touched code that ran only PART-WAY through the reserve coming
+forward, and the fixture (`hammered()`) was already past it: `freed` had reached
+1, the reserve pool was empty, and no rope was drawn on the frame the guard
+measured at all. **Guard the middle of a transition, not only its ends.** A
+`midFlight()` fixture was added, the ropes' three states (tied → slack → gone)
+are now all asserted, and the fade guard runs on a frame that actually draws a
+rope. Re-broken: five mutations, five down.
+
+1335 tests green, typecheck clean. (`synapseScene` J1 failed once under full
+parallel load and passes alone at 937 ms against a 5 s timeout — scheduling
+contention, not a regression.)
+
+**Known, not fixed here:** four private copies of a `hash01` helper exist across
+`core/patchClamp.ts`, `stage/permeaScene.ts`, `stage/capacitorScene.ts` and
+`stage/lipidLabScene.ts`, against the rule that a helper has one owner. Not
+touched inside this step — unifying them is a change to three drawings' seeded
+noise and belongs in its own step with its own before/after.
+
+### Step 21c-17 — D18 made kid-friendly: bubbles you can see into, and a flash train, 2026-09-06 · awaiting manual test
+
+Two reported failures, both fair: *"as baseline looks fine, but it's not kid
+friendly enough — animate release, animate membrane fuse, make vesicles be
+filled with neurotransmitters, make vesicles have visible lipids"*, and *"as a
+kid who doesn't read, I see no difference between first and second view. What is
+one message? What is a whole burst is not clear."*
+
+Opened with four alignment questions, two of which had to be put rather than
+answered:
+
+- **The lipid ask conflicted with the arithmetic, and the arithmetic was
+  brutal.** A pool vesicle was **31 px across while ONE shared lipid is 32.7 px
+  thick** — the molecule was larger than the object, which is exactly why they
+  had been plain rings. And the shared lipid is *right*: at the SNARE bench's
+  vesicle (r = 135) it gives 126 molecules round the ring against a real
+  vesicle's ~150, so an honest scaling here would need a **0.38 px** head. Put
+  to the user with those numbers; they chose **fewer and bigger** over keeping
+  the crowd. Counts 5/6/9 → **3/4/6**, bubble r 15.6 → **38.7**, and the lipid
+  head exaggerated ~3x, declared beside the true proportion.
+- **The flash ask was scientifically wrong**, and raised rather than built. A
+  bigger flash for a bigger message teaches that a stronger signal is a bigger
+  spike; action potentials are **all-or-none**. The user took the honest option:
+  five identical flashes as a **train**, one per spike, derived from `BURST_N`.
+
+**What was built**
+
+- **The fusion is the SNARE bench's own.** `fusedCentreY` was split, and the
+  depth rule extracted as `fusedCentreFor(g, from, r, p)` — the approach to
+  contact, then the constant sweep of the intersection ANGLE (which is what
+  bounds a lipid's speed, because a sphere's waterline sweeps infinitely fast
+  the instant it touches a plane). D18 drives it on a 1.4 s clock with up to
+  three fusions at once; the SNARE bench keeps its 20 s run. One fusion in the
+  app, two schedules.
+- **`wallPointsMany`** — the shared wall, opened in SEVERAL places at once. One
+  `shift` about one `about` could not say what a burst does, and the shifts
+  **add up**: each fusion adds its bubble's membrane, so a molecule is pushed
+  aside by every opening it is not inside. Measured: one opening spans the wall
+  627 px, two 833, three 1039 — a step of 2 x shift each time.
+- **A slot is a place, not a count.** A vesicle carries the parking space it is
+  in, and keeps it once it has gone, so the fusion happens where the bubble
+  actually was. A space is not free while a bubble is still merging out of it —
+  otherwise a new one docks on top of a half-flattened one.
+- **Cargo, from the first frame.** `NT_PER_VESICLE` balls sit in every bubble,
+  seeded and jostling; they leave through the **mouth** (never before
+  `SINK_TOUCH`, when the membranes actually merge), then drift off the bottom of
+  the frame. One function for a ball's whole life, because two is how a ball
+  ends up teleporting into the gap. Every ball carries its bubble's id.
+- **The flash train.** `FLASH_MS` is **derived**, not chosen:
+  `SINK_TOUCH x FUSE_MS`, so a flash lands exactly as the bubble it triggers
+  touches the wall. Five bolts ride down the terminal's edge 45 ms apart, all
+  the same size. The burst icon is `'⚡'.repeat(BURST_N)`, so headline, button
+  and canvas cannot disagree about how many a burst is.
+- **A shared button plus per-panel buttons** (the user's choice): the shared one
+  keeps the comparison fair — same hand, same rhythm — and each panel's own
+  button carries its own count of bolts.
+- **`hash01` unified.** It existed four times, byte-identical, in
+  `core/patchClamp.ts`, `stage/permeaScene.ts`, `stage/capacitorScene.ts` and
+  `stage/lipidLabScene.ts`. Adding a fifth for the cargo was not an option, so
+  it moved to `core/noise.ts` — provably safe because the copies were identical,
+  and the whole suite confirmed it: no drawing changed.
+
+**Two parameters had to move, and the choice was MEASURED.** Three docked slots
+instead of five means three chances per spike instead of five, and at the old
+`RELEASE_P` the *gentle* terminal fell silent on **half** its messages — which
+reads as a broken app, not as biology. A sweep of release probability x recovery
+time x pool split, and one control that mattered: **shortening the docking step
+from 620 ms to 260 changed the figures not at all**, which is what proved supply
+and not docking was the constraint. So docking keeps its well-supported number;
+`RELEASE_P` went 0.34 → 0.55 (declared as a deliberately *reliable* synapse) and
+`RECOVER_MS` 6200 → 3400 (already a declared compression; the ORDER survives).
+After: the gentle terminal fails **0.25** of its messages against the burst's
+**0.73**, releasing 1.00 per message against 0.30.
+
+**Broken and watched fail — 30 mutations, four survived the first round.** Down:
+the merging bubble giving up its space (1); docking into the wrong space (1);
+cargo not outliving its fusion (3); a burst drawing one flash (2); the flash
+landing late (3); a flash lingering (1); the sink made linear (5); one wall site
+instead of many (1); the shifts not adding (1); the layout not solved from the
+budget (3); the docked rank lifted off the wall (1); the membrane thicker than
+the bubble (2); a sub-pixel head (1); a bubble merging at the frame's middle
+(3); cargo escaping its lumen (1); cargo crossing away from the mouth (1); cargo
+sized past the lumen (1); the bolt not drawn (1); bolts of different sizes (1);
+the flash starting on-frame (1); a word on the canvas (1); a fade assigned (1);
+the thermal clock pinned (1).
+
+**The four that survived, and the two rules they produced:**
+
+- **A journey has more than one leg.** Two mutations hid in the cargo's
+  *crossing* leg — the branch between waiting and drifting — and no assertion
+  ever sampled a moment when a ball was on it. "Before and after" is two
+  fixtures for a three-legged journey. Now the guard samples every leg, asks
+  that a ball has not moved **at all** before the mouth opens (being "inside the
+  lumen" was too weak: a ball that set off on frame one has crept two pixels by
+  contact), and asks identity mid-crossing.
+- **Ask for what the budget PROMISED.** Spacing the ranks on the vesicle's ring
+  instead of its outer radius left 94.8 px between 92 px bubbles — 2 px of air,
+  visibly wrong, and a "do any two overlap?" guard passed it. The scene now
+  exports `pitchX`/`pitchY` and the guard asks for those numbers.
+- **A closed ring is never tapered**, and a count of drawn vertices cannot see a
+  taper, because a faded molecule is still drawn. Measured on the ALPHAS
+  instead: a resting frame's only part-faded marks are the wall's own
+  `taperOver: 3` — 24 of them.
+
+1345 tests green, typecheck clean.
+
+### Step 21c-18 — the tear at exocytosis, and a much slower fusion, 2026-09-07 · awaiting manual test
+
+Two reported failures: *"membrane breaks apart at exocytosis, fix"* and *"make
+animation much slower"*.
+
+**The tear was real, and MEASURED before it was touched.** Every fusion inserts
+its bubble's membrane into the wall, so it pushes everything either side of it
+aside — **including the other fusions.** The bubble was still being drawn at its
+parking space while the gap it was meant to be filling had been shoved 55 px
+down the wall. Measured on the drawn molecules: two bubbles going together tore
+a **59 px hole at x = 52**, with neither fusion anywhere near it (they were at
+131.7 and 357.3). One fusion alone was always sound, which is why only a burst
+showed it.
+
+Fixed with `fusionSites`, which is now the single owner of where a fusing bubble
+is drawn: its parking space displaced by every OTHER fusion, by the same rule
+the wall's own molecules obey. `wallPointsMany` keeps asking in the wall's own
+(undisplaced) coordinates, because that is the frame the pushing is decided in.
+After: across one, two, three and four simultaneous fusions at 24 points through
+the run, **every hole larger than the wall's own 4.8 px spacing is an open
+pore**, at a mouth.
+
+**Slowing it down turned out to be a chain, not a number.** `FUSE_MS` 1400 →
+**3000**, and with it the flash (210 → 450 ms) and the cargo's drift. But:
+
+- a bubble's cargo must outlast its fusion, or the balls vanish before they have
+  been seen leaving;
+- a bubble must not rejoin the crowd while its own cargo is still falling, or
+  both teleport.
+
+So `FUSE_MS < CARGO_MS <= RECOVER_MS` — `CARGO_MS` is now `FUSE_MS + DRIFT_MS`
+and `RECOVER_MS` is derived from it, and the chain is pinned by a test.
+
+**And the slow fusion starved the terminal, which took two levers to pay for —
+neither of them the science.** A fusion holds its parking space, so three spaces
+at 3 s each cap a terminal at one release a second, below what a child tapping
+once a second asks for. A sweep said the cheapest fix was `RELEASE_P` 0.65 —
+which would have been bending the biology to protect the demonstration. Instead:
+
+- **`SITE_CLEAR_P = 0.85`.** A real fusion clears its site in about a
+  millisecond; the seconds spent drawing one are demonstration, so holding the
+  space for all of them is an artifact of the DRAWING. What the picture actually
+  needs is that a fresh bubble is not painted over one still standing proud of
+  the wall — and the geometry says that ends at p = 0.812. Declared at 0.85, and
+  a scene guard MEASURES the clearance (the margin is 3.2 px, so a change to the
+  panel's proportions has to fail there).
+- **A fourth parking space.** 3/4/6 → **4/4/5**. It costs no bubble size (the
+  recycling row was already four wide, so the widest rank is unchanged) and it
+  is *more* faithful: a real readily-releasable pool runs to five or ten, so
+  three was the understatement. The reserve is still the largest single pool.
+
+They paid so well that **`RELEASE_P` came DOWN, 0.55 → 0.50**, back toward the
+mainstream. Measured after, at a one-a-second tap: the gentle terminal fails
+**0.21** of its messages against the burst's **0.74**, releasing 0.93 per
+message against 0.29 — better contrast than before the slowdown, at every tap
+rate tested (700 / 1000 / 1400 ms).
+
+**Broken and watched fail — 12 mutations, 12 down**, including the reported bug
+itself (drawing the fusion at its undisplaced home: 2 guards down). Also down:
+shoving the wrong way; a fusion shoving itself; opening the wall in displaced
+coordinates; cargo riding the undisplaced bubble; a fast fusion; cargo not
+outlasting its fusion; recovery not outlasting the cargo; a space freed only at
+the end; a space freed too early; a space never held; the flash landing late.
+
+**Three guards had to be sharpened for the new numbers, and one was blind:**
+
+- **"The stretches of wall no bubble can reach" became EMPTY.** The jostle guard
+  isolated the wall by carving out the region outboard of the end parking
+  spaces — and the moment the docked row went from three spaces to four it
+  spanned the whole wall, leaving nothing to measure. Replaced with a fixture
+  that sends every bubble away: what is left on the frame is the wall.
+- **"The" mouth is not a thing.** A guard took the first released bubble's slot
+  and measured a ball that had come out of a *different* bubble, 116 px away.
+  One spike releases several. Asked per ball now, by identity.
+- **A cluster-based guard broke on correct code.** The bolts were grouped by
+  gaps in y; when the animation slowed they drew 58 px apart while a bolt is
+  39 px tall with a 20 px gap inside it, so the clusters merged. Replaced with
+  an exact comparison against the marks one bolt shape at each flash's own
+  height would produce — which does not care how close together they are.
+- And a "solo fusion" fixture was not solo, for the same reason as the mouth: at
+  this release probability a spike often sends two. Fixtures that need an exact
+  number now build it (`merging([slots], p)`), never spike for it.
+
+1350 tests green, typecheck clean.
+
+### Step 21c-19 — one lipid for the wall and the bubbles, 2026-09-07 · awaiting manual test
+
+*"lipids in membrane and vesicles are different, unify"* — and they were, in a
+way worse than size.
+
+**A lipid's SHAPE is `halfMem / headR`.** `drawLipidAt` puts the head at
+`halfMem − headR` and runs the tail down to `headR × MID_SEAM`, so the tail's
+length is `halfMem − 1.75 × headR`. The shared molecule's ratio is **5.0** — a
+small head on long tails. The pool bubbles' was **2.5** — a fat head on stubs.
+Two different molecules side by side, in a panel whose whole point is that a
+vesicle's skin JOINS the wall's skin.
+
+**The blocker was a latent fault in the shared code.** `omegaRing`,
+`wallPoints`/`wallPointsMany` and `ringPoints` all took their sample spacing
+from a private `SPACING = LIPID.headR * 2.05`, which quietly made the shared
+lipid the only molecule any caller could pave with: sample a wall at 6.7 px and
+pave it with a 2.9 px head and the heads sit in a dotted line. So the packing
+rule moved to `bilayer.ts` as `lipidSpacing(geom)` — one owner — and every
+sampler now takes the spacing of the molecule that is going to pave it.
+
+**And that turned up a second bug of the same kind.** `omegaRing` hands a
+*resting* ring off to `ringPoints`, which was still using the default — so a
+bubble's molecules visibly closed up the instant it began to merge (46 round it
+while fusing, 32 while parked). Threaded through.
+
+**One molecule now**, `POOL_LIPID` = the app's own lipid at `LIPID_SCALE = 0.7`:
+head 2.29 px, half-thickness 11.43, **ratio 5.0 — the shared molecule's own
+proportions**, used for the wall and every bubble, with `POOL_SPACING` for both.
+The scale was chosen against three measured limits: a head under ~2 px stops
+reading, a lumen under ~3.5 cargo balls has nowhere for the transmitter, and the
+bubble must not end up mostly skin. After: bubble ring 34.6 px, lumen 23.2, skin
+25% of its outer radius, 46 molecules round it, 7 cargo balls at 17% packing;
+the wall 22.9 px thick with 93 molecules.
+
+**A knock-on the unification forced.** With both membranes now the same
+thickness the clearance arithmetic became exact and unkind: a docked bubble's
+outer face rests ON the wall's inner face, so a merging bubble's cap clears that
+same line only at p = 1 — "no overlap at all" would mean holding the parking
+space for the whole animation again, undoing 21c-18. The honest criterion is a
+remnant **no taller than one lipid head**: measured, the cap stands 5.2 px proud
+at p = 0.85, 2.3 at 0.90, 1.5 at 0.92, against a 2.29 px head. `SITE_CLEAR_P`
+0.85 → **0.92**, and the guard measures the remnant rather than trusting it.
+
+**Broken and watched fail — 10 mutations, two survived the first round**, and
+both survived for the same reason: **the guard measured against the very
+quantity the break moves.**
+
+- Dropping the membrane from `outerR` moved the seats *and* the yardstick
+  together, so "do any two bubbles overlap?" stayed true. Now measured against
+  the drawn extent spelled out from the molecule (`g.r + POOL_LIPID.halfMem`),
+  plus a check that a docked bubble's outermost molecule really rests on the
+  wall's inner face.
+- Dropping the spacing at the wall's call site was invisible to a guard that
+  computed `wallPointsMany` itself — the drawing is free to have asked for
+  something else. Now measured as head-marks per pixel on the DRAWN wall against
+  the DRAWN ring.
+
+Down: the bubbles keeping the wall's molecule (the reported bug); the molecule
+losing its shape; the wall paved with the wrong one; the wall sampled for the
+wrong one; a bubble sampled for the wrong one; a resting ring sampled
+differently from a merging one; the seats on the wrong membrane; the outer
+radius without its skin; cargo sized past its lumen; the parking space freed too
+early.
+
+1352 tests green, typecheck clean.
+
+### Step 21c-20 — nothing teleports: bubbles move, and the crowd closes ranks, 2026-09-07 · awaiting manual test
+
+*"avoid teleporting. Vesicles should slowly move and re-order"* — measured
+first, at **307 px in a single frame**, and it was not one bug but four, all of
+the same kind.
+
+**1. A place was the array's, not the bubble's.** A vesicle's position within a
+pool came from its index while iterating `s.ves`, so the instant ONE bubble left
+a pool every other bubble in it was renumbered and jumped. Vesicles now carry a
+`rank`, and `closeRanks` keeps each pool's places at 0…n−1 in the order they
+already stood in — so a departure makes the ones behind **shuffle forward one**,
+which is a queue, and something a child can follow.
+
+**2. The wall snapped back 108.7 px when a merge finished** — the largest jump
+of the four, and wrong twice over. A fused vesicle's membrane IS the wall now,
+and a terminal's surface really does stay larger until endocytosis takes it
+back. `fusionSites` now keeps an opening until `RECOVER_MS` and relaxes it
+smoothly, which turns retrieval into something visible rather than a number.
+
+**3. A docked bubble was not riding the wall it sits on.** Every opening shoves
+the wall's molecules aside; a bubble resting on them goes too. It wasn't, so it
+stood still while the membrane slid out from under it — and then jumped when it
+began to merge and had to line up with its own opening (529 px).
+
+**4. And then the ways of moving had to be told apart.** Easing everything made
+a docked bubble LAG the wall (still a jump when it fused, 352 px); easing
+nothing left the original teleports. The distinction: **changing PLACE is a
+journey and must be eased; riding a membrane is not a journey at all** — the
+bubble is stuck to it and moves with it exactly, the same instant, by the same
+amount.
+
+**The mechanism.** `placeOf` gives the one exact answer — seat or sink, plus
+whatever the wall is doing under it — with a `key` naming the rule that produced
+it. `settlePools` eases only the DIFFERENCES between one rule and the next: when
+the key changes, the whole discrepancy becomes an offset (which leaves the
+bubble exactly where it was) and a critically damped spring walks that offset to
+nothing. Everything continuous — the shove, the fusion's sink — passes through
+untouched and on time. **No special cases**, and it covers discontinuities not
+yet found.
+
+Two things were tried and measured before this shape was reached:
+
+- **An exponential decay toward the target.** Fastest at the very start: a
+  bubble crossing from the back rank moved 19.3 px in its FIRST frame and then
+  crawled — it read as a dart, which is the thing being fixed. Critical damping
+  sets off from rest.
+- **Folding the shove in on detachment** (a `rode` field). It fixed letting go
+  of the wall but not taking hold of it, and not the sink's start. The offset
+  keyed on the rule subsumes all three.
+
+Measured after, walking a 24-second run frame by frame with both tap patterns:
+worst movement **13.0 px** in a 60 fps frame (average 2.1), against 307 before.
+
+**Broken and watched fail — 14 mutations, 14 down on the first round**, the
+first of them being the reported bug itself. Also down: the offset not absorbing
+a change of place; the offset never decaying; a fast spring; the docked row not
+riding the wall; the crowd riding it; riding made sprung instead of rigid; a key
+blind to a change of pool; a key blind to closing ranks; the wall shutting at
+once; the wall healing in 100 ms; ranks reassigned by id; ranks sorted
+backwards; a place taken from the array again.
+
+**A guard worth keeping in mind: a teleport does not scale with the frame.**
+Real motion covers twice the ground in twice the time; a jump is the same size
+however often you look. The anti-teleport guard walks the same run at 60 and 30
+fps and requires the worst movement to roughly double — which no absolute
+threshold can fake, and which needs no magic number for "how far is too far".
+
+1356 tests green, typecheck clean.
+
+### Step 21c-21 — the picture holds still, and the rope is tied to something, 2026-09-07 · awaiting manual test
+
+Two reported failures: *"I don't understand what's going on on the screen.
+Vesicles are all the time moving around, I am not able to track which are gone"*
+and *"I don't understand what is that yellow 'rope' that connects vesicles?"*
+
+**Measured first, and the report was exact.** Over a 24-second run: something
+moving in **100% of frames**, 880–1377 px of bubble travel a second, a docked
+bubble shoved **336 px** from its parking space on a 489 px panel, **three or
+four bubbles pushed off the panel entirely**, and 81–239 changes of place.
+
+Four alignment questions; the user took all four recommendations.
+
+**1. The wall no longer slides — and the sliding was MY regression** (21c-20,
+added to cure a snap). A fusion adds membrane, and the wall used to make room by
+pushing every molecule outward, with the docked row riding along because it is
+stuck to them. Conserving the material inside the frame is right at the SNARE
+bench, where one vesicle fills the picture; here the terminal's real membrane
+runs far beyond the window, so one vesicle's worth would move nothing a child
+could see. **The sliding was the artifact, not the fix.** Now the wall stays
+put and simply does not draw its own molecules where a merging bubble's membrane
+has taken over — `wallMolecules`. The seam between the two grids is closed by
+half a molecule; measured, it thins by 7.5 px against the wall's own 3.1, where
+the tear this line of work started from was 59.
+
+**2. The crowd stays put.** Closing ranks (21c-20, also asked for) turned every
+release into a movement of the whole crowd. Now a bubble keeps its place, a
+departure leaves an EMPTY place, and the next arrival takes the lowest empty one
+(`lowestFreeRank`). **The holes are the reading**: how many have gone is
+something a child can count.
+
+**3. The parking spaces are marked** — a faint patch of wall at each, so an
+empty space reads as an empty space rather than as plain wall. Not an invention:
+an active zone is marked out by a dense web of protein and release happens at
+those spots and nowhere else.
+
+**4. The rope has something to be tied to.** It was tied to nothing — a chain of
+bubbles with one string running off to an invisible point, which is why it could
+not be read. Now there is a scaffold across the back of the terminal (actin,
+drawn as the two wound strands it is) and every reserve bubble has its OWN rope
+to it. The scaffold stays when the ropes are cut, which is the point.
+
+**A latent collision the change exposed.** Keeping places means a pool can hold
+more than its nominal count — from returns, and from the whole reserve pouring
+in — and with one row of four, place 4 sat exactly on top of place 0. The crowd
+now has two rows (and may spill into the reserve's, which is safe because that
+can only happen once the reserve is empty). `RANK_ROWS` 4 → 5, so the bubble
+shrank 34.6 → 29.9 px and the cargo went from 7 balls to **5**, larger ones:
+five a child can see beat seven the size of the lipids around them.
+
+**After, over the same run:** travel 880 → **401** px/s (gentle) and 1377 →
+**724** (burst); bubbles pushed off the panel **3–4 → 0**; changes of place
+81/239 → **65/89**. What still moves is only what is genuinely going somewhere —
+a bubble merging (3 s, by design) or one making a journey — which is pinned by a
+guard: **zero frames of a bubble moving with nowhere to be going**, across a
+20-second walked run.
+
+**Broken and watched fail — 12 mutations, one survived.** Down: the wall sliding
+again (3 guards); the wall giving up nothing; giving it up in the wrong place;
+two bubbles sharing a place; one crowd row; the marks not drawn; a mark wider
+than its space; the rope tied to the old invisible point; the scaffold in front
+of the reserve; the scaffold off the panel; a settled bubble jittering.
+
+**The one that survived, and why:** sending every *returning* bubble to place 0
+changed nothing measurable, because no guard ran long enough for anything to
+come back — every fixture stopped before `RECOVER_MS`. **A guard that never
+reaches a code path is not a guard**, the same lesson as 21c-16's fixtures being
+past the moment and 21c-17's untouched journey leg. Extended past recovery, it
+bites.
+
+1358 tests green, typecheck clean.
+
+### Step 21c-22 — the far side of the gap: making failure visible, 2026-09-07 · awaiting manual test
+
+*"Which conclusion am I supposed to draw? What I read: no matter how intense and
+how many signals the bouton gets, it manages to pass down the signal, by
+releasing storage vesicles when necessary. Is this the idea the demo was
+supposed to demo?"*
+
+**No — and the exhibit was teaching the opposite of its own point.** Measured
+over 30 s of tapping every 0.8 s:
+
+| | gentle | burst |
+| --- | --- | --- |
+| messages sent | 38 | **190** |
+| vesicles released | 30 | **40** |
+| messages releasing nothing | 33% | **84%**, start to finish |
+
+So the model was right all along. **The picture was showing none of it.** A
+failed message was drawn as a flash arriving and nothing happening — and
+"nothing happening" reads as nothing to look at, not as a failure. Meanwhile the
+puffs that did come out kept arriving (`4 0 0 4 0 0 3 1 0 …`), so the terminal
+looked like it was coping, and the reserve mobilisation completed the wrong
+story as a rescue.
+
+Two alignment questions; the user chose to **show the far side of the gap** and
+to **keep the reserve, letting the picture tell the truth about it**.
+
+**What was built.** The wall moved up (0.85 → 0.80 of the frame) to make a
+cleft, and the receiving cell's membrane is drawn at the foot — out of the same
+molecule as everything else. The transmitter now **crosses the gap and lands on
+it** instead of drifting off the bottom, and the cell lights up by exactly how
+many balls are touching it. A message that released nothing lights nothing.
+
+**Two faults found by measuring the first attempt:**
+
+- **It saturated.** Scaled against one vesicle's cargo, one bubble lit it as
+  brightly as three — measured, 1.0 against 1.0. Scaled against the whole parked
+  row it is a straight line: **0.25 / 0.5 / 0.75 / 1.0** for one to four
+  bubbles, drawn through a square root so a single bubble still reads.
+- **The answer arrived 4.4 SECONDS after the message.** A ball's journey was a
+  fraction of the cargo clock rather than a real crossing, and a bubble took
+  1.8 s to empty. No child links a cause to an effect across four seconds. The
+  crossing is now in absolute time — 300 ms to empty, 260 out through the mouth,
+  620 across, 420 held on the receptors — so the answer peaks **1.5 s** after
+  the message and is over in 750 ms, before the next tap.
+
+**And the comparison now reads.** Answers tap by tap, a tap every 1.2 s:
+
+    gentle (1 flash):   0.25  0.5  0.25  0.25  0.25  0.25 …   steady
+    burst  (5 flashes): 0.75  0.25   0    0.75  0.25   0  …   blows it, then nothing
+
+The lesson a viewer can now draw: **a terminal can only send what it has had
+time to refill, so five times the shouting does not get five times across** —
+the burst spends its whole parked row on one tap and has nothing for the next
+two, while the gentle one answers every time.
+
+**Broken and watched fail — 10 mutations, 10 down**, the first being the
+reported failure itself (a far side that lights whatever happens). Also down: an
+all-or-nothing answer; an answer that saturates on one bubble; a slow crossing;
+a slow emptying; a smeared rather than pulsed answer; transmitter never taken
+up; transmitter passing through the far cell; no far membrane; no gap to cross.
+
+1361 tests green, typecheck clean.
+
+### Step 21c-23 — a gauge on the far side, receptors, ion soup, a debounce and the full height, 2026-09-07 · awaiting manual test
+
+Four asks, all built.
+
+**A gauge over each receiving cell.** A half-turn dial set into the receiving
+cell below its own membrane: a track, the passed arc picked out in a radial
+gradient, an animated hand, a marked and named threshold line, and sparks once
+it is over. Its reading is the transmitter actually on the receptors — the same
+number that lights the cell and opens its doors, not a third invention.
+
+**⚠ The threshold was MEASURED, not picked.** Walking real runs, the needle's
+peak per message falls into two clean groups: **0.25 and up** when at least one
+bubble's worth arrived, **0.09 or less** when a message found an empty parking
+row and only a dribble of someone else's cargo was still crossing. 0.2 sits in
+the gap, so the line means exactly "a bubble went, and its message got across".
+
+**⚠ AND A FINDING THAT CONTRADICTS THE EXHIBIT'S PREMISE — reported, not
+buried.** Measured per tap, both terminals clear the line about equally often
+(11/14 against 10/14 at a 0.8 s tap), and at a higher line the BURST clears it
+*more* often (7/14 against 2/14) — which would teach the very misreading 21c-22
+was written to fix. The reason is structural: five messages 45 ms apart merge
+into one answer, so the within-burst decline cannot be resolved by eye at a
+physiological rate. Spacing the burst out to 600–900 ms does make the decline
+visible (`0.5 → 0.45 → 0.22`) but at that spacing it is no longer a burst — it
+is the gentle rate. **So the honest comparison is cost, not failure:** both
+terminals get their message across about as often, one using a single flash and
+the other five. The threshold was set low so the dial says "heard / not heard"
+rather than pretending to separate the two panels.
+
+**Two receptors and an ion soup**, both the app's own drawings rather than new
+ones: `drawLigandChannel` — the traced ligand-gated channel from the ion-channel
+bench, which opens by its subunits coming apart — set into the far membrane with
+the lipids parting around them, opening by exactly how much arrived; and
+`drawGlossyIon` sodium and calcium adrift in the cleft, two thirds sodium
+because that is the one carrying the message in.
+
+**The taps are debounced.** A tap used to ADD to a queue with no ceiling, so
+twenty impatient clicks bought a hundred spikes and the terminal went on
+answering a conversation the child had finished. Now a tap inside 120 ms of the
+last is ignored, and `tapQueue` caps what is owed at one tap's worth — so the
+picture cannot run on past one message's answer after the last press.
+
+**The canvas got its height back.** The old arithmetic reserved 38 px for a
+headline that is one line of 13 px text beside a speaker button, plus an
+unexplained 22 — **44 px of canvas given away**. Counted off the markup, as the
+SNARE bench did in 21c-3: 626 → **668 px**. The wall moved to 0.71 of the frame
+and the far membrane to 0.84, leaving an 87 px cleft and a 107 px strip of
+receiving cell for the dial (radius 86).
+
+**Broken and watched fail — 15 mutations, one survived.** Down: a line above a
+real release; a hand that does not sweep a half turn; a needle that lags the
+answer; one that never falls, and one that falls like a stone; a dial outside
+the receiving cell; sparks before the line; an unnamed line; one receptor;
+receptors out of the membrane; soup inside the terminal; soup of one ion; frozen
+soup; taps piling up.
+
+**The one that survived:** dropping the line to 0.05. A failed message peaks at
+exactly **zero**, so "above zero" is no test at all — what the line must clear
+is the couple of stray balls of a neighbour's cargo, which the guard never
+constructed. Now stated in the constants: above two balls' worth, below a whole
+bubble's.
+
+1365 tests green, typecheck clean.
+
+### Step 21c-24 — five bubbles, a corner dial, and a picture that can be counted, 2026-09-07 · awaiting manual test
+
+*"We need to make the picture less busy and more quantifiable for a human eye,
+in particular for a kid."* Five asks, plus **"verify logic and science, push
+back if violation"** — which turned up two violations and one impossibility.
+
+**⚠ VIOLATION 1: the coin-flip release became wrong the moment a bubble stood
+for a group.** Release probability is a property of an INDIVIDUAL vesicle; the
+model gave each parked bubble its own chance at it. That is right when a bubble
+is a bubble — and wrong when one stands for hundreds, because averaging hundreds
+of coin flips gives a steady share, not a gamble. It was also what stopped the
+picture being countable: two identical taps gave different answers. Raised; the
+user chose the clearest cause-and-effect chain, which is also the honest one.
+**A message now spends exactly one parked bubble.**
+
+**⚠ VIOLATION 2: "nothing left to do the job" must be temporary.** A synapse
+that goes permanently silent is wrong and a child would take it literally.
+Recovery stays visible, and the info block says a real terminal never runs
+completely dry — which is what "each bubble stands for a big crowd" buys.
+
+**⚠ IMPOSSIBILITY: "one message at a time" and "they all get used up inside one
+tap" cannot both hold.** A parking space frees itself at `SITE_CLEAR_P` of a
+fusion and storage refills it at once, so messages spaced far enough apart not
+to overlap always find the row refilled — simulated, a strong signal sent
+`1,1,1,1,1` and nothing ever ran out. Put to the user with the arithmetic; their
+rule for the trade was *"choose whatever makes clearer differentiation between
+yes signal and no signal"*, which rules out crowding. So **the running-out moved
+from inside a tap to between taps**, which is the starker reading anyway:
+
+    STRONG side   tap 1:  1 1 1 1 1   -> terminal EMPTY (0 parked, 0 stored)
+                  tap 2:  0 0 0 0 1   -> four dead messages in a row
+    GENTLE side          1 1 1 1 1 0 1 1 1 1 1 0
+
+**What was built.**
+
+- **Five bubbles, not thirteen**: 3 parked + 2 in storage, two ranks instead of
+  five, and each one **twice the size** (r 25.3 → 50.9, lumen 39.5, cargo balls
+  7.9 px). Three pools became two — ready now, and not ready yet — declared.
+- **The synapsin ropes and the actin scaffold are gone** (the user's call): two
+  fewer object types, and the model lost its mobilisation with them.
+- **The dial moved to the bottom-right corner, on its own opaque plate**, drawn
+  last. It used to be set into the receiving cell, sharing ground with the
+  membrane, the receptors and the ions — a reading competing with the thing it
+  reads.
+- **The picture lifted**: the wall from 0.80 to 0.55 of the frame, the far
+  membrane to 0.82, leaving a 180 px gap and a 120 px strip of receiving cell.
+- **The clock was re-solved end to end**: merge 800 ms, messages 950 ms apart
+  (so nothing overlaps), cargo across in ~700 ms, recovery 7200 ms — long enough
+  that a strong signal is over before its own bubbles start coming back, which
+  is the invariant that makes the empty terminal visible at all. Pinned by a
+  guard.
+
+**Two measured corrections to the first attempt at the corner dial:** a 227×135
+plate covered the right-hand receptor and the bottom third of the gap — the dial
+is now sized to the receiving cell's own strip and the receptor pair sits left
+of centre, both measured by a guard.
+
+**Broken and watched fail — 18 mutations, two survived.** Down: two bubbles per
+message; an empty row still spending; a signal too short to spend the pool; a
+recovery short enough to refill mid-signal; nothing ever coming back;
+overlapping messages; a merge too quick to follow; taps piling up; five parked
+instead of three; five ranks instead of two; a dial in the middle; a
+see-through plate; a plate over a receptor; a plate over the gap; a picture that
+sits low; a far side that lights whatever happens.
+
+**The two that survived, and the rule they sharpen:** one guard sampled *before*
+the priming time, where the docking gate holds storage back anyway — so it could
+not tell whether the merging bubble's space was being held at all. The other
+never had a bubble return *while storage was occupied*, so a break that sent
+every returning bubble to place 0 had nobody to collide with. Both are the same
+old lesson in a new coat: **a guard has to reach the state the rule is about.**
+The first now samples in the 116 ms window between priming and the space
+clearing; the second builds an occupied storage by hand.
+
+**And a finding about the model itself:** `poolsStep` is a per-frame state
+machine — a bubble becomes storage in one call and can only be primed into a
+space on a LATER one. Three guards failed because they handed it a whole second
+at once and saw a terminal that never refilled, which was a fact about the guard.
+The tests now drive it in frames, as the bench does.
+
+1357 tests green, typecheck clean.
+
+### Step 21c-25 — a tap triggers a PATTERN, and the dial says yes or no in colour, 2026-09-07 · awaiting manual test
+
+Five reported items, one of them a design failure the user spotted themselves.
+
+**⚠ THE COMPARISON DID NOT SURVIVE A CHILD** — *"kid will fire signal button
+continuously. This technically means that both sides get the same amount of
+sparks in the end. comparison idea does not work."* Measured, it was worse than
+that: from a tap every **800 ms downwards the two sides were IDENTICAL** — 32
+messages, 20 sparks, 0.67 a second, both. Both were throttled by the same
+per-message spacing, so hammering degenerated each into "one message every
+950 ms": literally the same terminal drawn twice.
+
+**The fix: a tap TRIGGERS a pattern, and a terminal already firing one — or
+still resting after one — ignores it.** How fast the child taps can no longer
+change what either side does, only how often it is asked.
+
+    GENTLE_PATTERN  1 message,  then 1.6 s of quiet
+    STRONG_PATTERN  5 messages 170 ms apart, then 4.3 s of rest
+
+Simulated at every tap speed from 3 s down to 150 ms, the figures do not move:
+
+    gentle:  *******************        100% of messages get through
+    strong:  ***..**...***..**...***.   51%
+
+**And the burst became a real burst again** (170 ms, not 950), which reverses
+21c-24's "one at a time" — put to the user with the simulation, and taken. It
+brings the running-out back INSIDE a single tap, because the burst now outruns
+its own parking spaces: measured `1 1 1 0 0`, then after its rest `1 1 0 0 0`
+and the terminal is completely empty. The price is up to three merges at once,
+at three different spaces.
+
+**The other four:**
+
+- **The dial is colour-coded.** Slate below the line — something arrived, but
+  not a signal — and yellow past it, sparks and all. The change of colour AT the
+  line is what a child reads before looking at where the needle is.
+- **The 'signal received' label is gone.** The canvas carries no words at all
+  again; the line's meaning is taught by the colour change and said in the info
+  block.
+- **The ion soup jiggles in place** instead of drifting across the gap. A soup
+  that travels reads as a current going somewhere, and steals the eye from the
+  one thing that really is travelling.
+- **The answer glows inside the receiving cell**, not in the cleft. The gap is
+  where the chemical travels; the answer happens in the cell that heard it.
+
+**⚠ AND THAT LAST ONE WAS SILENTLY NOT APPLIED THE FIRST TIME.** The edit did not
+match, nothing failed, and it was only caught because a break-round mutation
+could not find its own pattern either. There was no guard on it. Now
+`responseGlow` names the band and a guard asks which side of the membrane it is
+on — **an unguarded change is a change that may not have happened.**
+
+**Broken and watched fail — 13 mutations, three needed sharpening:**
+
+- **The dial's colour.** The track is slate at every value, so "does it mention
+  slate?" is true on both sides of the line, and counting alone was not enough
+  either — a break that left the sweep slate still turned the hand yellow and
+  squeaked under "fewer than below". Pinned on the measured gap: 2 slate marks
+  past the line against 6 below, the difference being the sweep's own two
+  gradient stops and the hand.
+- **The soup.** A break that froze only the sideways wobble left the up-and-down
+  one moving, and sailed through a guard asking for "any" movement. Asked
+  separately now.
+- **The strong side's rest.** Setting it to zero left the hit rate unchanged, so
+  a guard watching only the hit rate saw nothing. Now bounded by how many
+  messages the pattern can possibly fit in the run.
+
+**One number worth watching by eye:** the flash's flight is derived as
+`SINK_TOUCH x FUSE_MS` so it lands exactly as the bubble touches the wall — with
+the merge at 800 ms that is **120 ms**, about seven frames. Pinned so it cannot
+silently become one frame; if it reads as a blink the fix is the fusion's pace,
+not a number invented for the flash.
+
+1360 tests green, typecheck clean.
+
+### Step 21c-26 — one terminal, and the child is the experiment, 2026-09-08 · awaiting manual test
+
+*"User tests show that kids would press the fire button continuously. This means
+this behavior might eliminate the need of sending five signals consequently on
+the right side because that's what the kid already does. WDYT?"*
+
+**The observation is right, and its consequence is bigger than dropping the
+burst.** If the child hammers, the CHILD IS THE TRAIN — so a stimulus difference
+between two panels is not merely redundant, it is **invisible**: a child cannot
+see that one panel is doing something their own finger is not. Two panels were
+answering a question nobody could ask.
+
+Three options were put with measurements. The user chose **one terminal, the
+child is the experiment** — the simplest picture and the truest design, since
+the real experiment for depression is one synapse at two rates.
+
+**What it does now**, measured by driving it exactly as the bench does:
+
+    press every 2000 ms   12 sent, 12 through   ************
+    press every 1200 ms   20 sent, 20 through   ********************
+    press every  900 ms   27 sent, 23 through   *****.*****.*****.*****.***
+    press every  500 ms   48 sent, 25 through   *****.....*****.....*****.....
+    press every   80 ms   78 sent, 25 through   *****...........*****.........
+
+**And the count on screen is the answer.** Five bubbles → five messages → the
+**sixth** fails, at every speed past the threshold. A child can count the
+bubbles, press that many times and predict the failure. Emptied, it works again
+after 4.85 s.
+
+**The threshold sits where a hand can feel it**: it sustains about one message a
+second, so a deliberate press keeps it alive for ever and anything faster runs
+it down. Pinned by a guard on the arithmetic (`TOTAL_VESICLES` over
+`RECOVER_MS + REDOCK_MS`), not on a magic number.
+
+**What went, and what changed:**
+
+- **The second panel, the burst, the patterns, `BURST_N`/`BURST_GAP_MS`.**
+- **A refractory replaced them** — `TAP_REST_MS` = 250 ms. Real (an axon cannot
+  fire again at once), and it is what stops the child's wrist from becoming the
+  whole model: hammering asks more often; the terminal answers at its own top
+  speed of about four a second.
+- **Full width**: 1024 x 706, bubbles r 62.5 (from 51), cargo balls 10.2 px. The
+  button moved from a bar above the pair to the foot of the panel it fires.
+- **`GAP_X` 0.45 → 1.35**, because on a wide panel the bubble's size is set by
+  the HEIGHT and three of them huddled in the middle of a wall twice as wide as
+  they needed.
+
+**Two numbers drifted with the bigger bubble, and guards caught both:**
+`SITE_CLEAR_P` 0.92 → **0.94** (the remnant is a fraction of the radius, so at
+62.5 px the old fraction left 2.7 px proud against a 2.29 px lipid head); and
+the gauge's plate, sized at 0.8 of the receiving cell's strip, reached **46 px
+up into the cleft** — now 0.68, because the plate is 1.45 times the dial's
+radius tall and it is the PLATE that has to fit.
+
+**Broken and watched fail — 14 mutations, one survived.** Down: a recovery slow
+enough to fail gentle tapping, and one fast enough to survive hammering; a
+different stock (breaking count-equals-messages); an empty row still spending;
+nothing coming back; no refractory, and one long enough to swallow a real press;
+a space not held while merging; a space cleared too early; a half-width panel; a
+plate in the cleft; a dial that never turns yellow; an answer glowing in the gap.
+
+**The one that survived:** pulling the parked row into a tight cluster. It
+overlapped nothing and stayed on the panel, so every existing layout guard
+passed it — but on a full-width panel the bubble's size is set by the height, so
+nothing else stopped three bubbles huddling in the middle of a wall twice as
+wide as they needed. Now measured as a share of the wall: 71% spread against 51%
+huddled.
+
+1358 tests green, typecheck clean.
+
+### Step 21c-27 — a retrieved bubble comes back empty and refills, 2026-09-08 · awaiting manual test
+
+*"Let's symbolically fill recovered vesicles with NTs. Fine if NTs just appear in
+vesicles after restore (fade-in)."*
+
+A spent bubble used to reappear fully stocked, as if the terminal got its
+transmitter for nothing — which skipped the step that makes the loop a loop.
+The membrane is what is retrieved; the transmitter is pumped in afterwards, by
+VGLUT on the proton gradient, which the vesicles-and-SNARE bench already draws
+molecule by molecule. This is that same event at a coarser register.
+
+**Vesicles carry a `fill` (0→1).** A returned one comes back at 0 and fills over
+`FILL_MS`; its cargo balls come up **one after another** rather than all
+brightening together, so the reading is a count a child can watch reach five.
+
+**⚠ WHY A FADE IS ALLOWED HERE, when this app forbids it elsewhere.** A PROTEIN
+arriving must travel: it is an object with a place it came from, and 21c-14
+rewrote the clathrin coat for exactly that reason. Transmitter being pumped into
+a vesicle is a **concentration rising**, and these five balls stand for
+thousands of molecules — there is no journey to draw, only more of it than there
+was. That distinction is now written down in the architecture.
+
+**And an empty bubble cannot be parked.** The rule is real — a bubble with
+nothing in it is not ready to send — and it is arranged never to bind:
+`FILL_MS` (520) is shorter than `REDOCK_MS` (620), so a bubble is full before it
+could possibly be parked and the exhibit's timing, tuned to put the gentle/hard
+threshold where a hand can feel it, does not move at all. Both halves guarded.
+
+Measured after being hammered empty, the terminal comes back like this:
+
+    t=4333   store 1   fills [0.19]
+    t=4567   store 2   fills [0.64, 0.13]
+    t=4917   parked 1  fills [1, 0.80, 0.32]
+    t=5383   parked 3  fills [1, 1, 1, 0.71, 0.19]
+
+**Broken and watched fail — 10 mutations, one survived.** Down: coming back
+full; never filling; filling past full; a terminal that opens unstocked; an
+empty bubble parking; filling slower than parking; the balls appearing all at
+once; filling running backwards; a filling bubble drawing all its cargo.
+
+**The one that survived:** fading the balls that are crossing the mouth. The
+guard asked only about balls already in the GAP — and a ball halfway through the
+mouth is still flagged as inside, so the fade hid exactly there. Asked by
+identity now: nothing belonging to a spent bubble is ever faded, wherever it is.
+
+1358 tests green, typecheck clean.
+
+### Step 21c-28 — a returned bubble is born empty and stays empty, 2026-09-08 · awaiting manual test
+
+*"Vesicle look to be born with NTs in. Let them appear after certain time after
+vesicle birth."*
+
+Correct: 21c-27 started the filling on the frame a bubble arrived, and with the
+balls coming up over the first fifth of the fill, the first one was already a
+third of the way in before a child could see the bubble was empty at all. The
+refilling was implemented and invisible.
+
+**A bubble now comes back, travels to its place, and sits VISIBLY EMPTY for
+`FILL_DELAY_MS` (600 ms) before anything appears in it** — timed against the
+second or so its glide takes, so the emptiness is what a child sees while it is
+moving. Then it fills over 400 ms.
+
+    +   0ms  storage  fill 0
+    + 200ms  storage  fill 0
+    + 400ms  storage  fill 0
+    + 600ms  storage  fill 0.04
+    + 800ms  storage  fill 0.54
+    +1000ms  storage  fill 1
+
+**⚠ AND THE CLAIM ABOUT PARKING HAD TO CHANGE WITH IT.** 21c-27 arranged filling
+to be quicker than the parking clock so the rule "an empty bubble cannot be
+parked" was real but never bound. Waiting to be seen empty pushes delay + fill
+to 1000 ms against a 620 ms parking clock, so **refilling is now the slow step
+of coming back** — a returning bubble waits on its transmitter rather than on a
+timer. That is the honest order, and the guard that used to assert the opposite
+now asserts this, with the reason.
+
+**The exhibit's tuning survives it**, which was the thing to check: coming back
+is the slow part already, so lengthening its tail moved the sustainable rate
+from 1.04 to **0.96 messages a second** — still inside the band that puts the
+gentle/hard threshold where a hand can feel it. Every measured property holds:
+gentle at 2000 ms and 1200 ms never fails; at 900 ms and 200 ms the first dead
+message is still **#6**, one more than the five bubbles on screen.
+
+**Broken and watched fail — 7 mutations, 7 down**, the first being the reported
+bug itself (filling from the moment of arrival). Also down: an empty moment too
+brief to see; one so long it never fills; coming back full; an empty bubble
+parking; a fill slow enough to wreck the tuning; a recovery fast enough to break
+the experiment.
+
+1362 tests green, typecheck clean.
+
+### Step 21c-29 — the grey block where a bubble merged, 2026-09-09 · awaiting manual test
+
+*"A place on membrane where vesicle merges, gets grey bg after exocytosis. Fix."*
+
+The docking-site mark. It is a tint on the WALL — `rgba(148, 163, 184, 0.22)`,
+painted UNDER the wall's molecules so it reads as a denser stretch of membrane,
+which is what an active zone is. During a merge the wall gives up its own
+molecules across that whole stretch (the merging bubble's membrane is what is
+there instead), so the tint was left with nothing drawn on top of it: a tint
+meant to be seen THROUGH molecules became a bare grey block, exactly where the
+bubble had gone in.
+
+Measured, which is what makes it certain rather than plausible: at half a merge
+the wall gives up **143 px** either side, at the end **199** — against a mark
+that reaches only **58**. The mark sat entirely inside the bare stretch, with
+**zero** of the wall's own molecules left across it.
+
+**The fix is the meaning, not the ink: a space with a bubble merging out of it
+is not an empty space, so it is not marked as one.** The mark returns when the
+merge ends — at the same instant the wall's molecules come back across it, so
+the two return together and there is never a frame of bare tint.
+
+**Broken and watched fail — 5 mutations, 5 down**, the first being the reported
+bug itself (marking every space regardless). Also down: hiding every mark
+instead of that one; the drawing ignoring the flag; the mark never coming back;
+a terminal that fails to mark all its spaces at rest.
+
+1363 tests green, typecheck clean.
+
+### Step 21c-30 — the membrane never breaks, and bubbles are shaped out of it, 2026-09-09 · awaiting manual test
+
+*"Membrane gets gaps at exocytosis. At endocytosis, the vesicles appear formed,
+instead of being shaped out of the membrane."*
+
+Two reports, one complaint underneath both: **the membrane should behave like a
+continuous sheet.**
+
+**⚠ THE GAPS WERE REAL AND SO WAS THE GEOMETRY.** Measured first: away from the
+fusion every gap was 3.1–4.2 px, the same as a resting wall — there was no tear
+anywhere. The only gaps were the MOUTH: 45 px across a quarter of the way
+through a merge, **120 px at the half**. That is what a sphere collapsing into a
+plane really does, and at the SNARE bench — one vesicle filling the frame, its
+membrane conserved molecule by molecule — it reads as an opening. On a wide
+panel, a 120 px hole in a long straight line reads as a break. Put to the user
+with the numbers; they chose to keep the membrane closed.
+
+**So at this register the opening is capped at a PORE** — just wide enough for
+the transmitter to leave through (13 px half against a 10 px ball) — and the
+wall's own molecules carry on across the rest. Measured after: the widest
+opening anywhere in a whole merge is **25.5 px**, against 120 before.
+
+What is given up is the SNARE bench's material conservation, which is that
+bench's lesson and not this one's; and the bubble is now drawn as the **dome
+above the wall only**, because `omegaRing` unrolls the sunken part ALONG the
+wall and the wall is drawing its own molecules there — at four fifths of a merge
+66 of the ring's 85 molecules lie flat, so both would be two deep. Guarded by
+counting: 609 marks near the space at rest, 538–674 at any point in a merge.
+
+**And a new bubble is now shaped OUT of the membrane.** It used to appear at the
+back of the terminal already made. The last `BUD_MS` (700 ms) of a bubble's time
+away is now visible at the wall: a dimple that deepens into a pit, necks, and
+pinches off — `fusedCentreFor` run BACKWARDS, so it is one drawing serving both
+directions rather than a second private one. It buds **beside** the parking
+spaces (the user's choice), which is where retrieval really happens — the
+peri-active zone — and which means it can never be shaped on top of a bubble
+freshly parked in the space it merged into. It comes out empty, and the
+refilling from 21c-28 takes over.
+
+It runs inside `RECOVER_MS`, so none of the exhibit's tuning moves.
+
+**Broken and watched fail — 10 mutations, two survived.** Down: an uncapped
+opening (the reported bug); a pore too narrow for the cargo; a wall that stands
+aside too far; no budding at all; budding that sinks instead of rising; budding
+in the space instead of beside it; budding already full; budding starting too
+early.
+
+**The two that survived:** drawing the bubble's unrolled arms as well as its
+dome — caught now by counting membrane marks near the space, because adding ink
+creates no gap for a gap-hunting guard to find; and aiming a budding bubble's
+glide at its old parking space, which no guard looked at because nothing asked
+where a budding bubble is PAINTED.
+
+1365 tests green, typecheck clean.
+
+### Step 21c-31 — the pore is one molecule wide, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "there's still no seamless merge, gaps appear. fix" — the same
+complaint as 21c-30, after that step had genuinely narrowed the opening.
+
+**A1 — find the gap, by measuring rather than guessing.** Two probes. The first
+walked the membrane's own outline — wall in from the left, up the dome, over,
+down, wall out — and asked at every step how far the nearest drawn molecule was:
+**worst 3.9 px**, less than one packing pitch. The membrane was continuous
+everywhere the walk could reach. The one place it could not reach was inside the
+pore, so the second probe measured the **clear span** there: **20.9 px mid-merge
+and 25.4 px mid-bud**, in a wall whose neighbouring heads sit **0.11 px** apart.
+Five missing molecules, 230x a normal gap. That was the gap.
+
+**A2 — fix it: size the opening off the membrane, not off the cargo.** `poreHalf`
+was capped at `cargoR * 1.3` — wide enough to pass a transmitter ball whole. It
+is now capped at **half the wall's own packing pitch**, so exactly the one head
+nearest the site steps aside. Measured per leaflet, **25.4 px -> 4.8 px**; because
+the two leaflets are staggered, the sheet as a whole never opens past **2.3 px**.
+The transmitter balls are now wider than the hole they leave by, which is the
+right way round — a real fusion pore is 1–2 nm against a 40 nm vesicle — and is
+declared in the info block as a new honesty note.
+
+**A3 — guard it.** The pore guard was rewritten to measure a **clear span in one
+leaflet** (the two leaflets' staggered heads were hiding the hole from the old
+band-wide measure), bounded against `one molecule missing` rather than an
+arbitrary fraction of the radius, and to walk **the bud as well as the merge** —
+the bud was the worse leg. Two older guards that asserted the pore was
+*cargo-sized* were rewritten to assert it is *molecule-sized*.
+
+**Broken three ways, all caught:** the cargo-sized cap restored (27.1 px, worst
+point at 0.35 **of a bud**); a three-molecule pore (12.1 px); the wall standing
+aside over the whole footprint again (117.7 px) — against a bound of 5.3 px.
+
+1365 tests green, `tsc` silent.
+
+### Step 21c-32 — D07, AMPA and NMDA side by side, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "create side-by-side comparison with corresponding layout.
+emphasize thiming, that NMDA is slow, voltage dependency, make Mg block
+animated, with pauses between actions, color-code negative potential, when Mg
+blocks."
+
+**The layout was the user's ruling, over a recommendation.** A single shared
+membrane with both receptors in it was proposed and argued for — same wall, same
+voltage, same puff, so the difference could only come from the receptors, which
+is the argument that collapsed D18's two terminals into one. The user chose the
+side-by-side. It is recorded here because the reasoning is worth keeping if the
+comparison ever reads as "two separate situations"; the fix if so is the shared
+controls, which is how this was built anyway.
+
+**A1 — the side-by-side.** `SideBySide`, two containers, `core/receptors.ts` +
+`stage/receptorScene.ts` + `ui/ReceptorBench.tsx`. ⚠ **Both panels' action slots
+are null**, which is the layout's own rule rather than an omission: an action is
+"the one thing to do to THIS panel", and neither control here belongs to one
+receptor. The glutamate reaches both because they are in one membrane under one
+gap, and the voltage IS that membrane's — so both live on a shared bar under the
+row, and the child cannot give one receptor a different stimulus from the other
+even by accident.
+
+**⚠ THE SAME PROTEIN IS DRAWN IN BOTH PANELS** — `drawLigandChannel`, the traced
+ligand-gated channel from the ion-channel bench, at a larger scale and nothing
+else. That is the exhibit, not a shortcut: two silhouettes would have given the
+child a reason to expect different behaviour, and left nothing to be surprised
+by. Guarded on the ink — 204 marks in the membrane band, mark for mark in the
+same places in both panels.
+
+**A2 — the timing.** NMDA's legs are AMPA's, with every leg that is *the
+receptor's own speed* multiplied by `SLOW = 5` and every **hold** left alone:
+a pause is the exhibit's metronome, not the protein's, and stretching it too
+would have made NMDA look slow because the bench waited longer. Under each panel
+a bar measures how long that pore was open, **on the scale both panels share**,
+and it **holds** after the run so the two can be compared at leisure; each bar
+carries a tick at the other's full length, so the comparison needs no memory of
+a picture that has gone. Real ratio ~30x (2 ms against 60 ms); drawn at 5x,
+declared.
+
+**A3 — the voltage dependency.** `mgBlock(mv)` is a **Woodhull logistic**, not a
+threshold: `MG_DELTA = 0.83` of the field, slope `RT/(z delta F)` = 16.1 mV, half
+block at −17 mV. Guarded to one e-fold of the *odds* per slope-voltage, so a
+curve that merely looked similar would fail. Flow is **conductance only** — the
+driving force is deliberately not drawn, because a real AMPA current fades over
+exactly the range where NMDA wakes up, and that belongs on D08's I–V curve; the
+info block says which half of Ohm's law is missing.
+
+**A4 — the Mg block animated, with pauses.** The stone's depth in the throat IS
+`MG_DELTA`, so the drawing measures the physics rather than illustrating it. It
+eases with `PLUG_TAU_MS = 260` in framerate-independent form, and rides up out
+of the pore and into the gap as the block clears — both ways, so the dependence
+reads as a dependence rather than a one-way trick. **The failure is drawn**: a
+blocked channel's ions come down, meet the stone and go back up, blended by how
+blocked it actually is. Measured: 0 ions past the stone at rest, plenty past it
+depolarised, and AMPA identical at both voltages.
+
+**A5 — the negative potential colour-coded.** The app's own `polarityT` +
+`chargeWash`, in **both** panels — it is one membrane potential and one cell, and
+painting it only under NMDA would have made the cell's state look like a
+property of NMDA. Magnesium got the app's first new ion colour in months: stone
+brown, arrived at by elimination (gold/violet/green/pink are the four ions, red
+and sky are reserved for charge, amber for force, teal is the transmitter's and
+orange glutamine's) and kept because it is right — this ion never carries a
+signal anywhere in the app.
+
+**Two guards were measuring nothing, and both are now rules** (03 → *Ink a guard
+cannot see is a claim you cannot make*): `fillRect` lays no path vertices, so the
+wash and the bars were invisible to every positional guard until they were drawn
+as paths; and the colour guard, picking "the bluest mark", was happily reading a
+**lipid** — this app's slate leans blue by 36. Isolating by difference between
+two renders that differ only in the voltage fixed it.
+
+**Broken eight ways, all caught:** a voltage-blind wash; the wash painted over
+the cleft; the stone set instead of walked; a hold made the receptor's own
+speed; the pore creeping through a hold (caught twice — the model's guard and
+17.7 px of movement on the canvas); each bar on its own scale; NMDA drawn 8%
+bigger; and blocked ions passing straight through (48 of them).
+
+**Deliberately not built:** the other half of the D07 spec row — how an AMPA
+receptor arrives and is held, lateral diffusion in the membrane plane and
+capture at PSD scaffold slots. Different subject, different motion, its own
+misconception to guard (*receptors are not attracted through space*), and it
+would fight this picture for the same canvas. **Interpreted rather than built:**
+the row's "clamshell binding domains" are drawn as the glyph's own socket
+closing on the transmitter — the traced drawing's binding site, not a new
+anatomy — because the user's instructions for this step did not ask for the
+clamshell and a second private drawing of a protein that already has one is
+against the rules.
+
+1389 tests green, `tsc` silent.
+
+### Step 21c-33 — NMDA's ions reach the bottom edge, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "let ions in nmda reach the bottom edge of the canvas, same as
+in ampa case."
+
+**A1 — and the endpoint was not the cause.** Both panels already shared one
+`endY`. What differed was that every NMDA ion's path was BLENDED between "goes
+through" and "turns back at the stone" by the block fraction — so even a
+nearly-clear channel (9% blocked at +20 mV) pulled every traveller a tenth of the
+way back, and not one of them ever arrived. Measured: NMDA's deepest ion 534 px
+against AMPA's 579 in a 584 px frame.
+
+**The blend was also the wrong reading of the physics.** A block of 0.96 does not
+mean every ion gets 4% of the way in; it means 4 ions in a hundred get all the
+way in and 96 are turned back at the mouth. So the fraction is now spent on HOW
+MANY of the seven travellers pass, and each one that passes goes the whole way —
+*when one drawn thing stands for MANY, a probability becomes a fraction of the
+drawn things*. The draw is per CROSSING rather than per slot, so the channel does
+not sort itself into permanent winners and losers: a real block flickers, and
+this one does too. A new honesty note (🎲) says what one ball now means.
+
+`endY` also moved to the foot of the drawing area, and the reading word moved out
+of the ions' column to the left, since the travellers now run the full height.
+
+**A probe caught a fault the fix introduced.** With a symmetric fade at both ends
+of the journey, **no ion at the bottom edge was above half alpha** — the same
+complaint wearing a different hat, since an ion that dissolves over the last few
+pixels has not arrived as far as an eye is concerned. The two endings are not the
+same ending: one that gets through leaves at the bottom edge solid, because it
+has gone into the cell; one turned back fades into the gap it came from, because
+it is rejoining a crowd.
+
+**The guard that should have caught all this did not exist** — the change landed
+with 13 tests still green, which is the *unguarded change* rule reported by the
+suite itself. The new guard measures the deepest ion in each panel, requires the
+two to agree within a tenth of a lipid, and requires an ion at the edge to be
+above 0.9 alpha.
+
+**Broken three ways, all caught:** the blend restored (NMDA 50 px short); the old
+endpoint restored (AMPA 59 px short); the symmetric fade restored (every edge ion
+at 0.80 alpha).
+
+Measured after: NMDA 578 px and AMPA 579 px of 584. 1390 tests green, `tsc`
+silent.
+
+### Step 21c-34 — S13's model, and the beat of the flow that had to change, 2026-09-11 · awaiting manual test
+
+**Asked** (user): S13 as a view, camera shifted down, the spine in focus, the
+presynaptic membrane under the timeline; a specified animation flow; and
+"replace receptors in 'vesicle: round trip view' to AMPA (color-coding), for
+consistency?" — with "Push back if scientifically wrong."
+
+**This step is the SCIENCE and the MODEL. The view is not drawn yet** — said
+plainly rather than half-wired, because the flow as specified could not be
+built as written and the correction is worth seeing before a large drawing is
+made on top of it.
+
+**The pushback, and what the arithmetic actually said.** The flow had one
+release → depolarisation → "Mg block is out" → calcium → CaMKII → two new
+receptors. Worked through with the app's own EPSP model and D07's own Woodhull
+curve:
+
+| | |
+| --- | --- |
+| one release | −58 mV, block 96.4% → **92.7%** |
+| the spine's ceiling, hammered as fast as the terminal allows | **−41 mV, block 81%** |
+| half block | −17 mV, needing ~15 units of conductance |
+
+The block never comes out, and that is not a tuning artefact — **conductance
+adds, voltage does not.** A synapse cannot depolarise past its own receptors'
+reversal however many open, so `rest + (E − rest)·g/(g+1)` saturates hard. One
+synapse cannot unblock its own NMDA receptors, which is exactly *why* the brain
+needs coincidence. Adding EPSPs in millivolts would have let a handful of taps
+sail past the block and taught the opposite; the break round confirms it — with
+linear summation, **seven taps potentiate and spread-out taps potentiate too**,
+and the exhibit's whole claim collapses.
+
+**So the trigger moved**, from a binary event that cannot happen to a threshold
+that can: not "the stone is out" but **a threshold of calcium**, which is also
+the real biology of plasticity. Each release lifts the stone a little, a little
+calcium gets past, and it accumulates — helped by NMDA being slow, which is the
+first time D07's slowness has paid for itself.
+
+**And a plain calcium threshold was measured and thrown away.** Between four
+taps and eight the calcium only went 0.113 → 0.170, a ratio of 1.5 with no
+clean line between them. The steepness was missing from the model, not from the
+biology: calcium acts through **calmodulin, which binds FOUR ions**, so the same
+1.5x becomes 5x — the same fourth-power sensor this app already uses for release
+at the other end of the gap. And CaMKII is opposed by **phosphatases**, so brief
+weak activity leaves no trace at all. With both in, the line is sharp:
+
+| | |
+| --- | --- |
+| 7 fast taps | nothing |
+| 8 fast taps | **potentiated** |
+| 8 taps at 700 ms | nothing |
+| 20 taps at 2 s, for fifty seconds | nothing |
+
+**Not how many — how close together.** Which is the exhibit.
+
+**Two smaller pushbacks, both pinned by guards.** *Weak is not slow*: the
+potentiated response is **taller and peaks at the same moment** (receptor
+kinetics do not change; the receptor COUNT does) — drawing it as quicker would
+teach that the cell got less sluggish rather than stronger. *Receptors are not
+pulled through space*: a delivered receptor is exocytosed BESIDE the synapse and
+counts only when it has finished **sliding along the membrane** into its slot —
+01's own D07 constraint, and the deferred half of D07 finding its home.
+
+**A5 — and the consistency fix runs the other way.** The round-trip view was
+already right: its receptors are sodium gold, because *a channel wears its ion,
+in every view* — a rule with its own guard file, from the user's 2026-08-30
+correction that the K⁺ channel did not look purple enough. **D07 broke it on the
+day it was built**: AMPA was painted in the TRANSMITTER's teal (what it catches)
+and NMDA in magnesium's stone (what blocks it). Recoloured: **AMPA wears sodium,
+NMDA wears calcium** — the ion that makes it a different receptor — and the
+magnesium keeps its stone, being the blocker and not the channel. Guarded in
+`channelColour.test.ts` by comparing outputs, and broken both ways.
+
+**Broken six ways, all caught:** linear voltage summation; a linear calmodulin;
+the receptor counted at fusion instead of after its slide; a potentiated synapse
+made faster instead of bigger; AMPA back in teal; NMDA back in stone.
+
+1405 tests green, `tsc` silent.
+
+**Next:** the view itself — A1, A2 and A3.
+
+### Step 21c-35 — the stone and the ions stop contradicting each other, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "at −15 mV in comparison view, the Mg+ block lifts up, but
+after the channel opens it 'falls' back to the top of the channels, covering the
+entrance. Yet, the ions pass through the channel. Fix this inconsistency."
+
+**A1 — diagnosed.** At −15 mV `mgBlock` is 0.469, and the stone's depth was
+`open x plug x 2 x hm x MG_DELTA` — multiplied by the pore's openness, so
+**opening the channel dragged the stone back down into the mouth** and left it
+there, 17 px in, permanently. Meanwhile the ions were rendering the same 0.469 a
+completely different way, as a seeded coin per crossing. Two pictures of one
+number, so of course they disagreed.
+
+**The root cause was a rule applied to one of them and not the other.** *When one
+drawn thing stands for MANY, a probability becomes a fraction of something
+countable* — spent on the ions (how many get through) and not on the stone
+(which spent it on how far down it hovered). A single stone has only its own
+TIME to spend, so a 47% block is now a stone in its seat 47% of the time,
+flickering in and out with a hold at each end. Which is what magnesium really
+does, far faster than an eye can follow — declared. Measured over 7400 spells,
+the seated share tracks `mgBlock` to within **0.007** at every voltage.
+
+And the ions stopped rolling their own coin: a traveller now **asks the stone**
+where it was at the moment it reached the mouth. One decision, two views of it.
+
+**Two guards were written, passed, and could not fail** (03 → *One number, one
+picture — or they will disagree*):
+
+- the "never parks in the doorway" guard used a band of 8.8 px against a fault
+  that parked the stone 17 px in. Rewritten as the **share of time spent
+  part-way** between its two places — the only measurement that separates a
+  stone travelling from a stone stopped. Old drawing: 100% at −15 mV. New: at
+  most 9.9%.
+- the "stone and ions agree" guard compared the share of ions getting in against
+  the share of time the stone is out. **Both drawings passed it**, because the
+  disagreement was never in the rate. Rewritten per traveller, against the stone
+  at the instant that traveller arrived — which meant `ionAt` had to hand back
+  when that instant was.
+
+A sampling artefact was also caught and is worth remembering: the first duty-cycle
+measurement stepped 7.3 ms and covered 32 windows, reporting 91% against an 81%
+block. It looked like a bias in the drawing; it was the sample size.
+
+**Broken twice, both caught** (after both guards were rewritten — the first pair
+caught neither): the depth formula restored ("100% of the time part-way"); the
+ions' independent coin restored ("an ion went in against a stone that was 1.00
+seated when it arrived").
+
+1406 tests green, `tsc` silent.
+
+### Step 21c-36 — S13 as a CAMERA MOVE on the round-trip view, 2026-09-11 · awaiting manual test
+
+**⚠ THIS STEP BEGINS BY DELETING THE PREVIOUS ONE'S PICTURE.** A whole
+`spineScene.ts` had been written — its own geometry, its own paved spine head,
+its own receptors, its own everything — without showing the user a line of the
+design first. Their answer: *"again you invented the view, I asked you not to do
+so"*, and then the fix: *"Use the view from 'synapse: round trip', just change
+camera position and add / remove elements, such ad channels."*
+
+They were right twice over. Beyond the process failure, a second drawing of this
+synapse breaks the app's oldest drawing rule — **one biology, one drawing** — and
+it is the rule this app has paid for more than any other. The invented scene and
+its guards are deleted. `core/spine.ts` survives, because the science in it was
+pushed back on and agreed.
+
+**What S13 is now:** the round-trip view, with the camera moved and a few things
+added and removed. The dive machinery is untouched — the synapse layer already
+scales about an anchor past its own magnification — so the only change is WHAT IT
+DIVES AT: `spineAnchorRef`, the middle of the spine head, measured off `faceAt`
+(the same curve the receptors sit in) rather than guessed from the foot.
+`presents: 'synapse'`, and `atSynapse` now includes it: same picture, same layer,
+same fade.
+
+**A3 — the astrocyte, removed, and the user's premise measured.** They reasoned
+it would not be missed because the spine is so wide. Measured: at this dive the
+head is **2020px across a 1060px stage — 191% of the width**, and the astrocyte
+lands near x = 2370, well off the right edge. So it was already invisible; not
+drawing it changes nothing a child can see and stops it returning if the camera
+is ever retuned. Said plainly rather than claimed as a visible improvement.
+
+**A2 — calmodulin and CaMKII, invented at the user's word**, and invented to the
+rule this app draws proteins by: a silhouette whose PARTS are the thing being
+taught.
+
+- **Calmodulin is a dumbbell** — two lobes on a linker, **two calcium seats
+  each**. The shape IS the four sites, which is exactly why the trigger is a
+  fourth power rather than a line in the sand. The seats fill in order, so the
+  count is readable part-way and not only when full.
+- **CaMKII is a hub with subunits on legs**, lighting one after another round the
+  ring — which is *why it is a switch*: neighbours turn each other on, so it
+  latches rather than dimming back. One ring of six is drawn; a real holoenzyme
+  is twelve in two stacked rings, declared.
+
+`CAM_SEATS` is pinned to the model's `CAM_SITES` by a guard, so the drawing and
+the model can never quote different numbers about one protein.
+
+**Broken four ways, all caught:** CaMKII reduced to one subunit; calmodulin given
+three seats; the astrocyte drawn at the spine after all; the cascade drawn at
+every framing.
+
+**A1 — NOT DONE, and deliberately.** See the hand-over: 1 → 3 at the spine while
+the whole-synapse framing shows 5 would be a level-of-detail SWITCH inside one
+view, which is the rule this step exists to respect — and it is the very thing
+the user is guarding against ("kids will assume it's a different neuron"). Put
+back to them rather than resolved.
+
+1413 tests green, `tsc` silent.
+
+### Step 21c-37 — the spine's camera verified and solved, and D01's lipid adopted, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "lipids in the membrane need a fix: the layer should be thick,
+more even"; then "1. verify 'the spine' view with what we've agreed to display,
+as currently it is wrong (camera, receptors etc.) 2. use lipids from the view
+'the phospholipid bilayer'."
+
+**A2 — the lipid, measured and replaced.** Two faults, both numbers:
+
+| | |
+| --- | --- |
+| too thin | `halfMem: 3.0` inside a wall drawn at `MEM_PX` = 5 — the molecules filled **60% of the wall they were paving** |
+| too loose | its spacing came from `lipidSpacing` = `headR x 2.05`; **D01 packs at `headR x 1.62`**, from the real area per lipid (~8 Å) |
+
+All three numbers now come from `bilayer.ts` — the phospholipid bilayer view's
+own — scaled by one factor, because a lipid's proportions are a RATIO and
+scaling one would draw a different molecule here from the one D01 teaches.
+Measured after: **100% of the wall**, heads OVERLAPPING by 0.38 into a
+continuous row where they used to sit 0.3 apart, 244 molecules against 158.
+
+**⚠ AND THERE WERE TWO PRIVATE COPIES OF THE PITCH IN ONE FILE.** The first fix
+went into `astroLipids` by mistake; the measurement still read 2.5 against a
+2.05 pitch, and only the number disagreeing caught it. Both are gone.
+
+**⚠ AND `lipidSpacing` DISAGREES WITH D01 ACROSS THE APP** — 2.05 against 1.62,
+27% looser. This view now uses D01's; every other view still uses `lipidSpacing`.
+Raised in the hand-over rather than changed underneath six exhibits.
+
+**A1 — verified, and it was wrong in two measurable ways.**
+
+- **Off centre by 143px.** This picture is laid out with the synapse fitted into
+  the room LEFT of the astrocyte's strip. The spine framing drops the astrocyte,
+  and nothing moved to fill it — so the spine sat in the left two-thirds with
+  dead space where the third cell used to be. The dive now centres it: measured
+  530 against a stage centre of 530.
+- **The receptors were off the picture.** At x4 the five of them spanned
+  **1365px on a 1060px stage**.
+
+**The magnification is now SOLVED, not chosen.** Three requirements were already
+agreed — spine dominant, presynaptic membrane under the chrome, receptors on
+screen — and they pick the number between them:
+
+| dive | receptor span | fits | head width | spine fills |
+| --- | --- | --- | --- | --- |
+| x4 (was) | 1365px | **no** | 2020px | 61% |
+| x3 | 1024px | **no** | 1515px | 66% |
+| **x2.4** | **819px** | **yes** | 1212px | 54% |
+| x2 | 683px | yes | 1010px | 45% |
+
+And the anchor is solved from where the presynaptic wall has to LAND rather than
+from a fraction of the head. Measured after: wall at **120**, face at 202, head
+bottom 557, head 1212px wide, all five receptors on screen at 145…964.
+
+**One thing tried and reverted, which is the finding.** Sizing the receptors'
+pitch off the protein's own width put all five comfortably on screen — and fired
+**four guards at once**: transmitter balls drawn on top of each other, the refill
+queue collapsing, loop dots overlapping. The CAST is keyed to these positions, so
+the receptor pitch is not `receptorSites`' to choose alone. The same is true of
+the COUNT, which is why 1 → 3 is still not done.
+
+1413 tests green, `tsc` silent.
+
+### Step 21c-38 — the lipids stop climbing over each other, 2026-09-11 · awaiting manual test
+
+**Asked** (user): "the lipids layer keeps looking very uneven: lipids are
+grouped, overlapping on z-direction. Unify height: lipids tops shoul be
+positioned slighly different height, but not as dramatically as now."
+
+**A1 — measured, and it was one number in the wrong units.** `lipidJiggle`'s
+amplitude is an absolute 0.9 px, tuned by eye in the lipid lab where a head is
+2.84 px across the radius. This view paves with the same molecule at a THIRD the
+size:
+
+| | lipid lab | synapse wall |
+| --- | --- | --- |
+| thermal wander | 0.32 head radii | **0.90 head radii** |
+| total scatter across the wall | — | **1.20 head radii** |
+| wander along the wall | — | **0.68 of the packing pitch** |
+
+More than a whole head of vertical scatter, and two thirds of the gap to its
+neighbour horizontally — which is exactly "grouped, overlapping on z".
+
+**The amplitude is now a fraction of the molecule**, calibrated so the lipid lab
+comes out byte-identical (guarded). Measured after: **0.32 head radii in BOTH
+views**, total scatter 1.20 → **0.62**, along-wall 0.68 → **0.32**. The small
+height variation the user asked to keep is the `across` jitter, untouched.
+
+⚠ And this is the charge badges' lesson again, now written as a rule (03 →
+*A wobble is a FRACTION of what wobbles*): these drawings are used at
+magnifications thousands apart, so a part's size — motion included — is a
+fraction of what it belongs to, never a pixel count.
+
+**⚠ A GUARD THAT PASSED WHILE THE WIRING WAS CUT.** The first version called
+`lipidJiggle` directly at three scales and required the same fraction. It passed
+— and went on passing with the paver no longer handing `geom.headR` down at all,
+because it never went through the paver. The second guard paves a straight wall
+at two molecule sizes and measures the **drawn scatter** off the canvas; it
+fails at 2.71 head radii against 1.78.
+
+**⚠ AND I OVERWROTE AN EXISTING TEST FILE.** `bilayer.test.ts` already held four
+guards pinning the phospholipid's proportions to the measured bilayer; writing
+the new file destroyed them. Restored from `HEAD` and the new guards appended —
+8 tests where there were 4. Check before `cat >`.
+
+**Broken three ways, all caught:** the absolute amplitude restored; the paver's
+size argument removed (twice — the first guard missed it, which is the finding).
+
+1417 tests green, `tsc` silent.
+
+### Step 21c-39 — the band behind the bilayer becomes ground, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "right behind the bilayer, you have a background that
+simulates the bilair with similar colors. At the moment, the heads of lipids
+stick out of the background borders. Either remove the background completely or
+make it slightly transparent so it serves more as a unifier visual rather than
+an additional element unknown to users."
+
+**A1 — and it was 21c-37's own fault, measured.** The wall's backing band is
+stroked at `MEM_PX` = 5 px in `LEAFLET` — which is `#cbd5e1`, **the lipid head's
+own colour**. That very nearly matched the old molecule (`halfMem` 3.0). Raising
+the lipid to D01's proportions took the molecules' span to **12 px**, so the real
+bilayer hung **3.5 px out of its own backing on each side**, in the same ink —
+exactly "a background that simulates the bilayer".
+
+**It cannot simply be removed**: at low detail the molecules are not drawn at all
+and this band IS the membrane. So it keeps that job and loses the other one:
+
+| | was | now |
+| --- | --- | --- |
+| width | 5 px | **12 px** — derived as `2 x (halfMem + headR)`, the whole molecule |
+| overhang each side | 3.5 px | **0** |
+| ink | `#cbd5e1` solid — the head's own | `rgba(203, 213, 225, 0.38)` — a wash |
+
+So it is wide enough to CONTAIN the heads and faint enough to read as the ground
+they sit on. Both numbers are derived from the lipid, never typed.
+
+**Broken both ways, both caught:** the band back to `MEM_PX` ("5.0px behind
+molecules spanning 12.0px"); the band back to the head's solid ink (13 strokes).
+
+1419 tests green, `tsc` silent.
+
+### Step 21c-40 — the band on a dial, turned to zero for a look, 2026-09-12 · EXPERIMENT, awaiting the user's verdict
+
+**Asked** (user): "now the membrane visually merges with the bg, because both
+share grey tint… For the sake of experiment, now make the background fully
+transparent so I can give feedback on the visual without background."
+
+**A1 — done, and put on ONE dial rather than edited in place.** The band is two
+strokes, not one — `LEAFLET` outside and `CORE` through the middle, at five call
+sites — so "make the background transparent" is a five-place edit unless there
+is a single number for it. There is now: `WALL_BAND_ALPHA`, currently **0**,
+scaling both inks. Verified to turn both ways with the suite green at 0 and at 1,
+so the previous look is one character away.
+
+**⚠ WHAT THIS COSTS WHILE THE DIAL IS ZERO**, recorded in the code so nobody
+rediscovers it as a bug: at low detail the molecules are not drawn at all and
+this band IS the membrane, so **every membrane vanishes when the camera pulls
+back out of the zone**. That is expected for the experiment and is part of what
+is being judged.
+
+**⚠ THREE GUARDS BROKE ON A COLOUR LITERAL.** `C2` (a vesicle wears the wall's
+band), `C5` (the repaint order) and 21c-39's own wash guard all matched
+`'rgba(71, 85, 105, 0.75)'` as a typed string, so moving the dial made them fail
+for the wrong reason — they were asserting a COLOUR where they meant a
+STRUCTURE. The inks are exported now (`WALL_LEAFLET_INK`, `WALL_CORE_INK`) and
+the guards match what is actually painted: the two strokes must still be ISSUED
+at any dial setting, because "a vesicle wears the same band as the wall" is true
+however faintly it is painted. Only the alpha is checked against the dial.
+
+1419 tests green at both settings, `tsc` silent.
+
+### Step 21c-41 — the band dissolves instead of switching off, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "but keep lipids, only make grey bg behind the lipids
+transparent."
+
+**A1 — 21c-40 answered the wrong half.** Turning `WALL_BAND_ALPHA` to 0 did take
+the grey out from behind the molecules, and took **every membrane with it** the
+moment the camera pulled back — because at low detail the molecules are not
+drawn at all and this band IS the membrane. The instruction is not "off", it is
+**"not behind the lipids"**, which is a DISSOLVE.
+
+And the number was already to hand: the molecules are drawn at `depth`, and
+`depth = 1 - chrome`, so **`chrome` IS the band's own fade**. Measured:
+
+| chrome | band alpha | lipid-head marks |
+| --- | --- | --- |
+| 1 (pulled back) | **1** | 4 — the molecules are not there |
+| 0.6 | 0.6 | 30 |
+| 0.2 | 0.2 | 30 |
+| 0 (at the zone) | **0** | 26 — lipids only, nothing behind them |
+
+**Threaded, not hidden.** A module-level "current band alpha" set once a frame
+was the cheap way and was rejected: a renderer with hidden state surprises the
+next caller that does not set it. The fade is an explicit `band` parameter on
+the three functions that stroke it (`vesicle`, `drawPocket`, `membraneBand`),
+defaulting to 1, passed at all nine call sites.
+
+**⚠ AND `tsc` CANNOT SEE A LEAKED `save()`.** Adding the fade meant adding a
+`ctx.save()` inside functions whose existing `restore()` belonged to an OUTER
+save — two of the three were left unbalanced and typechecking was silent. Caught
+by counting `save` against `restore` on the recording canvas: 171/171, 147/147,
+180/180 across the run. Worth doing after any edit that adds a save.
+
+**Broken and caught:** one call site stopped passing the fade — "the band still
+paints at 1.00 behind the lipids".
+
+1420 tests green, `tsc` silent.
+
+### Step 21c-42 — one wall for every cell, and a bilayer that stays packed, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "1. Whole picture view: make neurons' membrane same as
+astrocyte's 2. Active zone view. Make the layer more dense, so that the gaps
+between lipid heads are not so big."
+
+**A1 — and the code already CLAIMED it.** `drawAstrocyte` carries the comment
+*"It is the same LEAFLET/CORE the rest of the frame wears — one biology, one
+drawing"* and then strokes its own numbers:
+
+| | leaflet | core |
+| --- | --- | --- |
+| astrocyte | **0.85** | 0.7 |
+| the two neurons | **0.38** | 0.75 |
+
+So at the whole view the glial cell had a solid wall and the neurons a faint
+one. (The neurons' 0.38 was 21c-39's, set when the band did not yet dissolve.)
+Both cells now stroke the SAME two constants at the astrocyte's strengths, and
+the glial wall dissolves behind its own molecules on the same dial the neurons
+use — one dial for every wall, or one cell is made of molecules while its
+neighbour is still made of paint.
+
+**⚠ THE GUARD THAT SHOULD HAVE CAUGHT IT WAS GREPPING SOURCE TEXT.** It asserted
+`drawAstrocyte`'s body contains `'203, 213, 225'` — which passed happily while
+the two strengths disagreed, because both spell the same rgb. It now asks the
+INK: every slate stroke in a rendered frame must be one of the two shared
+constants, so a second strength anywhere fails.
+
+**A2 — measured, and the packing was never the problem.** D01's spacing already
+has the heads OVERLAPPING by 0.38. The wander was pulling them apart: **10 pairs
+in 1195, by up to 0.286** — a seventh of a head.
+
+**The bound is physics, not taste.** A fluid bilayer conserves its area per
+lipid: molecules slide PAST each other, they do not decompress. So the
+along-the-wall slide is now bounded by the packing's own slack (`2·headR −
+pitch`, split between two neighbours), computed by the paver from its own
+samples. Measured after: worst gap **−0.137**, **0 pairs of 1195 apart**, and
+the heads still bob across the wall by 1.78 px — the fix is not a freeze.
+
+A wall packed with no slack gets no sliding at all, which is the honest answer:
+you cannot slide along a row already at full stretch.
+
+**Broken three ways, all caught** — the astrocyte back to its own strengths;
+unbounded sliding at D01's packing (0.286 against ≤ 0) and at a loose one
+(1.636). ⚠ The gap guard did not exist until the break found nothing to fail:
+`bilayer.test.ts` was guarding the jiggle's FRACTION and not the packing it was
+supposed to protect.
+
+1425 tests green, `tsc` silent.
+
+### Step 21c-43 — a vesicle's edge becomes a fade, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "on vesicles, add gradient on the bg edge, so that inside and
+outside do not have such an abrupt cut."
+
+**A1 — and it is 21c-41's own consequence.** A vesicle's lumen is the bath's own
+ink and the cytoplasm around it is that same bath under a tenth of slate, so the
+rim was always a hard step between the two — and the WALL used to cover it. Once
+the band began dissolving behind the molecules there was nothing left hiding it.
+
+**⚠ THE FIRST ATTEMPT WAS THE WRONG SHAPE, and two guards said so.** Replacing
+the flat lumen fill with a radial gradient meant writing the bath's channels out
+by hand as `'17, 25, 43'` — and one of the guards it broke is
+*"a vesicle's lumen IS the extracellular ink, **not a match for it**"*, which
+exists precisely to stop that. The other identifies a vesicle's BODY by that
+fill to check the filler is drawn on top of it. Both were right and the approach
+was wrong.
+
+So the lumen is untouched and the cytoplasm is painted back OVER the rim: from
+nothing at the inner edge to its full self at `r`. The fade's width is the
+WALL'S own thickness — derived, not chosen — capped at a third of the radius,
+because measured at the wall's full 12 px it was **47% of a 25.3 px bubble** and
+a vesicle whose outer half is a fade stops reading as a vesicle. Now 35% at
+every size, with a solid core.
+
+A fusing **pocket** gets the same edge: it IS a vesicle part-way into the wall,
+and it cannot harden its rim the moment fusion starts.
+
+**Broken three ways, all caught:** the fade removed from an intact bubble; the
+fade reduced to a two-stop step (which is still a cut — the guard asks for a
+stop strictly between the ends); a fusing bubble losing it.
+
+1428 tests green, `tsc` silent.
+
+### Step 21c-44 — the vesicle's fade spans the whole membrane, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "make transition even more blurry, so that the gradient starts
+where heads start, and end at the heads' edge on the other side."
+
+**A1 — and the geometry names the two ends exactly.** A lipid head's centre sits
+at `halfMem − headR` from the wall's midline and its radius is `headR`, so its
+outer edge is at **exactly `halfMem`**. The two head edges of a bubble of radius
+`r` are therefore `r ± halfMem`, and that is the fade now: nothing at the inner
+heads, the full cytoplasm at the outer ones, the whole bilayer in between.
+
+21c-43's fade ran from `r − wall` up to `r` and stopped — all of it INSIDE the
+bubble, which softened the lumen and still left the wall standing on a step. The
+disc painted is wider than the bubble for exactly that reason, and it is laid
+down before the wall so the membrane draws on top of it.
+
+The `LUMEN_FADE_OF_R` cap is gone and is not needed: the span is the membrane's
+own thickness at every size, so a bubble can never be mostly fade.
+
+**⚠ A GUARD THAT COULD NOT FAIL, AND A HOLE IN THE TEST HARNESS.** "The fade
+reaches past the wall" was first measured off `points` — and `strictCanvas`
+records an arc's CENTRE, not its radius, so every circle measured zero from
+itself and the guard reported `-Infinity`. A radius is ink too: `strictCanvas`
+now keeps `arcs` (centre and radius, through the transform), and the guard asks
+the painted size. Worth reaching for whenever a claim is about how BIG something
+is drawn rather than where.
+
+**Broken both ways, both caught:** the disc back to the bubble's own radius
+("paints only to 25.3, expected ≥ 30.3"); the reach detached from the membrane's
+half-thickness ("expected 1.5 to be close to 5").
+
+1428 tests green, `tsc` silent.
+
+### Step 21c-45 — the vesicle's fade, built the right way round, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "nothing changed, the transition does not look blurry."
+
+**And that report was exactly right — 21c-43/44 could not have worked.** The
+fade was built as CYTOPLASM painted OVER the lumen, and the arithmetic says what
+that does:
+
+| | |
+| --- | --- |
+| inside a vesicle | `rgb(17, 25, 43)` — the bath's own ink |
+| the terminal around it | `rgb(30, 39, 57)` — the same bath under a tenth of slate |
+| the step to be blurred | 13, 14, 14 — about 5% of the range |
+| **what was painted outside `r`** | `rgb(42, 51, 70)` — that slate on ground that ALREADY had it |
+
+So inside the bubble the fade merely reproduced the terminal's colour, and
+outside it OVERSHOT into a halo. Adding a translucent ink can only ever add its
+own alpha; it can never walk a step down. The step never moved, and the picture
+was unchanged — as reported.
+
+**It is the LUMEN that fades now.** A flat `LUMEN` core out to `r − halfMem`,
+then a rim where the lumen's own ink falls from opaque to nothing at
+`r + halfMem`, letting the terminal behind show through. Walked:
+
+| across the wall | result |
+| --- | --- |
+| 0% | `rgb(17, 25, 43)` |
+| 25% | `rgb(20, 28, 46)` |
+| 50% | `rgb(22, 31, 49)` |
+| 75% | `rgb(26, 35, 53)` |
+| 100% | `rgb(30, 39, 57)` |
+
+**Two constraints kept.** The core stays a flat `LUMEN` fill because two guards
+identify a vesicle's BODY by it; and the fade's channels are PARSED from
+`OUTSIDE` rather than retyped, for the reason the older guard gives — "its lumen
+IS the extracellular ink, **not a match for it**" — two spellings of one colour
+being two things that can stop agreeing.
+
+**Broken three ways, all caught:** the cytoplasm-over-the-top version restored
+(no fade found); the flat core replaced by an rgba spelling of the same colour
+(three guards, including both that find a vesicle by its body); the channels
+retyped one off (`#11192c` against `#11192b`).
+
+1428 tests green, `tsc` silent.
+
+### Step 21c-46 — S13 built, as a view of its own, 2026-09-12 · awaiting manual test
+
+**Asked** (user): extract the spine into a separate view; the entire dendritic
+spine in frame; remove the Ca channels; AMPA and NMDA on the spine — plus the
+original S13 spec re-stated, and "Push back if scientifically wrong."
+
+**A1 — a separate view that draws nothing of its own making.** The frame is
+re-implemented, because the subject changed; everything else is imported from
+the round trip: `spinePath`, `membraneBand`, `vesicle`, `drawPocket`,
+`lumenEdge`, `ZONE_LIPID`, `drawLigandChannel`, `faceAt`, `chargeWash`, the
+inks. Guarded both ways — a test asserts the view REACHES for each of those, and
+another asserts it never reaches for `activeZone`, `reservePool`,
+`drawAstrocyte`, `drawLoopDoors` or `drawStock`.
+
+The frame is a `SynapseGeometry`, so every one of those drawings takes it
+unchanged. ⚠ Its presynaptic wall is **declared flat** (`flatWallY`, a new
+optional field `wallAt` honours) rather than borrowed from a traced bouton held
+off-frame: over one active zone a bouton's face is straight to within a pixel,
+and saying so is honest where faking a crop is not.
+
+**A2/A3 — measured:** wall at **y = 115** (just under the 104 the timeline
+keeps), gap of exactly one `CLEFT_PX` to the face at 149, head **446 px wide**
+filling **68%** of the frame below the chrome, neck at 442 and the dendrite
+below it — the whole spine in view, nothing running off the foot.
+
+**A4 — removed, and declared.** No calcium doors, no pool, no loop furniture, no
+astrocyte. ⚠ The pushback that came with it: with the doors gone, vesicles fuse
+on screen with nothing visibly causing them, so a new honesty note (⚡) says
+release is caused by calcium entering and points at the view that shows it.
+
+**A5/A6 — and the thing the shared view could not do.** NMDA in the middle, AMPA
+either side, growing **1 → 3** as the cascade delivers. That was blocked in
+21c-37: the round trip's `receptorSites` is keyed to its CAST, and four guards
+fire the moment its pitch or count moves. Free of that cast, this view can grow.
+Guarded: 8 fast taps → 3; 7 taps → 1; 8 slow taps → 1.
+
+**A7 — already done, the other way round** (21c-34). The round trip already
+obeyed *a channel wears its ion*; D07 was the one out of step and was recoloured.
+
+**Broken five ways, all caught:** the flat wall removed (head 810px on a 660px
+stage); the wall drifted behind the timeline; the spine shrunk to 37% of the
+frame; `activeZone` imported again; the receptors smeared 128px apart.
+
+**⚠ AND A SLICE ATE THREE GUARDS.** Removing the shared-view experiment from
+`synapseScene.test.ts` by cutting between two markers took the band guards
+(21c-39/41/42) with them; caught by `tsc` reporting their imports unused, and
+restored. A text slice is not a refactor.
+
+1435 tests green, `tsc` silent.
+
+### Step 21c-47 — the spine leaves the switch, and starts appearing at all, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "the spine should NOT be side by side with whole synapse and
+active zone. Exclude it from the switch, it shoudl be a separate menu item";
+then, mid-step, "currently, 'the spine' is empty canvas".
+
+**A1/A2 — out of the switch, onto its own plate.** The scale switch says HOW
+CLOSE, so everything in it must be the same subject at a different distance. The
+spine is a different cell and a different concept — it gets a DOOR. Its own
+plate above the four drawer doors at the synapse view, green-edged, because the
+four below open drawers OVER this scene and this one goes somewhere else
+entirely: two kinds of door read as two plates, or a child learns they all do
+the same thing. The way back is the same shape of door, not a notch on a dial.
+
+**A3 — and the view was blank, for a reason worth a rule** (03 → *A drawing that
+is never CALLED fails nothing*). `spineFadeRef` was declared and read; the line
+that raises it toward 1 was lost when the shared-view experiment was unwound. The
+fade stayed at 0, the layer's `sceneFunc` returned before drawing, and the view
+came up empty — **with all ten of its drawing guards green**, because every one
+of them calls `drawSpine` directly. The defect was never in the drawing; it was
+that the drawing was never called.
+
+The gating is now asked of the wiring: for each view of its own, its fade must be
+**declared**, **driven**, **consumed**, and its layer **handed to the animation**
+— plus the measurable half, that the target's `scale` and the gate's `viewScale`
+agree, or a driven fade still never arrives.
+
+**Broken three ways, all caught:** the exact bug reproduced (the fade undriven);
+the layer dropped from the animation; the target's scale moved off the gate's
+(540 against 180).
+
+1437 tests green, `tsc` silent.
+
+### Step 21c-48 — the spine view becomes a CAMERA, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "no, do not invent the view. use existing drawing."
+
+**And 21c-46 was still an invented view, despite the claim it made.** It
+imported the round trip's glyphs — `spinePath`, `membraneBand`, `vesicle`,
+`drawLigandChannel` — and then composed its own picture out of them: its own
+geometry, its own walls, its own release, its own traffic, its own cascade.
+**Reusing the PIECES is not reusing the drawing.** The composition IS the
+drawing, and a second composition of one synapse is a second drawing of it
+however many helpers it borrows. The whole module is gone.
+
+**What replaced it draws nothing at all.** `spineScene.ts` is now a camera: it
+solves a magnification and an offset, and calls `drawSynapse` — the round trip's
+own picture, at the round trip's own geometry. Guarded by source: the module
+must contain `drawSynapse(` and must NOT contain `paveMembrane`,
+`drawLigandChannel`, `drawGlossyIon`, `spinePath`, `vesicle(`, `ctx.arc(`,
+`ctx.fill(`, `ctx.stroke(` or `createRadialGradient`.
+
+**The camera is solved from the two requirements**, both read off that geometry
+so the camera follows it if it ever changes: the head fills `SPINE_SHARE` of the
+frame below the chrome (which fixes the magnification), and the presynaptic wall
+lands at `SPINE_TOP` (which fixes the offset).
+
+**What the `spine` flag does inside the existing drawing** — add and remove, and
+nothing else: the aura reads `spineMv` instead of the run's drawn ions; the
+receptor count is the model's, with one seat NMDA's; the magnesium, calmodulin,
+CaMKII and the deliveries appear; the calcium doors and the astrocyte do not.
+Absent, every one of those is off and the round trip is untouched.
+
+**⚠ TWO GUARDS SLIPPED THE FIRST BREAK ROUND, both for instructive reasons:**
+
+- the landing guard compared the wall against `SPINE_TOP` **itself** — circular:
+  move the constant and the camera follows it, so the wall could sit behind the
+  chrome and the guard still passed. It now asks for the view's own top plate's
+  height, counted off its markup (12 + 6 + 38 + 6 = 62).
+- the removal guard compared **total mark counts** between the two renders — and
+  the spine framing ADDS things, so restoring the doors left the totals still
+  pointing the right way. It now counts ink at the doors' own places, in the
+  band a `drawVoltageChannel` reaches and the lipids do not: 439 against a
+  ceiling of 139.
+
+**Broken four ways, all caught** (after the two above were rewritten): the view
+drawing for itself again; the wall out from under the chrome; the doors and the
+astrocyte back; the head no longer filling its share (37% against 62%).
+
+1435 tests green, `tsc` silent.
+
+### Step 21c-49 — the spine's receptors packed, and the camera closer, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "1. Now too much of inactive area is in the view. place
+receptors closer to each other, to the center. zoom in, so that 3 / 4 of current
+width is in the view." (Point 2 was a question — answered in the hand-over, not
+built.)
+
+**A1 — measured, and the spread was the larger half of it.** `receptorSites`
+smears its seats across `activeHalf x 0.82` whatever the count, so at this
+magnification **one AMPA and one NMDA stood 1003px apart on a 1060px stage** —
+at opposite edges, with the whole middle empty. Packed to the receptor's own
+width they span **82px**; three AMPA plus the NMDA span **261px**.
+
+⚠ The default spread is still load-bearing and untouched — the round trip's CAST
+is keyed to those positions (21c-37). `receptorSites` now takes the reach as a
+parameter, and only a caller with no cast of its own may pass one.
+
+The camera is up by four thirds, written as `SPINE_SHARE = 0.62 x SPINE_ZOOM`
+so the change reads as a zoom rather than as a new number.
+
+**⚠ THREE GUARDS SLIPPED THE FIRST BREAK ROUND, and each for its own reason:**
+
+- **the cluster guard recomputed the formula** instead of asking the drawing —
+  so it passed while the drawing stopped calling it altogether. There is one
+  exported `spineReceptorSeats` now, used by both; and a second guard measures
+  the INK at the old outer seats (104 marks against a ceiling of 39).
+- **the zoom guard was circular** — the head's share of the height compares the
+  camera against its own constant and moves with it. The non-circular claim is
+  the one the user actually made: the working part of the picture must fill its
+  share of the frame. 25% now, 18% with the zoom removed, floor at 22%.
+- **the framing guard was failing a correct picture** — it asserted the head
+  ellipse's nominal bottom was on screen, but the drawn silhouette has already
+  narrowed into the neck well above it, and the dendrite is MEANT to leave the
+  frame. It now asks for a neck in frame with room beneath it.
+
+**Broken three ways, all caught** after the rewrite: the drawing ignoring the
+packed cluster; the zoom removed; the cluster widened.
+
+1436 tests green, `tsc` silent.
+
+### Step 21c-50 — both stores of AMPA, in one frame, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "illustrate both storages in the current view."
+
+**And they are two STAGES of one supply, not two alternatives** — which is what
+makes drawing both better science than either alone:
+
+- the **intracellular** store: recycling endosomes, carriers holding AMPA
+  receptors, inside the spine head under the density. On potentiation they are
+  mobilised and fuse with the wall.
+- the **surface** store: receptors already IN the membrane beside the density.
+  In a real synapse these often arrive first — they only have to diffuse in and
+  be trapped — and the exocytosis above refills THIS pool rather than delivering
+  into the synapse directly.
+
+So the delivery now runs through both: a carrier leaves the store, fuses **where
+the surface pool stands**, and the receptor it lands slides from there into the
+density. A bubble merging no longer puts a receptor into the synapse; it puts
+one into the wall NEXT to it. Two honesty notes added (📦, 🗄️).
+
+**⚠ AND THE MEASUREMENT FOUND A LIVE BUG.** The visible window at this camera is
+**±171** of the head's centre; the fusion shoulder was at `rx x 0.82` = **±207**.
+**Every carrier has been fusing off the side of the picture.** It now fuses at
+the surface pool's own place, ±104 — which is the same event, so one number does
+both jobs.
+
+Placed and measured on a 1060x660 stage: the density reaches ±138 of centre, the
+surface pool stands at x = 209 and 851, and the four carriers sit at y 336–370,
+below the face and above the neck.
+
+**Broken three ways, all caught:** the shoulder back off the side (two guards
+fired); the surface pool moved inside the density; the store drawn outside the
+cell.
+
+1438 tests green, `tsc` silent.
+
+### Step 21c-51 — the supply line up the neck, and carriers made of bilayer, 2026-09-12 · awaiting manual test
+
+**Asked** (user): "1. Would it be scientifically correct if we display some
+channels on the part of membrane on the leg of the dendritic spine and then
+display them being pulled up towards synaptic cleft? If correct, implement.
+2. …Display just two, make them as big as those in the membrane, make the
+circles made out of Lipids. If this is scientifically the case."
+
+**A1 — correct, with one word of it wrong.** AMPA receptors really are put into
+the membrane at extrasynaptic sites including the dendrite shaft and the spine's
+NECK, and they reach the density by **diffusing in the plane of the membrane**;
+the neck is a genuine diffusion barrier, which is part of what makes a spine a
+compartment.
+
+⚠ **But they are not "pulled".** Nothing attracts them — they wander, and they
+are CAUGHT at the scaffold under the density. That is 01's own D07 constraint,
+and a straight purposeful ascent would draw a force that does not exist. So the
+climb carries a seeded wander, and the guard requires it to **slip backwards**:
+measured, 8 slips over its course. A monotone climb fails.
+
+**A2 — all three correct, and implemented.** A recycling endosome IS a membrane
+compartment, so its ring is bilayer like every other bubble here; a receptor is
+the same protein whether carried or in the wall, so it is the same size; and
+fewer-and-bigger is this app's own rule the moment a thing must show what it is
+made of. Four carriers became **two**, at **41px** on screen — enough for more
+than twelve molecules round the ring.
+
+**Measured after:** carriers at (331, 352) and (729, 352); the climb runs from
+(373, 596) low in the neck to (209, 197) at the surface pool, every sample in
+frame. A start at `ry x 0.5` was measured at **646px down a 660px stage** and
+moved up.
+
+**⚠ AND A GUARD THAT COUNTED THE WRONG THING.** "The carrier's ring is paved"
+counted marks at the ring's radius — and the RECEPTOR perched on the carrier's
+top lays its marks at exactly that radius, so the guard was counting the protein
+and calling it a bilayer. It passed with the paving removed entirely. Rewritten
+to the ring's LOWER half, where nothing but its own wall can be: 0 against a
+floor of 20.
+
+**Broken five ways, all caught** (after that rewrite): the climb made monotone;
+the rings unpaved; the carried receptor shrunk; four carriers again; the climb
+no longer ending at the surface pool.
+
+1440 tests green, `tsc` silent.
+
+### Step 21c-52 — the spine's membrane made whole, 2026-09-12 · awaiting manual test
+
+**Asked** (user): five corrections — gaps on the membrane; the carriers'
+phospholipids looking different from the vesicles'; bilayer on the spine's leg;
+rotate the stored channels; make them slightly misaligned.
+
+**A1 — the gaps were holes cut for proteins that are not there.** The paver
+leaves a molecule out where a protein stands, and it worked that out from
+`receptorSites(g)` — the ROUND TRIP's five, spread across the active zone — and
+from the calcium doors. This framing draws neither: a packed cluster of four,
+and no doors at all. So it was punching holes in the middle of a membrane where
+nothing stood. `membraneLipids` now takes what the caller actually drew.
+Measured after: four holes in the face, **every one with a protein in it, zero
+orphans**; with the old defaults restored, gaps reappear at x = 227 and 567.
+
+**A2 — the carriers were wearing a band nothing else had.** `vesicle()` takes
+the band's fade as its last argument and I had omitted it, so these kept a full
+grey backing band while every other bubble in the frame had faded theirs away
+behind its molecules. That is what "a different phospholipid view" was. One
+argument.
+
+**A3 — and the leg was bare, because the paving and the OUTLINE were two
+descriptions of one shape.** The outline draws the flanks and the neck as cubics
+flaring down to the trunk; the paver (added last step) laid straight verticals
+at the neck's own half-width — so its molecules sat inside the drawn wall, and
+between the face's ends and the neck there were no molecules at all. Both now
+come from **`spineWalls`**, one definition of the four cubics, sampled by ARC
+LENGTH so the molecules land at the drawn pitch. Measured: **411 molecules on
+the side walls**, where there were none.
+
+**A4/A5 — turned, and not a mirror pair.** A protein in a vesicle's wall stands
+along the RADIUS wherever it happens to sit — the same grammar as VGLUT on a
+synaptic vesicle — so each carrier's receptor gets its own angle rather than
+balancing on top of the circle. And the two carriers are nudged off their shared
+line by a seeded offset: two compartments floating in a cytoplasm do not line up.
+
+**Broken four ways, all caught:** the paver back to the round trip's sites; the
+side walls unpaved; the carriers unturned; the carriers back on one line.
+
+1443 tests green, `tsc` silent.
+
+### Step 21c-53 — the neck's channels lie across their wall, and the aura hugs every edge, 2026-09-13 · awaiting manual test
+
+**Asked** (user): rotate the stored channels on the neck 90°; close the membrane
+gaps around the channels at the cleft and CREATE gaps where the stored channels
+stand; and put a gradient on the spine's edges behind the membrane, as
+presynaptically.
+
+**A1 — turned, and it turns back.** A protein spans its membrane, and the neck's
+wall is vertical, so down there a receptor lies on its side. ⚠ It then **eases
+upright as it arrives on the face** — because the wall turns through that
+quarter. The protein is not rotating; the membrane is. Measured: ±1.57 rad low
+in the neck, ±1.02 at a third of the way, 0 on arrival, and the guard pins the
+middle so the two ends cannot pass over a snap.
+
+**A2 — two faults, opposite ways round.**
+
+| | |
+| --- | --- |
+| at the cleft | holes cut to the OPEN half-width (10.69) left **1.9px of bare wall** round every receptor that was shut. Cut to the SHUT width now: **0.9px**, which is the packing's own step. An opening channel simply overlaps the lipids, which is what displacing them looks like. |
+| in the side walls | no holes at all, so every climbing receptor was drawn straight OVER the molecules. `membraneLipids` now takes `onWalls` too: **0** molecules under them, from 16. |
+
+**A3 — the aura only hugged the face.** The terminal's is anchored at its wall
+and fades inward; the spine's was one VERTICAL wash, so down the flanks and the
+neck — where the wall runs the other way — there was nothing against the edge. A
+linear gradient cannot follow a curve, so the rim is built the way a rim is: the
+outline stroked a few times, narrowing and strengthening inward, inside the clip
+already in force. Same ramp, same anchor, every edge.
+
+**⚠ A GUARD THAT TESTED THE WRONG MOMENT.** The side-wall gap guard used a
+COMPLETED burst — where `camk` is 1 and the climbers have already ARRIVED on the
+face, and the face's own holes cover them. It passed with the side walls making
+no room at all. Caught mid-climb it fails properly: 16 molecules against 0.
+
+**Broken four ways, all caught** (after that fixture was moved): the channels
+back upright; the face's holes back to the open width (51px of bare wall); the
+side walls making no room; the rim removed.
+
+1446 tests green, `tsc` silent.
+
+### Step 21c-54 — the spine's edge stops being a cut, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "No. You misunderstood me about the gradient. I didn't mean
+gradient in the background itself. What I meant is that the edge behind the
+bilayer looks like a cut. There is a distinct line which should be gone."
+
+**⚠ 21c-53's A3 ANSWERED A QUESTION THAT HAD NOT BEEN ASKED.** "Create gradient
+on edged behind the membrane" was a description of the FAULT, and I read it as a
+request for an inner glow — and built one. The glow is removed.
+
+**The fault, measured.** Everything inside the spine's clip stops dead at the
+outline: the cytoplasm fill, and the charge wash on top of it. At rest that step
+is **rgb(39, 60, 67)** — a hard bright line round the whole spine, three times
+the one a vesicle's rim used to show, with the bilayer drawn on top of it. That
+is why the membrane read as sitting on a cut edge rather than BEING the edge.
+
+**The cure is the vesicles' own (21c-45):** fade the inside back to the bath over
+the wall's thickness, so there is nothing left to step. A linear gradient cannot
+follow a shape that curves, so it is painted as the outline stroked six times in
+the bath's own ink — narrow and strong at the edge, wide and weak inward — which
+is the same fade by another means. Tuned against the simulated composite rather
+than by eye:
+
+| strength | edge | remaining step |
+| --- | --- | --- |
+| 0.34 | 78% bath | 9, 13, 15 |
+| 0.45 | 88% | 5, 7, 8 |
+| **0.55** | **93%** | **3, 4, 4** |
+| 0.65 | 97% | 1, 2, 2 |
+
+Taken at 0.55: the line goes from **(39, 60, 67) to (3, 4, 4)**, a fifteen-fold
+reduction, while the inside is still visibly the inside.
+
+**Broken three ways, all caught:** the fade removed; the fade weakened to 35% (a
+line again); the fade replaced by one opaque stroke, which is a cut of its own.
+
+1446 tests green, `tsc` silent.
+
+### Step 21c-55 — the stored channels face the right way, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "One of the stored channels should be flipped horizontally or
+rather rotated one hundred eighty degrees so that the binding ligand binded side
+is outside of the cell."
+
+**Checked, and BOTH kinds were inside out — for two different reasons.** The
+traced glyph's binding seat is at local −y, and a turn θ sends it to
+`(sin θ, −cos θ)`:
+
+- **in the neck's wall**, the turn was `−side · π/2`, which points that seat
+  **into the spine**. Every climbing receptor was offering its extracellular
+  mouth to the cytoplasm. The sign is `+side · π/2`: measured, the binding face
+  now lands at (−1, 0) on the left wall and (1, 0) on the right — outward — and
+  (0, −1) on the face, toward the cleft.
+- **in a carrier's wall**, it faced outward into the cytoplasm, and it must face
+  the **LUMEN**. ⚠ That is the topology and it is the interesting part: a
+  recycling endosome is made by the membrane folding IN, so the face that was
+  extracellular becomes the face looking into the bubble. The lumen IS "outside
+  the cell", folded in. Half a turn (`CARRIER_FLIP`), and a new honesty note
+  (🔄) says so in words a child can hold.
+
+**⚠ THE OLD GUARD ENCODED THE BUG.** It asserted `sign(turn) === -side` — the
+formula, restated. It could only ever agree with whatever the code did. It now
+measures the DIRECTION the binding face ends up pointing, which is the claim.
+
+**⚠ AND A SECOND GUARD PASSED ON A CONSTANT NOBODY USED.** The carrier check did
+the composition arithmetic with `CARRIER_FLIP` and never asked whether the
+drawing applies it — a break that removed the rotate from the canvas and left
+the constant at π sailed through. Declared is not applied; the guard now counts
+both call sites too.
+
+**Broken three ways, all caught** (after that second guard was added): the wall
+turn back to the old sign; the flip set to zero; the flip declared but not
+applied.
+
+1447 tests green, `tsc` silent.
+
+### Step 21c-56 — the spine view gets a clock, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "send message button click does not initiate any process. The
+only thing I see is the movement of MG block."
+
+**And the report names the bug exactly.** The spine view draws the round trip's
+own picture — deliberately — and that picture animates off the **synapse run's**
+clock: the bubble merging, the transmitter crossing, the receptors opening, the
+ions in flight are all functions of `u`. The spine's own model supplies the
+voltage, the magnesium and the cascade, and nothing else. With the run never
+advanced at this framing, the magnesium moved and nothing else could. Element
+for element, that is what was on screen.
+
+**Three things were missing**, all wiring:
+
+- the tap fired only the receiving cell's model, never the run;
+- the run was advanced only while the camera was at the SYNAPSE;
+- and arriving at the spine RESET the run out from under the drawing.
+
+Measured after: **six distinct pictures** across the run where there had been
+one, with the transmitter dots taken up by u = 0.85.
+
+**⚠ THE SECOND TIME THIS SESSION A VIEW WAS FULLY GUARDED AND DID NOTHING** —
+now a rule of its own (03 → *…and a drawing whose CLOCK never ticks is a
+still*), beside 21c-47's. A scene test calls the draw function directly with
+whatever arguments it likes, so it will happily paint an animation the app never
+asks for. Both halves are guarded now: the ink differs across the run, AND the
+control drives every clock.
+
+**Broken three ways, all caught:** the tap no longer firing the run (the
+reported bug); the run not advancing at the spine; the run reset on arrival.
+
+1449 tests green, `tsc` silent.
+
+### Step 21c-57 — the spine's own release, and a camera that follows it, 2026-09-13 · awaiting manual test
+
+**A1 — "This view starts with NT release (all release preceding actions are not
+present in the animation), remove pink circles for Ca. implement: exocytosis."**
+
+Borrowing the round trip's picture had also borrowed its whole sixty-millisecond
+run. Measured, that is **34.5 s of screen**, of which the release this view is
+about did not begin until **second 6.8** and the last **14.4 s** was the
+glutamate–glutamine loop home — through an astrocyte this framing stopped
+drawing on 2026-09-12, past calcium doors it stopped drawing on the same day.
+
+So the view declares a WINDOW in the run's own model time — **2.56 ms (the first
+vesicle opens) → 30 ms (the gap is cleared)** — and keeps the legs inside it.
+The shares are the round trip's own, and the length is derived from them
+(`SYNAPSE_SCREEN_MS × Σ kept share`), so the release plays here at exactly the
+pace it was tuned to there. **15.2 s, starting at the bubble.**
+
+Measured beat by beat, from the tap:
+
+| screen | model | what is on the page |
+| ---: | ---: | --- |
+| 2.3 s | 2.9 ms | three vesicles torn open |
+| 4.6 s | 3.9 ms | 20 transmitter in the gap |
+| 7.6 s | 7.0 ms | the first three seated on receptors |
+| 10.6 s | 14.4 ms | sodium inside the spine |
+| 13.7 s | 25.3 ms | eight in, the gap emptying |
+
+And the terminal's calcium cast — 14 pink balls whose doors are not on this page
+— is no longer drawn here.
+
+**A2 — "At the start, we have 1 AMPA & 1 NMDA."** Already true, and now guarded
+where it can go wrong: two seats in the density, each carrying a channel, no
+third, and the two in different inks — the ink claim by DIFFERENCE, since adding
+an AMPA must add sodium's ink and none of calcium's.
+
+**A3 — "shift camera so that the left side of the spine is in view. So we can
+follow the membrane and channel's path."**
+
+⚠ **AND THE PATH WAS NOT ON THE MEMBRANE.** The climb interpolated x from the
+neck's half-width to the surface pool's and y from the neck to the face — two
+lerps between two correct endpoints, and MEASURED the halfway point sat **544px
+inside the wall it was supposed to be in**, drifting through open cytoplasm. Now
+it walks the outline's own cubics: up the neck, round the underside of the
+mushroom cap, out along the flank and over onto the face, with the orientation
+taken from the tangent at every step. That last part matters twice — under the
+cap the membrane faces DOWNWARD, which no eased quarter-turn between "on the
+wall" and "on the face" can produce.
+
+Then the camera. Measured, the head is **1567px wide on a 1060px stage**:
+centring it put BOTH flanks off the picture and the journey happened 253px past
+the left edge. One flank can be watched or neither. The offset is now solved
+from the path itself, and what it cost was paid rather than absorbed:
+
+| | was | now |
+| --- | --- | --- |
+| head's left edge | −253 (off frame) | **84** |
+| the climb's leftmost point | −253 | **84** |
+| the surface pool | ±0.5 of the zone — the right one 129px off frame | one queue, **607 / 667** |
+| the carrier's fusion point | 851 | **426** |
+| calmodulin / CaMKII | 539 / **1197** (off frame) | **806 / 930** |
+| the carriers in store | 699 / **1062** (off frame) | **588 / 845** |
+| the density (1 AMPA) | 489 / 571 | 827 / 909 |
+
+⚠ **AND FIVE THINGS SHARE ONE STRETCH OF WALL** — where a carrier fuses, where
+two climbers are caught, where two already stand. Four private copies of one
+line is four chances for a protein to stand on another protein, so
+`wallQueueX` lays it out once and the drawing, the climb and the paver's holes
+all ask it: **426 → 486 → 547 → 607 → 667**, a procession toward the density.
+
+**Two dead things found and dealt with.** `flatWallY` was a hatch for "the spine
+view declares its wall flat", written, documented, and **never set by
+anything** — and not true either: measured, the bouton's floor falls 36px across
+the active zone, 113px of screen here. Flattening it would also have detached
+the wall's molecules from the bouton silhouette, which is one traced drawing.
+Removed, with the reasoning in `wallAt`. And a **flaky test** appeared the moment
+the climb walked a real path: the spine's render suite went from under a second
+to 6.3 s against a 5 s timeout, because the route was being rebuilt twice per
+receptor per frame plus once for the camera. Both are memoised on their numbers
+(every caller builds its own geometry object, so a WeakMap would never hit); six
+consecutive full runs are stable.
+
+**Declared, for the user to judge:** the terminal is a round bulb, so past the
+active zone it curves away — and at this camera it now leaves the top of the
+frame **241px from the left**. The face under it is a shallow cup for the same
+reason. Both are the anatomy at 3.1×, not a fault, but they are the kind of thing
+only a person can say reads right.
+
+**Broken eight ways, all caught:** the window opened at 0; the window ran to 60;
+the run advanced at the round trip's length; the calcium cast restored; the
+straight diagonal restored inside `neckSeats` (⚠ and the first version of the
+membrane guard did NOT catch this — it measured `neckClimbPath` directly, a
+route the seats are free to stop calling, which is 21c-56's rule all over again;
+it asks `neckSeats` now); the camera re-centred; NMDA drawn in sodium's ink; the
+surface pool back to its mirror pair.
+
+1454 tests green, `tsc` silent.
+
+### Step 21c-58 — the spine's two membranes become one, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "adjust bilayer orientation on the left side of the spine, by
+connecting the membrane 2 parts."
+
+**And there really were two parts, paved by two different rules.** The flanks
+were walked along the outline's own cubics, by arc length, with the tangent they
+actually have. The face was laid by a loop over X — a molecule every step of
+*x*, every one of them standing straight down.
+
+Across the active zone the two agree, because the face is nearly flat there.
+At the shoulder they do not: the face falls away on a quarter-ellipse at about
+45°, and the old rule stood every molecule in it vertical.
+
+| | before | after |
+| --- | --- | --- |
+| flank's last molecule | (134.4, 502.7) | (134.4, 502.7) |
+| face's first molecule | **(139.5, 468.0)** | **(134.4, 502.1)** |
+| the gap between them | **35px — 108px on screen** | **0.6px** |
+| turn in the bilayer at the join | **~90°** | **4°** |
+| worst hole anywhere on the spine | 35px | **2.8px**, and it is at the trunk's cut-off below the frame |
+
+Three separate faults, each fixed at the rule rather than at the symptom: a step
+in x is not a step along a curve (it now marches by `step / √(1 + slope²)`); a
+tangent of (1, 0) is a claim, not a default; and "which way is in" cannot be
+decided from the sign of X — `spineInward` points it at the head's own interior,
+the same test `neckClimbPath` uses to face a protein out of the cell, so the
+face, the shoulders, the flanks and the neck now share one rule.
+
+⚠ **AND MY FIRST GUARD COULD NOT SEE THE HOLE.** A nearest-neighbour sweep is
+green across a gap between two dense runs — every molecule at the end of a
+tightly packed row still has a neighbour behind it — and the version that looked
+"around the join" found its two nearest molecules both on the flank. It asks
+each PART for its own nearest molecule now and measures the gap between those,
+which is what caught break V11.
+
+**Broken four ways, all caught:** the face's molecules vertical again; the face
+stepped in x again; the face stopping 2% short of the head's edge (⚠ the fault
+the first guard missed); the inward normal decided by the sign of x again.
+
+1457 tests green, `tsc` silent.
+
+### Step 21c-59 — the spine gets a timeline, and its synapse moves to the middle, 2026-09-13 · awaiting manual test
+
+**A1 — "add timeline, shift the whole view down, so the timeline does not cover
+vesicle release."**
+
+The view kept 104px clear at the top "for the timeline" — and there was no
+timeline. Worse, 104 was room for the MEMBRANE, and a docked vesicle stands
+above the wall rather than on it: measured at that framing the middle bubble's
+top sat at **y = −69**, off the top of the picture, with everything of it that
+was on screen behind where the bar would go.
+
+So `SPINE_TOP` is solved rather than chosen, from the bubbles the run actually
+opens — **104 → 242**, with all three fusing vesicles' tops now at **103, 112
+and 72** against a 62px bar. The bar itself is the round trip's own
+`TransportBar`, on THIS view's clock: its window is 45% of the run's, so a dot
+placed by `screenOfModel` would sit at less than half the bar it belongs to.
+Events outside the window are dropped, not clamped.
+
+⚠ **The magnification is what paid**: 3.10× → 2.33×. `SPINE_SHARE` is untouched
+— the head still fills the share of the frame it was asked to; there is simply
+less frame. The zoom guard was NOT re-tuned to match (that measures nothing); it
+asks a legibility question now — a receptor is **50px wide** on screen.
+
+**A2 — "remove Ca binding purple circles, together with sparkle on binding."**
+The synaptotagmin knobs — the calcium SENSOR — and the white snap that fires
+when calcium seats on them. Both gone at this framing, which draws neither the
+doors that admit the calcium nor the calcium itself. The transmitter's own
+binding flash stays: that is the event this view is about. Measured: the snaps
+run 2.45→6.12 ms, so most of them were firing inside the window.
+
+**A3 — "Move them to the left along the membrane, so that they appear centered."**
+⚠ **THE CAMERA COULD NOT DO IT.** The head is wider than the stage, so a frame
+holding the left flank cannot also centre the zone's middle — 337px apart, and
+no offset gives both; the zoom that would needs k ≤ 1.83 against 2.33. So the
+DENSITY moved instead, clamped to the active zone, because a density opposite no
+release site is not a synapse. It sits at model **329.6** in a zone spanning
+179.9–593.8, which lands the pair at **499 / 561** — dead centre of a 1060px
+stage. The anchor is handed DOWN from the camera and everything that belongs to
+the synapse takes it: the seats, the queue, the cascade, the carriers.
+
+**"Remove 2 additional."** The two receptors that stood permanently in the wall
+beside the density are gone. With the climbers added they were a second telling
+of one fact, and four proteins on the face before anything had happened
+contradicted the view's own first sentence. The queue is now three slots —
+**fusion 302 → catches 347, 393** — all left of the density at 438+.
+
+**A4/A5 — the carriers deeper and further apart.** Depth 0.62 → **1.18** of the
+head's half-height, spread 0.44 → **0.92**, and staggered in depth as well as
+along, so they read as two compartments in a cell rather than a diagram of two.
+⚠ **AND ONE OF THEM ENDED UP 5px THROUGH THE WALL.** Its depth was right and its
+spread was right; nothing was asking whether the head was still that wide down
+there. `headSpanAt` reads the outline's own span and the seats are clamped
+inside it.
+
+⚠ **AND A CACHE I NEARLY CORRUPTED.** The first version of the calcium-snap flag
+wrote `te.fill(null)` — and `calciumTimes` is memoised per run, so one frame at
+the spine would have emptied the cache every other view shares and taken the
+round trip's calcium out with it, permanently. It skips the loop instead.
+
+**Broken ten ways, all caught:** `SPINE_TOP` back to 104; the room bought for
+only the middle vesicle; the density back at the release site; the sensors
+redrawn; the snap re-fired (⚠ **missed by the first guard**, which asked
+`bindPulses` rather than the drawing — 21c-56's rule again; it measures the ink
+now); the standing pool restored; the carriers back up under the density; the
+carriers back together; the timeline on the round trip's clock; the interior
+clamp removed.
+
+1462 tests green, `tsc` silent.
+
+### Step 21c-60 — the transmitter binds the receptors that are there, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "NT bind the wrong place. Expected: bind receptors."
+
+**Eleven functions, each correct, all asking the wrong question.** Who catches
+which transmitter ball, when a channel may show itself bound, where sodium
+crosses, when the departing flash launches, when the timeline's "bound" dot
+falls — every one of them worked the row of receptors out from
+`receptorSites(g)`, which returns the ROUND TRIP's five seats at the round trip's
+spacing about the round trip's centre. This view draws **two**, tightly
+clustered, at a centre of its own.
+
+| | before | after |
+| --- | --- | --- |
+| receptors drawn, in screen px | 499, 561 | 499, 561 |
+| where the cast seated them | **289, 450, 674, 888, 1085** | the drawn two |
+| worst seated ball → nearest receptor | **535px** | **15px** |
+| columns the seating used | **12** | 4 |
+
+One of those five columns was off the 1060px stage entirely, and four of the
+five columns of sodium poured through bare membrane.
+
+**The row is now data and it travels with the scene** — `SynapseGeometry.seats`,
+asked through `castSeats`, set by the drawing before anything is asked of it.
+One list, one answer, instead of eleven copies of a default only one view is
+entitled to. The spine's timeline is dated off the same row, because a run
+reaches "the first one is bound" at a different millisecond with two receptors
+than with five.
+
+**And it fixed one on the way.** A cast list is a set of INDICES, so "receptor i"
+now means the same receptor to the drawing and to the clock: the NMDA's seat
+window is simply the last index. It used to take `socket` from `nmdaOpen` — a
+function of the TAP — and so showed itself bound seconds before any transmitter
+was drawn reaching it, which is exactly the fault the gold receptors were fixed
+for on 2026-09-01. How far it OPENS is still the spine's model: NMDA is slow,
+and that is the lesson.
+
+**Broken four ways, all caught:** the row not handed to the cast; `castSeats`
+ignoring it; the NMDA's socket back on the tap; and the cast-level guard alone
+proved insufficient — it passes while the DRAWING never hands its row over, so
+the ink is measured too, by difference against the same run at the same moment
+without the flag. ⚠ The mirror claim ("more ink at the drawn seats") was tried
+and dropped: one or two seated balls are swamped by the wandering crowd, and an
+unmeasurable assertion is worse than none.
+
+1466 tests green, `tsc` silent.
+
+### Step 21c-61 — what gets past the stone, 2026-09-13 · awaiting manual test
+
+**A1 — "remove NT pumps from vesicles."** VGLUT is the door the transmitter goes
+IN by, and the filling is the last leg of a loop this framing's clock does not
+play: the window shuts at 30 ms and the vesicles refill from 53. A pump with
+nothing to pump is the same fault as the calcium sensor with nothing to sense.
+
+**A2 — "re-position 'back to the synapse' button away from the timeline."** It
+was at `top-3`, where the timeline now runs the full width. The room under the
+bar cannot have it either — that is the room `SPINE_TOP` was re-solved to keep
+clear for the vesicles. It sits at the foot, in the head's lower corner, which
+is the one stretch of this picture with nothing drawn in it.
+
+**A3 — the next step of the animation: the ions that get past the stone.**
+
+The user's own flow — "many Na+ ions enter postsynaptic neuron, **1-2 ions enter
+NMDA, Mg block is blocking** … **Na+, Ca2+ ions enter NMDA** … CA2+ activates
+CAM" — and until now the pink channel passed **nothing at all**. The cascade lit
+off a calcium number nobody could see arriving.
+
+**The ions are the flow, quantised.** `nmdaFlow` is the whole of what gets past
+the block: the calcium is its integral over a thousand, the ions are that same
+integral in lumps of `FLOW_PER_ION`. Nothing about the burst threshold was
+re-tuned, because the amount is computed exactly as it was.
+
+| | ions through | of which calcium | potentiates? |
+| --- | ---: | ---: | :---: |
+| one message | **2** | 1 | no |
+| four fast taps | 4 | 2 | no |
+| **eight fast taps** | **4** | **2** | **yes** |
+| eight SLOW taps | 6 | 3 | no |
+
+⚠ And that last row is the lesson, not a bug: tapping slowly gets **more** ions
+in overall and still changes nothing, because what matters is how much arrives
+at once.
+
+**Three separate bugs had to be fixed before an ion could pass honestly:**
+
+- **the crossing must FIT the clear hold.** Derived from the stone's own spell
+  now (`spell × (1 − 2·move) × 0.8` = 67 ms in a 84 ms hold), never typed. At
+  280 ms the stone came back down on top of an ion still in the pore — the exact
+  inconsistency 21c-38 was corrected for.
+- **look ahead before setting off.** The rule is a pure function of time, so the
+  far end of the crossing can simply be asked.
+- **a throat with an ion in it is not blocked.** `stoneSeated`'s spell is
+  `hash(k) < plug` and `plug` drifts, so a spell clear at launch could turn under
+  the ion — measured, up to eleven frames of an ion inside a seated pore.
+
+⚠ **AND THE COMMITMENT MASKED ITS OWN GATE.** Asking the committed value where
+the launch is decided let the tail of one ion's commitment open the door for the
+next — and a break that let ions through **whatever the stone was doing** passed
+every consistency check, because each launch forced the stone out. The gate asks
+the raw rule; the commitment is for the picture only. Cost of the commitment,
+bounded by a guard: **0.7 points of block** given up, against 1.7 without the
+look-ahead.
+
+**⚠ ORDER OF EVENTS IS A MEASUREMENT.** At one calcium in three, the first pink
+ball got through at **3.6 s** while CaMKII had already latched at **2.8** — the
+cascade lighting off a calcium the child never saw arrive, which is what "there
+is no calcium ions binding included" was reporting. At one in two: calcium in at
+**1.3 s**, the climb starting at 1.7, latching at 2.8. Cause on screen, then
+effect. The exaggeration that buys it (calcium really carries about a tenth of
+NMDA's current) is declared in a new 🧂 note.
+
+The pink ones end their journey **at calmodulin**: a calcium that drifted off
+into the cytoplasm would leave the cascade beside it unexplained.
+
+**Broken eleven ways.** Nine caught first time; ⚠ **two were not** — "ions pass
+regardless of the stone" (masked by the commitment, above) and "the pumps come
+back" (no guard existed for A1 at all). Both now caught, along with: no
+look-ahead, no commitment, the crossing typed, calcium back to one-in-three, the
+ions not drawn, no queue at the mouth, and the seat-window sampled a frame
+stale.
+
+1476 tests green, `tsc` silent.
+
+### Step 21c-62 — the SNARE zips, and the carrier merges, 2026-09-13 · awaiting manual test
+
+**A1 — "adjust snare removal animation. Currently teleports."**
+
+And it did, in the one frame this whole view is about. A SNARE before fusion is a
+rope STANDING between the bubble and the wall; after fusion it is a cis-complex
+lying FLAT in the wall, a vesicle-radius away. Both drawings were right, both
+carefully reasoned, and the change between them took one frame: measured, the
+rope's anchor jumped **more than two membrane-thicknesses** with nothing in
+between.
+
+It zips now — the ends travel, eased — and **over the window in which the bubble
+flattens**, because that is exactly when a trans-complex becomes a cis-complex.
+Measured after: no step of the zip moves the rope more than a fifth of the jump.
+
+**A2 — the next beat: the carrier MERGES instead of vanishing.**
+
+The user's own visualisation: *"vesicle-like circle with AMPA on it, floats
+towards membrane and merges with it, leaving receptor put."* The float and the
+slide were both built; the merge between them was not — the carrier reached the
+wall and disappeared, with a receptor appearing in its place.
+
+The journey now has three parts, not two: **float → merge → slide**. Across the
+merge the ring flattens away into the wall and the catcher travels from its
+place on the ring to its place in the membrane.
+
+⚠ **AND THIS IS WHERE THE TOPOLOGY LESSON LIVES.** Riding in the bubble, a
+catcher's binding mouth faces the LUMEN — it has to, because a bubble is a piece
+of wall folded in; that is the 🔄 note, and the user queried it on 2026-09-13 as
+though it were a mistake. As the bubble opens into the wall, that same mouth
+ends up facing OUT of the cell, and **nothing flips**: the membrane unfolds and
+takes the protein with it. One second of animation, and it used to happen off
+screen. `carrierTurn` is the one place that decides it.
+
+**Broken seven ways.** Six caught first time; ⚠ **one was not** — the catcher
+walking into the wall still upside-down. It moved no marks at all, so the ink
+test measuring that same place was blind to it; direction is a DECISION and is
+asked as one now. Also caught: the SNARE switched instead of zipped, the zip not
+interpolated, the zip not tied to the flattening, the merge phase removed, the
+ring not shrinking, and the drawing bypassing the decision.
+
+1480 tests green, `tsc` silent.
+
+### Step 21c-63 — controls, ropes, the ligand and the red, 2026-09-13 · awaiting manual test
+
+**A1 — "play button instead of send message. place it and style it as seen on
+'the synapse' view."** The spine's ⚡ was a small plate at the foot. It is now
+the round trip's own plate under the bar's left end, swapping ⚡ for ▶/⏸ once the
+run is going — same place, same size, same classes, guarded by counting that
+both views style it identically. A press that lands mid-run still fires another
+release, because that is how a burst is made. The row is counted into
+`SPINE_CHROME_PX`, so the solve pays for it: **`SPINE_TOP` 242 → 275**, k 2.33 →
+2.15, a receptor still **46px** wide.
+
+**A2 — "remove snare."** Gone from this framing, all four draw sites. The SNARE
+is the machine that pulls the two membranes together and this window opens after
+it has done its work — its calcium sensor went for the same reason in 21c-59.
+The zip built in 21c-62 stays, in the round trip, where that story is told.
+
+**A3 — "glutamate is gone from NMDA before it gets activated, which is wrong.
+Why did you make this decision?"**
+
+⚠ **IT WAS NOT A DECISION.** Every seat's ligand was released on the schedule
+`receptorOpenWindow` gives, which is AMPA's — bound for about a millisecond.
+NMDA's glutamate stays bound for hundreds, and that slow unbinding is the whole
+reason NMDA is the slow one. So the receptor was drawn opening on its own clock
+while its ligand left on somebody else's.
+
+This is the **third** time in two days that borrowing a picture silently borrowed
+a schedule with it (21c-59's clock, 21c-60's cast list). Same cure: the
+difference goes in the DATA the scene carries — `slowSeat` on the geometry, set
+in one place — so the cast, the windows and the picture cannot disagree.
+
+**A4/A5 — "Na entering the cell should depolarize it, give red tint."**
+
+Measured, the aura was true and unreadable: absolute polarity runs from **−0.77
+at rest to −0.30** at a burst through three receptors — blue to slightly-less-
+blue — because a spine head's voltage never goes positive. It reads the
+**departure from rest** now, stretched over the range this synapse can actually
+reach (`SPINE_TINT_FULL = 0.68`, the measured peak of a burst through three):
+
+| | peak tint |
+| --- | ---: |
+| at rest | −0.77 (deep blue) |
+| one message, one catcher | −0.32 |
+| **one message, three catchers** | **+0.23** |
+| burst, one catcher | +0.30 |
+| burst, three catchers | +0.99 (red) |
+
+⚠ And the row that matters is the third: **the same single message is visibly
+redder with three catchers than with one**, which is what "the signal looks
+stronger" has to mean. The millivolts and the never-goes-positive note stay in
+the info block: the exaggeration is in the ink, not in the claim.
+
+**Broken seven ways, all caught:** the play plate removed; the action row not
+counted into the chrome; the rope back on the spine; the NMDA losing its ligand;
+no seat marked slow; the aura back on absolute polarity; and the drawing
+bypassing the tint (which does not even compile).
+
+⚠ **And one guard had to be rewritten before it meant anything**: the SNARE-ink
+test matched `#7dd3fc`, which is the app's SKY — the spine's own cold aura wears
+it, and the guard saw two "ropes" in a frame with no rope in it. A colour claim
+must be made on ink only the thing being measured lays down.
+
+1484 tests green, `tsc` silent.
+
+### Step 21c-64 — the pink receptor is ACTIVATED, 2026-09-13 · awaiting manual test
+
+**Asked** (user): display NMDA activation — red aura for the depolarisation, the
+magnesium lifting, calcium and sodium flowing in — "displayed or pushed back if
+there is a scientific misconception".
+
+**⚠ ONE CORRECTION, AND IT IS THE HINGE OF THE WHOLE EXHIBIT.** "The magnesium
+block lifts up, **opens the channel**" is right about the lift and wrong about
+the opening. Woodhull at this synapse, measured:
+
+| | block |
+| --- | ---: |
+| at rest (−70 mV) | **96.4%** |
+| one message, one catcher (−58 mV) | 93.9% |
+| one message, three catchers (−43 mV) | 87.5% |
+| **burst through three (−20.6 mV)** | **57.3%** |
+| three times that burst (−16.4 mV) | 54.4% |
+
+The stone never leaves. It spends **less of its time** in the throat — about
+eleven spells in twenty instead of nineteen — and what gets through is a trickle
+that got twelve times bigger. Tripling the messages past the burst moves it by
+under four points, because the voltage saturates at the receptors' own reversal:
+one synapse cannot excite itself past what its catchers are aiming at. And that
+is enough — the calcium threshold is crossed by a trickle over time, not by an
+open pore. The 📉 note now carries those numbers in words a child can use.
+
+**What was actually missing: a mark for the COINCIDENCE.** Every piece of the
+chain was drawn, but a ligand-bound NMDA at rest looked exactly like a
+conducting one — the gate opens on glutamate, the stone plugs the throat, and
+nothing said which state the picture was in. `nmdaLive` names it and the
+receptor now **glows while current is going through it**, in the grammar the
+calcium doors already use, under the protein so the protein stays the object.
+
+Guarded as a coincidence, each half on its own:
+
+- resting spine: **0** — nothing;
+- one message at rest (gate open, throat plugged): **under 0.12**;
+- a warm spine with no glutamate: **exactly 0**;
+- a burst through three catchers: **more than four times** the weak case.
+
+A new ✨ note says the same thing in the info block, because "why THIS receptor
+notices when messages arrive together" is the lesson the whole view is built
+around.
+
+**Broken five ways, all caught:** the glow reading the ligand alone; the glow
+reading the block alone; no glow at all; the glow not growing with the current;
+and the stone clearing the throat (which took nine guards down with it, including
+the burst threshold's — the block IS the exhibit).
+
+⚠ And one guard had to be rewritten: it counted glows and got 1 either way,
+because a barely conducting receptor has one too. It measures the radius now.
+
+1489 tests green, `tsc` silent.
+
+### Step 21c-65 — one block in two views, and a head that actually reddens, 2026-09-13 · awaiting manual test
+
+**A1 — "'the block lifts, it never opens' … align across visualisations."**
+
+They were never drawing it differently. Both views call `mgBlock` and
+`stoneSeated`, and at any given voltage they agree to the pixel. **What differs
+is how far each can GO:**
+
+| | reaches | block there | stone out |
+| --- | ---: | ---: | ---: |
+| the drawer's dial | **+20 mV** | 9% | nine times in ten |
+| a spine, on its own catchers | **−16.4 mV** | 54% | under half the time |
+
+So the alignment is not a change to either picture — it is saying where one ends
+and the other begins, **on the control the child is touching**: a dashed mark on
+the dial at the spine's ceiling, with a note, and a line in each view pointing at
+the other. Past the mark the child is doing what other synapses or a
+back-propagating spike would have to do, which is the fact the exhibit is built
+on. The marked number is measured from the spine's own model, guarded by a long
+burst that has to land on it.
+
+**A2 — "'depolarized cell bg' was supposed to get red, which does not happen.
+Why?"** Two faults, each enough on its own:
+
+- **the wash's opacity was `|tint|`** — and a cell walking from negative to less
+  negative passes through neutral, so measured it faded to **alpha 0.000 on
+  every run**, at exactly the moment the view is about;
+- **the ramp runs blue → SLATE → red**, and this head is never neutral, so its
+  entire working range came out between rgb(96,123,149) and rgb(170,115,127) —
+  slate to a mauve barely distinguishable from it.
+
+Same two inks, one stop skipped (`chargeSpan`), and a floor under the opacity:
+
+| | colour | alpha |
+| --- | --- | ---: |
+| at rest | **rgb(56,189,248)** sky | 0.21 |
+| one message, one catcher | rgb(129,160,197) | 0.29 |
+| one message, **three** catchers | rgb(184,138,158) | 0.35 |
+| a burst, three catchers | **rgb(247,113,113)** red | 0.42 |
+
+⚠ And the reading is now tested **at a hand's tapping rate** (400 ms), not at the
+model's fastest — a claim measured only at 220 ms is a claim about a speed
+nobody can produce with a button.
+
+**Broken five ways.** Four caught first time; ⚠ **one was not**: starting the
+colour walk at the neutral slate instead of the cold ink. The guard compared
+each step to `chargeSpan(0)` and `chargeSpan(1)` — its own endpoints — which is
+circular, and a walk from the wrong place is perfectly linear between its own
+ends. It asks the palette now, and also that no step of the walk ever wears the
+colour of no charge.
+
+1492 tests green, `tsc` silent.
+
+### Step 21c-66 — the red was landing in the cleft, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "bg of the dendritic does not get red at depolarization" —
+after 21c-65 had already fixed the colour and the opacity.
+
+**And the ink was there.** Measured on the recording canvas:
+`rgba(247, 113, 113, 0.42)` laid on every hot frame. Two rounds on WHICH colour
+and HOW STRONG, both right, and still no red — because nobody had asked WHERE.
+
+The wash is a vertical gradient from `auraTop` to the foot of the whole picture.
+At this framing:
+
+| | y |
+| --- | ---: |
+| the gradient's strongest stop (0.06) | **409** |
+| the head's face | **465** |
+| the head's bottom | 613 |
+
+The peak fell **in the cleft**, which the clip throws away. What reached the head
+was the tail — **0.30 at the top, 0.09 at the bottom** — fading out precisely
+across the thing it was drawn for.
+
+**A spine head is isopotential at this scale**, so a gradient was the wrong claim
+anyway: the whole of it is at one voltage and gets one colour. The soft edge is
+the clip's job and the rim's own fade (21c-54) already does it. Measured after,
+one flat stop across the whole head:
+
+| | fill |
+| --- | --- |
+| at rest | `rgba(56, 189, 248, 0.25)` |
+| one message, one catcher | `rgba(129, 160, 197, 0.35)` |
+| one message, **three** catchers | `rgba(184, 138, 158, 0.42)` |
+| a burst, three catchers | **`rgba(247, 113, 113, 0.50)`** |
+
+**Broken three ways, all caught:** the gradient restored; the wash painted
+faintly; the head taking no colour from the charge. The guard counts the STOPS —
+a flat fill lays one, a gradient lays several and the ones inside the shape are
+the weak ones — which catches the geometry, the strength and the fade together.
+
+1494 tests green, `tsc` silent.
+
+### Step 21c-67 — the answer was playing ten seconds before its cause, 2026-09-13 · awaiting manual test
+
+**Asked** (user): "bg is blue after Na ions pnentrated" — the third report on
+this aura, after two rounds on the colour and one on where it was painted.
+
+**And this one is the real cause.** The receiving cell's model and the picture
+were running on clocks nobody had measured against each other:
+
+| | |
+| --- | --- |
+| the head's colour peaks | **1.0 s** after the tap |
+| …and is back to zero by | **8 s** |
+| the drawn sodium gets inside at | **10.9 s** |
+
+The effect played, and then its cause was drawn — three seconds after the answer
+had finished. Every guard on the model was right, every guard on the ink was
+right, and nobody had asked *when*.
+
+This is the round trip's own 2026-09-02 ruling arriving at the other view ("the
+sodium didn't even penetrate the cell, but the yellow aura is already there"),
+and the cure is the same: **the reading is paced by the DRAWN thing**. One line —
+the pulse begins when the ions land, and `waveform` returns zero until its
+start. The lag is measured off the cast, never typed, so it follows the clock
+and the legs.
+
+Measured after: one message peaks at **11.0 s** with sodium on the page, and a
+burst tapped at a hand's rate peaks at **10.9 s**, at full red, with sodium on
+the page.
+
+⚠ **AND A LAG IS A REMAINDER, NOT A CONSTANT.** A tap landing mid-run is
+however much of the run is LEFT before the moment arrives. Scheduling every tap
+a full lag ahead pushes each one further into the future than the last, and a
+burst never overlaps.
+
+⚠ **AND THE PLAY BUTTON HAD MADE BURSTS IMPOSSIBLE.** 21c-63 borrowed the round
+trip's plate, which SWAPS ⚡ for ▶/⏸ once a run is going — right for a view with
+one spike per run, wrong for one whose whole interaction is tapping again and
+again. With the bolt gone, every press during a run PAUSED it. The bolt stays
+now, with the transport beside it: share the styling, not the state machine.
+
+**Broken four ways, all caught:** the pulse back at the tap; the stage handing
+over no lag; the lag not reduced by how far the run has got; the bolt hidden
+while the run plays.
+
+1496 tests green, `tsc` silent.
+
+### Step 21c-68 — the scrubber's clock, and the block put back before its cause, 2026-09-13 · awaiting manual test
+
+**A1 — "when I'm dragging the timeline, the background change does not occur."**
+
+The drawing is a pure function of the run's position and scrubs perfectly. The
+receiving cell's model is an integrator stepped by WALL TIME — so dragging the
+bar moved the picture while the voltage, the magnesium, the cascade and the ions
+carried on at their own pace. A view with a transport has one clock; the model
+reads it now. ⚠ Never backwards: a drawing rewinds because it is a function, a
+model cannot un-tap a message or un-admit an ion, so the step is clamped at zero
+and the model holds while the picture scrubs back.
+
+**A2 — "Depolarization is a cause of an NMDA activation and not its result.
+Pushback if I'm wrong and if I'm right, fix."**
+
+⚠ **THE USER IS RIGHT, AND THE MODEL ALWAYS AGREED.** `spineMv` is driven by
+AMPA alone and `plug` follows it. Two pieces of INK said otherwise:
+
+- **the stone's depth was multiplied by how open the GATE was**, so at rest —
+  with no glutamate anywhere near it — the magnesium was drawn hanging ABOVE the
+  channel. The child met the resting state as "the pore is clear", watched the
+  stone drop IN as the gate opened, and only then saw it lift. The story exactly
+  backwards. A 96% block is a plugged pore; that is what rest looks like.
+- **and the block's flicker was drawn on a shut channel.** `stoneSeated` spends
+  the block as a fraction of TIME, so even a 96% block has a spell in every
+  twenty-eight where the stone is up — measured, one landed at **3.6 s**, seven
+  seconds before anything had happened.
+
+Which way a block flickers on a channel with no current through it is
+**unobservable**; drawing it asserts something the physics does not say, in the
+one place the child is reading for cause and effect. It is held still where it
+cannot be seen, and the fraction is untouched everywhere it can.
+
+**Measured after — a burst through three catchers:**
+
+| ms | |
+| ---: | --- |
+| 10875 | AMPA's sodium is inside, **the head warms**, NMDA's gate opens |
+| 10900 | **the block eases** and NMDA begins to conduct |
+| 11075 | **the stone lifts** out of the throat |
+| 11125 | the first ion crosses NMDA |
+| 11250 | the first calcium |
+
+…and with one weak message the stone **never lifts** and **no ion ever crosses**,
+which is the other half of the claim: if a single message lifted it, the burst
+would have nothing to teach.
+
+**Broken four ways.** Three caught first time; ⚠ **one was not** — restoring the
+gate multiplication on the stone's drawn depth. Every guard was asking the model,
+which said 1.0 — fully seated — throughout, while the drawing painted it at the
+top of its travel. There is an ink guard on the drawn position now.
+
+1502 tests green, `tsc` silent.
+
+### Step 21c-69 — the moment the ion crosses, and one control, 2026-09-13 · awaiting manual test
+
+**A1 — "redness still is happening too late. Expected start: 15.1 ms."**
+
+Two reasons, and both were in how the moment was being FOUND:
+
+- **my own probe's sampling.** A 240-step sweep steps 63 ms of screen at a time,
+  a quarter of a model millisecond where this falls, so it returned the first
+  SAMPLE after the crossing rather than the crossing — **15.35 against a true
+  14.6**. The user's eye was reading the moment more precisely than the
+  measurement was. It bisects now.
+- **and the cast's own label.** A sodium dot is tagged `'spine'` only once it has
+  finished SETTLING: **15.3 model ms against a crossing at 14.4**. The tag is
+  about the ball's phase in its journey; the child's question is when it got IN,
+  and getting in is crossing the wall. The lag asks the geometry now.
+
+Measured after, a burst through three catchers:
+
+| model ms | |
+| ---: | --- |
+| **14.56** | **the head warms** |
+| 14.59 | sodium is through the wall |
+| 14.70 | NMDA begins to conduct |
+| 15.54 | the stone lifts, and the first ion crosses it |
+
+The red now starts at **14.58 ms** — half a millisecond EARLIER than asked,
+because that is when the ion is genuinely inside.
+
+⚠ **And the timeline's own dot was pointing at nothing.** Every event on the bar
+is a moment in the MODEL, and for most of them the drawing is there too. Sodium
+is not: the model has it crossing at 12.9 ms, the cast at 14.6. That dot is the
+one the reading is checked against, so it is dated off the ink.
+
+**A2 — "no need of two action buttons. Remove send a message. Keep play."**
+
+Third round on this control, and the shape settles once the INTERACTION is
+named. Tapping again and again is the interaction:
+
+- 21c-63's single ▶/⏸ meant every press during a run **paused** it — no burst;
+- 21c-67's two buttons delivered the burst and were redundant furniture;
+- one button that always sends a message, and starts the run when nothing is
+  running, is the whole interaction and nothing else.
+
+⚠ **There is no pause on it**: a pause costs the burst, and the burst is the
+exhibit. Taking hold of the scrubber stops the run where you put it.
+
+**Broken four ways.** Three caught first time; ⚠ **one was not** — putting the
+model's own moment back into the sodium dot. The guard was a `toContain` on the
+branch, which the break left intact. It asks the arithmetic now, and that the
+two datings genuinely differ.
+
+1501 tests green, `tsc` silent.
+
+## 21c-70 — the head reddens when the sodium is in (awaiting manual test)
+
+**A1 — "postsynaptic spine is supposed to get red background inside the spine as
+a symbol of depolarization. This should happen the moment sodium ions enter the
+cell via AMPA channel. But this does not happen, fix"**
+
+The tint fired at exactly the right moment — 21c-69's bisected lag held. Three
+other things were wrong, and none of them was where the report pointed. All three
+were found by measuring, and 1501 guards were green over every one of them.
+
+### The ink never reached red, for any input at all
+
+`chargeSpan` is a straight RGB lerp from sky `56,189,248` to red `248,113,113`.
+Those two are near-complementary, so the line between them passes close to the
+grey axis — skipping the explicit `CHARGE_NEUTRAL` stop (21c-65) did not help,
+because the neutral is in the *geometry of the two inks*. Measured: lavender-grey
+at 0.5, mauve at 0.6, not warm until ~0.8.
+
+And nothing got near the hot end. Peak `spineCharge` by taps: 1 → **0.381**
+(`rgb(129, 160, 197)`, a pale BLUE); 8 → 0.743 (`rgb(199, 133, 148)`, a dusty
+mauve). One message painted the head *bluer in red than the cytoplasm under it.*
+
+⚠ **The palette forbids the obvious cure.** `particleStyle` reserves its hues by
+meaning — gold, violet, green, pink are the four signalling ions, amber is force,
+teal the transmitter, orange glutamine — leaving red and sky for charge sign.
+Bowing the ramp through violet wears potassium's ink; through pink, calcium's.
+So the ink is fixed and only the **placement** of the reading can move.
+
+### The spine's clock had never been put beside the picture's
+
+This model is stepped by the run's position, so its unit IS the screen
+millisecond. `TIME_FACTOR` was 70; the picture at the sodium's crossing plays at
+**275 screen-ms per real-ms**, measured off `spineClock`. The cell answered 3.9×
+faster than its cause arrived: warm at 10.67 s, gone by 11.94 — **1.3 s of a
+15.2 s run.**
+
+⚠ **And 275 could not be paid.** It puts NMDA's decay at 16 500 ms, *longer than
+the 15 180 ms run*, so every tap overlaps every other: measured, seven taps
+latched at every spacing from 220 ms to 1.5 s alike — contradicting the view's
+own words, *"It is not how many messages — it is how close together they are."*
+Walked, not chosen: 70 → 1.26 s/never · **140 → 2.54 s/never (taken)** · 200 →
+3.62 s/9 taps · 275 → 4.46 s/7 taps.
+
+### The chain, re-derived
+
+- `CA_CLEAR_MS` → a real time × the factor. ⚠ Scaling it **inverted** the tempo
+  reading (seven taps fast, six spread out). Held near its screen value it keeps
+  the reading right way round *and* moves toward the literature — 6.5 real ms
+  against a measured spine tau of ~12 ms cold, a few ms warm.
+- `CA_HALF` 0.14 → **0.1123**, ⚠ solved by **bisecting the near miss** (six must
+  fail, seven must fire), bracket 0.1057…0.1193.
+- `CAMK_MS`, `FLOW_PER_ION` → real times × the factor. `SPINE_BLOCK_MS` → a
+  fraction of NMDA's own open time. `DELIVER_MS` ⚠ deliberately **not** scaled —
+  it is watchability, downstream of the latch, and moves no threshold.
+
+⚠ **A wrist does not scale, so one claim really moved.** `TAP_REST_MS` is 210 ms
+of wall clock, so the same hammering is now a higher frequency *in cell time*:
+the ceiling rose −16.4 → **−9.3 mV** and the block at full drive 46% → 38%. That
+is honest, and it is declared — the prose now says "eight times out of twenty",
+interpolated from `mgBlock`, and the guard asks the **contrast with the dial**
+rather than the level.
+
+### One ink cannot carry two readings — proven, then split
+
+One message reading warm and the two 0.2 separation guards **cannot both hold**.
+Reaches: 0.208 / 0.465 / 0.530 / 0.849. From "three beat one on a burst" plus "a
+burst clears 0.9", `f(C) ≤ 0.8`; from "one message clears 0.587" plus "three beat
+one on one message", `f(B) > 0.787`. But B sits *below* C, so the slot is **1.3
+points wide** — no shaping function fits it.
+
+So the two readings split across the channels the wash already has: **hue says
+whether, alpha says how much.** `spineWash` had been `0.5 + 0.5 × spineCharge` —
+one number painted twice, which is the app's own *One number, one picture*. It
+now reads `spineReach`. `spineHeadAlpha` is the single call the drawing asks.
+
+`TINT_SHAPE` is **solved**, not chosen: `ONE_MESSAGE_REACH ** TINT_SHAPE ===
+SPAN_NEUTRAL + TINT_MARGIN`. Re-pick an ink, re-measure one message or change the
+margin and the exponent follows.
+
+### What it reads now
+
+| | ink | from rest |
+| --- | --- | --- |
+| rest | `36,73,100` | — |
+| one message | `75,66,84` | 42.5 |
+| one message, three catchers | `95,69,84` | 60.8 |
+| burst, three catchers | `123,74,85` | 88.8 |
+
+Warm for 1.66 s; visibly changed from rest for **4.50 s**, 30% of the run,
+against 1.26 s before.
+
+### Two guards that were green on a real bug
+
+- *"one message does not warm it at all"* asked for `> 0.2`. It was 0.381 — pale
+  blue. It asks `> SPAN_NEUTRAL` now, the ink's own crossing.
+- *"one weak message moves none of it"* forbade the stone ever lifting. The model
+  says it lifts ~1 spell in 20, and **the info block says so aloud** — "nineteen
+  times out of twenty". The guard was forbidding what the exhibit teaches; it
+  passed only because no clear spell had landed while the gate was open. It asks
+  the share now: 6.1% against a burst's 58.5%.
+
+**Broken six ways**, each watched failing: the old exponent (caught by five), the
+old `TIME_FACTOR`, `spineWash` redrawing the hue, the drawing dropping the alpha,
+the prose typing "eleven", the stale ceiling.
+
+1510 tests green, `tsc` silent.
+
+## 21c-71 — the whole lesson in ONE run (awaiting manual test)
+
+**A1 — "It's not clear for a kid what has to be done, so the kid played once.
+We need to pack everything in one animation."**
+
+Two faults, and the second was the worse one. Nothing told the child to tap —
+and even a child who tapped eight times saw **one drawn release**. The model
+counted the messages; the picture had no notion of a second one arriving later,
+so *"close together"* was never on screen at all. Packing the story into one run
+is what forced that to be fixed.
+
+### The six acts, measured
+
+| act | screen | rate | peak reach |
+| --- | --- | --- | --- |
+| One message | 0.0–15.2 s | ×1 | 0.198 |
+| A few, spread out | 15.2–24.8 s | ×1 | 0.218 |
+| A run of them, close together | 24.8–29.7 s | **×0.43** | 0.594 |
+| Something flips | 29.7–33.4 s | ×0.48 | 0.609 |
+| New catchers arrive | 33.4–37.9 s | ×0.48 | 0.319 |
+| The same message again | 37.9–53.1 s | ×1 | **0.442** |
+
+53.1 s, 13 messages, CaMKII latching at 32.5 s and the receptors arriving at
+37.0 s — both **measured by walking the story**, so the chapters land on their
+own events rather than on guesses.
+
+### The story has LEGS, and it had to
+
+The burst must be **260 model ms apart** or the calcium never stacks — and eight
+releases 260 ms apart is a blur in which no bubble is ever seen to open. One
+number, two directions. A leg separates them: the model keeps its 260 ms gaps
+and each is given **611 ms of screen**. *Slow the leg, never the item.*
+
+### The bug that ate the whole exhibit, and failed silently
+
+At `TAP_REST_MS + 10` the scripted burst **never fired the cascade**. The
+schedule is exact but the firing is quantised to a frame, so a 220 ms gap landed
+alternately at 224 and **208** — under the terminal's own 210 ms refractory — and
+`spineFire` dropped those messages on the floor. It returns nothing, so a refused
+message is indistinguishable from one never sent: three of eight went missing and
+the calcium peaked at 0.151 against a threshold it could not reach. The gap now
+clears the refractory by more than two slow frames, **and a guard counts what the
+model TOOK against what the story SENT.**
+
+### The pacing unlock was offered and does not survive the arithmetic
+
+Scripting frees `TIME_FACTOR` from the wrist, so 275 looked affordable at last.
+It is not: act two must show the head warming **and cooling** between messages, so
+its spacing must exceed the time the head stays warm — and that scales with
+`TIME_FACTOR` exactly as the red's dwell does. At 275 the head is warm 4.5 s and
+act two's three messages would need 16.5 s. Raising the factor buys the dwell and
+spends it again. `TIME_FACTOR` stays at 140; the chain is untouched.
+
+`SPREAD_GAP_MS` was then solved by walking the dips: 2400 → 0.53, 2800 → 0.50,
+**3200 → 0.47**, 5200 → 0.34, against a crossing at 0.587. All dip below it, so
+what decided was cost — at 5200 the act ran 15.6 s, mostly watching nothing.
+
+### Three rules the change ran into, and was corrected by
+
+- **`spineScene.ts` draws NOTHING.** Painting the meter there made that guard
+  fail for a real reason, so the instrument lives in `answerMeter.ts` and the
+  camera calls one function.
+- **The app has ONE reset.** A hand-drawn restart glyph was a sixth; it is the
+  canonical `ResetButton` now.
+- **Ink a guard cannot see is a claim you cannot make.** The meter's bar was a
+  `fillRect`, which lays no vertices — it is a path.
+
+### And the words moved with the picture
+
+Captions saying *"tap eight times fast"* were instructions for a control that no
+longer exists. `BURST_N` moved to `core/spine.ts` — the story, the prose and the
+threshold guard are three claims about one fact — and a guard now reads the info
+block back for the word "tap".
+
+**Broken eight ways**, each watched failing: the old 220 ms gap, no leg stretch,
+the spread act at burst tempo, the meter ignoring the fade, a typed mark, the
+last message played differently from the first, the caption asking for a tap, and
+the count drifting from the story.
+
+1526 tests green, `tsc` silent, `npm run build` clean.
+
+## 21c-72 — four things that teleported, and two glyphs with no job (awaiting manual test)
+
+**A1 — "New Vesicles should not teleport, but arrive from top."**
+**A2 — "Ions should not teleport either. Ideally, ions should have identity."**
+**A3 — "I expected the 2 pink glyphs to do some work… They get color, but it's
+not visually clear what is their role."**
+**A4 — "Newly transported AMPAs are overlapped with membrane and do not get
+active at ion binding."**
+
+All four were measured before anything was changed. A1 and A2 turned out to be
+one fault — the story replaying a single-release drawing — and A4 turned out to
+be one fault seen from two sides.
+
+### What the measurements said
+
+| | before | after |
+| --- | --- | --- |
+| sodium, one frame at a message boundary | **69 px** leap | 1.8 px |
+| receptor row when a catcher lands | **26–31 px** jump | 0.27 px |
+| vesicles un-fusing per boundary | **2 of 3** | none |
+| arrival's slide ends | **11–12 px** from any seat | on the seat |
+
+### A4 — one fault, two symptoms
+
+The slide's destination was a formula of its own,
+`density + side × activeHalf × (0.13 + slot × 0.12)`, which put the receptor at
+x = 320.4 and 295.6 against seats at 307.9, 331.7, 362.4 and 391.8. That is
+"overlapped with membrane" — standing on bare wall between two receptors. And it
+is "does not get active at ion binding" too, because **a transmitter ball is
+drawn at the SEAT**: a receptor eleven pixels away has somebody else's ligand
+floating beside it. *A cast is keyed to a cast list — carry it, do not re-derive
+it.* It asks `spineArrivalSeat` now.
+
+⚠ And the row itself jumped: its width is a function of how many receptors are
+in it, so `ampa` stepping 1 → 2 → 3 teleported the whole density, twice. Both
+drawings were correct, which is exactly why nothing caught it. `spineAmpaShown`
+counts a sliding receptor as the fraction of the way it has come, and is
+continuous across the instant `ampa` ticks over — the delivery about to be
+removed is worth exactly the 1 that `ampa` gains.
+
+⚠ **The decision was already right.** `receptorOpenFrac` reported peak 1.000 for
+all three AMPAs before any change: the model always said they opened. Only the
+ink was in the wrong place — *the right ink in the wrong PLACE is the same as no
+ink.*
+
+### A2 — sodium with names, quantised from its own flow
+
+`sodiumCast` is a pure function of the run's millisecond, which is right for a
+view where the run plays once. Thirteen messages through one drawing meant it
+was asked for a position at 2.6 ms having just been asked for one at 17.9.
+
+Sodium on this framing is now a LIST, **quantised from the AMPA flow** — the same
+rule the calcium already obeys. One message through one catcher sends 3 ions;
+through three it sends 9, so the potentiation payoff is drawn as a COUNT with no
+second number to keep in step. The cast is still asked for the ions that are
+WAITING, whose positions never depended on the phase.
+
+⚠ The first ion is due after a FRACTION of a quantum, not a whole one, or the
+channel stands open with nothing going through it. Measured order: pulse →
+head warms (+0.05 s) → ion through the wall (+0.35 s).
+
+### A1 — the terminal restocks instead of resetting
+
+A message ends with its vesicles fused into the wall; the next needs them
+docked, and the picture supplied that by falling back to rest. Now the picture
+**holds** where the message left it and fresh bubbles come down from the reserve
+pool into the docking sites — drawn with the same `vesicle` and `vesicleLipids`
+a docked one is drawn with, because a bubble on its way and a bubble at the dock
+are one object at two moments.
+
+⚠ **And the restock walks the picture HOME.** A repeat stops at ~18 ms where the
+transmitter is still on the receptors; the window's END at 30 ms is the same
+picture as its start in everything except the docked bubbles — which is what the
+restock is putting back. So the wrap changes nothing on screen.
+
+⚠ Two bugs found in the doing: `RESTOCK_MS` (900) exceeded the burst's own step
+(780), giving **negative play lengths**; it is a share of the gap now. And act
+two's restock **overlapped act one's release**, restocking a terminal that was
+still releasing — each act's first message now starts a restock later.
+
+### A3 — CaMKII sends for them
+
+The carriers set off on the frame CaMKII latched: two things at once, neither
+causing the other on screen. A carrier now waits behind a `SIGNAL_MS` lead while
+a pulse travels from the switch to the store, and brightens as it lands.
+
+⚠ **It is a word, not a rope.** CaMKII does not tow anything — it phosphorylates
+trafficking machinery over seconds to minutes. Drawn as a RING, because every
+travelling ball in this app is an ion and a pink one setting off from here would
+read as calcium going the wrong way.
+
+### Still imperfect, and said plainly
+
+The NMDA's own bound glutamate — 2 balls — is absent for about 135 ms at each
+repeat's wrap before the next message re-seats it. It is the one thing in the
+cleft that outlives a message, and the borrowed cast has no way to carry it
+across. Everything else in the gap is genuinely empty at the wrap (measured:
+gap = 0 balls at 30 ms).
+
+**Broken four ways**, each watched failing: the old formula target, the integer
+row, sodium back on the run's formula, the carriers setting off with no word
+sent, and the restock removed.
+
+1535 tests green, `tsc` silent, `npm run build` clean.
+
+## 21c-73 — the transport puts the CELL back, not just the picture (awaiting manual test)
+
+**A2 — "timeline does not revert all actions, if dragged backwards, fix"**
+
+⚠ **A deliberate reversal of an earlier rule.** The model used to HOLD when
+dragged back, and 21c-68 was right to make it: while the child's finger was the
+input, nothing could un-tap a message, so a model that rewound would have been
+inventing a past that never happened.
+
+21c-71 changed the premise. The story sends the messages now — **the input is a
+SCHEDULE, and a schedule replays exactly.** So the model is put back rather than
+held, and dragging to 10 s shows the synapse as it was at 10 s instead of a
+potentiated one wearing act one's picture.
+
+**A model can be rewound precisely when its inputs are reproducible.** That is
+the rule; the 2026-09-13 "never backwards" was a special case of it.
+
+### And the walk is in fixed steps of the story's own time
+
+Stepping by `frame.timeDiff` made the state depend on how fast the machine was
+drawing: the same moment was a different cell on a slow tab, and scrubbing back
+and forth could not land on where it left. The cursor now advances in whole
+`STORY_STEP_MS` steps, so the position decides the state and nothing else does —
+a drag from the end to the start re-walks under a budget, over a frame or two.
+
+Measured at six positions across the run: dragging back lands on exactly the
+state playing there lands on, every time. At 6 s the synapse is one catcher,
+CaMKII dark, no sodium sent.
+
+**Broken once**, watched failing: the cursor holding instead of rewinding.
+
+1535 tests green, `tsc` silent, `npm run build` clean.
+
+## 21c-74 — the magnesium stops tossing a coin (awaiting manual test)
+
+**A1 — "NMDA open state is easy to miss. Suggest a way to emphasize: that NMDA
+is permeable to both Na & Ca. That it is open after sufficient signal."**
+**A3 — "relations between CaMKII and new AMPA should be clear to a kid."**
+**A4 — "'AMPA & NMDA' drawer needs adjustments. Do not demo probability of Mg
+block, either keep closed or open. Lift or deepen depending on the voltage."**
+
+### ⚠ This reverses 21c-35, at the user's word, in both views
+
+21c-35 ruled that one drawn stone has only its own TIME to spend, so a 47% block
+was a stone in its seat 47% of the time — *"never on how far down it hovers"*.
+True to the physics, and it cost the exhibit the one reading it exists for: **a
+channel whose stone flickers never looks open.** "Easy to miss" was that.
+
+The fraction is spent on DEPTH now. Measured: −90 mV → 0.99 deep, −17 mV → 0.50,
++20 mV → 0.09 clear. Monotone, still, and the same at any two moments of one
+voltage. The simplification is declared in a new honesty note.
+
+**Ruled by the user against two alternatives**: a stone that lifts clear and
+stays clear would claim 0% block where the measurement says 38%, and would cost
+the "one synapse cannot unblock its own NMDA" finding, the ceiling guard and the
+D07 dial mark. The chosen reading keeps all three: seated at rest, lifted clear
+of the mouth in a burst, **never all the way out**.
+
+### Three things had to change with it
+
+- **The pass rule.** `stoneIn(…) < 0.5` was right for a coin over time; a depth
+  gives every ion the same answer, so a threshold made it all-or-nothing —
+  MEASURED at −30 mV, **0% of ions got in against a block leaving 31% flowing**.
+  *When one drawn thing stands for many, probabilities become fractions*: each
+  ion takes a share of its own, so the cast realises the number the stone draws.
+- **The spine's launch gate.** A depth threshold there stopped the exhibit dead:
+  a burst through one catcher only takes the block from 96% to 72%, so a stone
+  that had to be half out let **nothing** through, ever. The block is already in
+  the flow (`nmdaFlow` carries `1 − plug`) — a gate on top was counting it twice.
+- **The order of events.** The lift is now caused by the QUEUE, not by the
+  crossing. Driven the other way the ion spent the whole eased lift inside a
+  half-blocked throat — the 2026-09-11 correction happening again, in slow
+  motion. Measured: 0 frames with an ion in a seated pore.
+
+### Na and Ca, as a pair
+
+The order through the pore was already a perfect `na ca na ca` and nobody could
+see it: one ball at a time, seconds apart, is a stream of singles that happen to
+differ. A quantum buys a PAIR now and the pore passes them one after the other —
+measured gaps `216, 696, 216, 1304, 216, …`, so a pair is tight and the wait
+between pairs is not. **Still one ion in the pore at a time** (21c-61 holds).
+
+### Both conditions get a light
+
+"Holding the chemical" and "conducting" looked identical, so the one state this
+receptor exists to detect had no ink. Two pips on its body — the transmitter's
+teal for the chemical, the charge ink for the warmth — and the throat itself
+lights only when BOTH are true. One function, `nmdaGate`, answers all three.
+
+### CaMKII's errand, end to end
+
+The carrier wears the sender's ink on the way and fades to gold as it lands —
+switch turns pink, a pink-marked bubble sets off, it becomes a gold catcher.
+CaMKII beats once as each word leaves and once as each catcher arrives: **two
+carriers, two departures, two answers.** A count for a count.
+
+**Broken three ways**, each watched failing: the stone back to a coin, a quantum
+buying one ion instead of a pair, and CaMKII's answering beat removed.
+
+1543 tests green, `tsc` silent, `npm run build` clean.
+
+## 21c-75 — the pips come out, the wall gets out of the way, the bubbles arrive full (awaiting manual test)
+
+**A1 — "what are green and pink outlined circles under NMDA receptors?" → "ok,
+remove them. We find a different way."**
+**A2 — "3 new AMPA receptors are covered by a membrane."**
+**A3 — "vesicles should arrive filled, not NT teleport."**
+
+### A1 — the question WAS the answer
+
+The two condition-pips added in 21c-74 were teal for "holding glutamate" and the
+charge ink for "the cell is warm". A reader who knows this codebase could not
+tell what they were, which settles it: **two unlabelled dots are not a reading,
+they are a legend with the legend missing.** The canvas carries names and
+readings on a scale; they were neither.
+
+Removed. What stays is the mark that needs no key because it is ON the thing it
+is about — the throat lights when both conditions hold. A better way to say
+"both at once" is still owed.
+
+### A2 — a receptor gets WIDER when it opens, and the hole did not
+
+MEASURED: a ligand channel's half-width is **8.82 px shut and 10.69 px open** —
+nearly two pixels of overhang each side. The paver punched its hole at
+`ligandHalfWidth(…, 0)`, so the nearest lipids stood at 9.5 and 9.9 and **every
+receptor put on a pair of shoulder-pads the moment it did its job.**
+
+A site now says how much room it needs and the paver honours it; the spine hands
+each seat its *current* openness. After: nearest lipid 10.7–10.9, zero on any
+receptor.
+
+⚠ The first measurement pointed the wrong way — heads at 3.0 and 6.6 px looked
+like the hole failing entirely, and they were the receptor's own glyph arcs at a
+different depth. Asking the paver directly (`membraneLipids`, not the canvas)
+found the real gap: lipids at ±9.5, correct for a shut receptor and wrong for an
+open one. *Measure the claim where the child reads it — but measure the right
+claim.*
+
+### A3 — a bubble is filled at the pool, not at the dock
+
+The restocking vesicles came down empty and their transmitter appeared the
+instant the next message began: cargo teleporting into a container already at the
+dock. They carry it now, drawn with the same `drawCargo` a docked bubble uses.
+
+⚠ **And the hand-over is exact, not approximate.** The cast lays a docked
+vesicle's seven balls with `cargoIn`, and `drawCargo` draws all of `cargoIn` —
+one helper, seven balls, the same places. A bubble on its way and a bubble at the
+dock are one object at two moments, so the count and the positions are one
+answer, not two.
+
+**Broken twice**, each watched failing: the hole back at the shut width, and the
+bubbles coming down empty.
+
+1547 tests green, `tsc` silent, `npm run build` clean.
+
+## 21c-76 — the sodium gets one life each (awaiting manual test)
+
+**A1 — "Give ions identity."**
+**A2 — "Let them go through the channel when the channel opens."**
+**A3 — "New ions should fade-in when no ions are left in the cleft."**
+**A4 — "After they penetrated the postsynaptic cell, they should slowly fade out
+after a while."**
+
+### There were TWO populations and only one of them was alive
+
+21c-72 gave the CROSSING sodium identity and left the waiting ions as
+`sodiumCast` asked at a frozen millisecond — a still that jiggled and never went
+anywhere. So a child could watch a channel open, see ions standing above it, and
+see a **different** ion come through. One population now, one life each:
+
+    arriving → waiting → crossing → inside → gone
+
+The quantum PICKS a waiting ion rather than conjuring one, and the ion goes
+through the receptor it has been waiting above — so the eye follows one object
+instead of losing it and finding another. The round trip keeps the cast, because
+there the run really does play once.
+
+### The pool size was solved against the burst, not chosen
+
+The gap refills only when it is EMPTY, so a pool too small starves the exhibit
+exactly where demand is highest. MEASURED at two per seat:
+
+| | act 1 | spread | **burst** | act 6 |
+| --- | --- | --- | --- | --- |
+| 2 per seat | 3 | 9 | **6** | 10 |
+| **3 per seat** | 3 | 9 | **10** | 11 |
+
+Two per seat sent FEWER ions for eight messages close together than for three
+spread out — the claim this view exists to make, backwards. Three per seat puts
+it the right way round and keeps act six at nearly four times act one.
+
+### And the fade is the slow part
+
+`naAlpha` is the one call, so the drawing cannot invent a second fade: it rises
+over `NA_FADE_IN_MS` as an ion arrives, holds through the whole crossing and the
+drift, and falls only after `NA_DWELL_MS` inside — *slowly*, over a fade-out more
+than twice the fade-in.
+
+### Three guards that were measuring the wrong thing
+
+All three failed on first run, and none of them was the model:
+
+- the ion's position was read as one `0…2` ramp, but `t` restarts each stage —
+  it reported a **17.5 px jump the picture never makes**, because the drawing
+  carries a crossing ion from where it STOOD into the mouth over the first
+  third, and the guard started it at the mouth;
+- "it must be SAMPLED waiting before it crosses" — the two stages turn over
+  inside one step, so an ion whose quantum is due the instant it finishes fading
+  in is never caught waiting, and was still drawn in the gap for the whole fade;
+- "the gap was empty before the row arrived" was asked of the frame BEFORE, and
+  the last ion can set off in the very step that refills.
+
+*A guard that mirrors the drawing has to mirror all of it.*
+
+**Broken three ways**, each watched failing: an ion conjured at the mouth, the
+gap refilling one at a time, and the dwell removed.
+
+1550 tests green, `tsc` silent, `npm run build` clean.

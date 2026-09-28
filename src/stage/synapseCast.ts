@@ -20,7 +20,7 @@ import {
   cargoIn,
   faceAt,
   fusedShape,
-  receptorSites,
+  castSeats,
   snareMini,
   vesicleR,
   wallAt,
@@ -1277,7 +1277,7 @@ function assignFates(
   cleft: CleftRun,
 ): Map<number, { r: number; k: number }> {
   const docked = activeZone(g).docked
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   const emitted: { id: number; xs: number }[] = []
   for (const [v, d] of docked.entries()) {
     const tf = run.vesicles[d.index]?.fusedAtMs ?? null
@@ -1316,7 +1316,7 @@ function seatedAtOf(
   cleft: CleftRun,
   rIdx: number,
 ): number | null {
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   const docked = activeZone(g).docked
   const mine = (rIdx + 0.5) / sites.length
   const { tUp } = crossings(cleft.bound, cleft.windowMs, mine)
@@ -1351,6 +1351,11 @@ export function receptorSeatWindow(
 ): { seatedAt: number | null; releasedAt: number | null } {
   const seated = seatedAtOf(g, run, cleft, rIdx)
   if (seated === null) return { seatedAt: null, releasedAt: null }
+  // ⚠ A SLOW SEAT KEEPS ITS LIGAND. NMDA's glutamate stays bound for hundreds
+  // of milliseconds against AMPA's one or two, and that slow unbinding is the
+  // whole reason NMDA is the slow one. On this run's sixty-millisecond window
+  // "for the rest of it" is the honest answer, so the ball stays put.
+  if (rIdx === g.slowSeat) return { seatedAt: seated, releasedAt: null }
   // ⚠ THE PAIR STAYS PLUGGED FOR THE WHOLE TRANSACTION (user, 2026-09-01:
   // "signal neurotransmitters leave the channel while ions still go through —
   // expected: stay put… glow disappears, NTs fly away, channel closes"). On a
@@ -1359,7 +1364,7 @@ export function receptorSeatWindow(
   // receptor that never opens falls back to the model's own unbinding.
   const ow = receptorOpenWindow(g, run, cleft, rIdx)
   if (ow !== null) return { seatedAt: seated, releasedAt: ow.closeAt - NT_DEPART_LEAD_MS }
-  const mine = (rIdx + 0.5) / receptorSites(g).length
+  const mine = (rIdx + 0.5) / castSeats(g).length
   const { tDown } = crossings(cleft.bound, cleft.windowMs, mine)
   return {
     seatedAt: seated,
@@ -1390,7 +1395,7 @@ export function transmitterCast(
   jiggleMs = ms,
 ): NtDot[] {
   const docked = activeZone(g).docked
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   // ⚠ INSIDE THE APPOSED REGION only: past ~±activeHalf the bulb's flank
   // veers steeply up and the "gap" flares tall — a ball travelling along it
   // there plunges 100 px in a step (measured). Stands, waits and exits all
@@ -1891,7 +1896,7 @@ export function receptorOpenWindow(
   cleft: CleftRun,
   rIdx: number,
 ): { openAt: number; closeAt: number } | null {
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   const mine = (rIdx + 0.5) / sites.length
   if (crossings(cleft.open, cleft.windowMs, mine).tUp === null) return null
   const seated = seatedAtOf(g, run, cleft, rIdx)
@@ -1928,7 +1933,7 @@ export function ntSeatAt(
   k: number,
   openFrac: number,
 ): { x: number; y: number } {
-  const site = receptorSites(g)[rIdx]
+  const site = castSeats(g)[rIdx]
   const s = ligandSeat(site.x, site.y, openFrac, MEM_PX * 2.6)
   return k === 0 ? { x: s.x, y: s.y } : { x: 2 * site.x - s.x, y: s.y }
 }
@@ -1945,13 +1950,22 @@ export function bindPulses(
   run: SynapseRun,
   cleft: CleftRun,
   ms: number,
+  /** ⚠ Whether the CALCIUM's binding snaps too (user, 2026-09-13: "remove Ca
+   *  binding purple circles, together with sparkle on binding"). A framing that
+   *  draws no calcium and no sensor must not flash where they would have met;
+   *  the transmitter's own snap, below, is not affected. */
+  calcium = true,
 ): { x: number; y: number; a: number }[] {
   const out: { x: number; y: number; a: number }[] = []
   const docked = activeZone(g).docked
   const { te } = calciumTimes(run)
   // Only the ions that actually SEAT pulse — a free surplus ion settling
   // nearby is not a binding, so it must not borrow binding's snap.
-  for (let i = 0; i < docked.length * 2 && i < CA_N; i++) {
+  // ⚠ AND THE FLAG SKIPS THE LOOP, it does NOT blank `te`. A first version
+  // wrote `te.fill(null)` — and `calciumTimes` is MEMOISED per run, so that
+  // would have emptied the cache every other view shares and taken the round
+  // trip's calcium out with it, permanently, from one frame at the spine.
+  for (let i = 0; calcium && i < docked.length * 2 && i < CA_N; i++) {
     const enter = te[i]
     if (enter === null) continue
     const arrive = enter + CA_APPROACH_MS + CA_CROSS_MS + CA_SETTLE_MS
@@ -1961,7 +1975,7 @@ export function bindPulses(
     const knob = snareMini(g, anchor).knobs[Math.floor(i / docked.length) % 2]
     out.push({ x: knob.x, y: knob.y, a: 1 - q })
   }
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   const fate = assignFates(g, run, cleft)
   for (const [id, f] of fate) {
     const v = Math.floor(id / 7)
@@ -2025,7 +2039,7 @@ export function sodiumCast(
   ms: number,
   jiggleMs = ms,
 ): NaDot[] {
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   const out: NaDot[] = []
   for (const [r, site] of sites.entries()) {
     // ⚠ AFTER the drawn open, never the model's early crossing (user,

@@ -116,6 +116,8 @@ export interface Destination {
     | 'scales'
     | 'snare'
     | 's14'
+    | 'pools'
+    | 'receptors'
     | null
   then?: 'race'
 }
@@ -612,6 +614,50 @@ export const ENTRIES: BuiltEntry[] = [
     asks: 'A vesicle gives its membrane to the wall — how does the terminal get it back?',
     // A DRAWER, over the view it deepens: the same door the SNARE bench uses.
     to: { zoom: 'outgoing-synapse', drawer: 's14' },
+  },
+  {
+    // ⚠ D18, BUILT 2026-09-06. The last two of the sixteen mechanisms listed
+    // under "clearance & recycling" that nothing showed: the pools a terminal
+    // keeps, and what a burst costs. A DRAWER, because it needs a train of
+    // spikes and two terminals under one hand, and no run in the app plays
+    // either. Filed beside the other two synapse drawers.
+    id: 'pools',
+    part: 'III',
+    lecture: 8,
+    title: 'Vesicle pools & depression',
+    icon: '🪫',
+    asks: 'Can a synapse run out of things to say — and what happens if you keep asking?',
+    to: { zoom: 'outgoing-synapse', drawer: 'pools' },
+  },
+  {
+    // ⚠ S13, BUILT 2026-09-11 — the first PLACE on the far side of the gap.
+    // Everything the other synapse rows show happens in the terminal; this one
+    // crosses it. A place and not a drawer: the camera goes down through the
+    // cleft and the picture becomes the receiving cell's, which is exactly what
+    // a view is for.
+    id: 'spine',
+    part: 'III',
+    lecture: 8,
+    spec: 'S13',
+    title: 'The receiving spine',
+    icon: '🌱',
+    asks: 'One message barely moves it — so how does a synapse ever learn anything?',
+    to: { zoom: 'spine', drawer: null },
+  },
+  {
+    // ⚠ D07, BUILT 2026-09-11. The first postsynaptic MECHANISM in the app —
+    // everything before it on this side of the gap was a marker saying "the
+    // receiving cell is here". A DRAWER, because it compares two receptors
+    // under one voltage the child sets, and no run in the app lets anyone hold
+    // a membrane at a chosen potential. Filed beside the other synapse drawers.
+    id: 'receptors',
+    part: 'III',
+    lecture: 8,
+    spec: 'D07',
+    title: 'AMPA & NMDA receptors',
+    icon: '🔌',
+    asks: 'Both of them catch the same chemical — so why does only one of them answer?',
+    to: { zoom: 'outgoing-synapse', drawer: 'receptors' },
   },
   {
     id: 'propagation',

@@ -195,6 +195,16 @@ export interface LipidGeom {
   kinked?: boolean
 }
 
+/** ⚠ HOW FAR APART MOLECULES OF THIS SIZE STAND along a leaflet — the one owner
+ *  of the packing rule (21c-19).
+ *
+ *  It used to live as a private `SPACING` in `snareScene`, pinned to the shared
+ *  lipid's head, which quietly made that lipid the only one any caller could
+ *  pave with: sample a wall at the default spacing, pave it with a smaller
+ *  molecule, and the heads sit in a dotted line with gaps between them. Every
+ *  sampler now takes the spacing of the molecule that is going to pave it. */
+export const lipidSpacing = (geom: LipidGeom): number => geom.headR * 2.05
+
 export interface LipidPaint {
   head: CanvasGradient | string
   tail: CanvasGradient | string
@@ -414,6 +424,11 @@ export interface WallPoint {
   inward: { x: number; y: number }
 }
 
+/** ⚠ THE HEAD RADIUS THE JIGGLE WAS ORIGINALLY TUNED AGAINST — the lipid lab's,
+ *  which is this module's own `HEAD_R`. Kept as its own name so the calibration
+ *  reads as a calibration rather than as a coincidence. */
+const HEAD_R_FOR_CALIBRATION = HEAD_R
+
 /** Deterministic 0–1 value per molecule: the crowd must look irregular without
  *  shimmering every frame, and the index is the molecule's own place along the
  *  membrane so it does not change as the camera moves. */
@@ -457,12 +472,30 @@ export interface PaveOptions {
  *  wording; the maths has one home, in the module the membrane is made in.
  *  Amplitude raised 2026-08-27 on review: the wall read as still, and a bilayer
  *  is a liquid crowd, not a parked one. */
+/** ⚠ THE AMPLITUDE IS A FRACTION OF THE MOLECULE, NOT A PIXEL COUNT (21c-38,
+ *  user: "the lipids layer keeps looking very uneven: lipids are grouped,
+ *  overlapping on z-direction. Unify height").
+ *
+ *  It used to be an absolute 0.9 px, tuned by eye in the lipid lab where a head
+ *  is 2.84 px across the radius — a wander of 0.32 head radii, which reads as a
+ *  liquid. The synapse view paves its walls with the same molecule at a THIRD
+ *  the size, and the same 0.9 px there is **0.9 head radii**: measured, 1.2
+ *  head radii of scatter across the wall and 0.68 of the packing pitch along
+ *  it, so heads climbed over each other and the row lost its line.
+ *
+ *  This is the same lesson the charge badges cost once already — a part's size
+ *  is a fraction of the thing it belongs to, never a number of pixels, because
+ *  these drawings are used at magnifications thousands apart. The fractions are
+ *  calibrated to leave the lipid lab byte-identical. */
+const JIGGLE_OF_HEAD = { free: 1.2 / HEAD_R_FOR_CALIBRATION, packed: 0.9 / HEAD_R_FOR_CALIBRATION }
+
 export function lipidJiggle(
   i: number,
   ms: number,
   free: boolean,
+  headR: number = HEAD_R_FOR_CALIBRATION,
 ): { dx: number; dy: number; dth: number } {
-  const a = free ? 1.2 : 0.9
+  const a = headR * (free ? JIGGLE_OF_HEAD.free : JIGGLE_OF_HEAD.packed)
   const p = i * 2.399
   return {
     dx: a * Math.sin(ms * 0.0016 + p),
@@ -480,6 +513,34 @@ export function paveMembrane(
   const jitter = opts.jitter ?? 0.2
   const taperOver = opts.taperOver ?? Math.max(1, samples.length * 0.14)
   const displaced = opts.displacedBy ?? []
+
+  // ⚠ HOW FAR A MOLECULE MAY SLIDE ALONG THE WALL — bounded by the PACKING'S
+  // OWN SLACK, and the bound is physics rather than taste (2026-09-12, user:
+  // "make the layer more dense, so that the gaps between lipid heads are not so
+  // big").
+  //
+  // A fluid bilayer conserves its area per lipid: the molecules slide PAST each
+  // other, they do not decompress. So a wander that can open a gap is drawing a
+  // membrane that stretches, which no membrane does. Measured before this: the
+  // heads are packed to OVERLAP by 0.38 at D01's spacing, and the wander still
+  // pulled 10 pairs in 1195 apart, by up to 0.286 — a seventh of a head.
+  //
+  // The slack is whatever the packing leaves: `2·headR − pitch`. Split between
+  // two neighbours it is the most either may move without parting from the
+  // other, so the row can never open however lively it looks. A wall packed with
+  // no slack at all gets no sliding — which is the honest answer, not a
+  // limitation: you cannot slide along a row that is already at full stretch.
+  // Bobbing ACROSS the wall and turning on the spot are untouched.
+  const pitch =
+    samples.length > 1
+      ? Math.hypot(
+          samples[1].at.x - samples[0].at.x,
+          samples[1].at.y - samples[0].at.y,
+        )
+      : geom.headR * 2
+  const alongMax = Math.max(0, (2 * geom.headR - pitch) / 2)
+  const alongWanted = geom.headR * jitter + geom.headR * JIGGLE_OF_HEAD.packed
+  const alongScale = alongWanted <= 0 ? 0 : Math.min(1, alongMax / alongWanted)
   const outer = leafletPaint(ctx, geom, -1)
   const inner = leafletPaint(ctx, geom, 1)
   const span = samples.length
@@ -493,7 +554,7 @@ export function paveMembrane(
     const fade = taperOver <= 0 ? 1 : Math.min(1, Math.min(i, span - 1 - i) / taperOver)
     if (fade <= 0.02) return
     const k = first + i
-    const along = (lipidJitter(k, 1) - 0.5) * geom.headR * 2 * jitter
+    const along = (lipidJitter(k, 1) - 0.5) * geom.headR * 2 * jitter * alongScale
     const across = (lipidJitter(k, 2) - 0.5) * geom.halfMem * 2 * jitter * 0.3
 
     ctx.save()
@@ -511,10 +572,13 @@ export function paveMembrane(
     // molecule the bilayer does not contain.
     for (const side of [-1, 1] as const) {
       const jig =
-        opts.ms === undefined ? null : lipidJiggle(k * 2 + (side === -1 ? 0 : 1), opts.ms, false)
+        opts.ms === undefined
+          ? null
+          : lipidJiggle(k * 2 + (side === -1 ? 0 : 1), opts.ms, false, geom.headR)
       if (jig) {
         ctx.save()
-        ctx.translate(jig.dx, jig.dy)
+        // Sliding is capped by the packing; bobbing across the wall is not.
+        ctx.translate(jig.dx * alongScale, jig.dy)
         ctx.rotate(jig.dth)
         drawLipidAt(ctx, side, geom, side === -1 ? outer : inner)
         ctx.restore()

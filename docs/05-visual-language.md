@@ -1226,3 +1226,188 @@ coat side, rising at the neck, and BAR-domain proteins at the neck.
   BAR-domain proteins are real and belong to a chemistry this exhibit does not
   teach; drawing two more molecule kinds on a 300-px panel would cost more than
   it says. Noted here so the decision is visible.
+
+
+## The bilayer at the POOL register (D18, 2026-09-06)
+
+One membrane, one drawing — and here is where the scale had to be declared out
+loud rather than inherited.
+
+| | |
+| --- | --- |
+| SNARE bench, vesicle | r = 135 px, 126 molecules round it — **true proportion** (a real vesicle carries ~150) |
+| Pools panel, bubble | r = 38.7 px, ~41 molecules round it |
+| Honest head at that size | **0.38 px** — invisible |
+| Head actually drawn | 2.29 px — **~2x exaggerated, declared** |
+| Membrane half-thickness | 11.43 px, so `halfMem/headR` = **5.0 — the shared molecule's own ratio** |
+
+⚠ **Corrected 2026-09-07** (user: *"lipids in membrane and vesicles are
+different, unify"*). This register first used a lipid with ratio 2.5 for the
+bubbles while the wall kept the shared 5.0 — a fat head on stubs beside a small
+head on long tails, in one picture. There is now **one molecule for the whole
+panel**: the app's own lipid at `LIPID_SCALE = 0.7`, wall and bubbles alike, at
+`POOL_SPACING` for both. Only the scale differs from the SNARE bench, and it is
+declared here.
+
+**What is exaggerated and what is not.** The head's size is, and the membrane's
+thickness with it, so a child can see the bubble is made of two rows of
+molecules. The **count** is not — the ring carries however many fit at this
+spacing. The **structure** is not: two leaflets, heads out, tails in, from the
+shared paver.
+
+**Why not simply draw them smaller.** Because the request "make the vesicles
+have visible lipids" arrived against a bubble 31 px across and a shared lipid
+32.7 px thick: the molecule was larger than the object. The resolution was to
+change the COUNT of bubbles, not the molecule — see 03-architecture, *When a
+request needs a molecule drawn, change the COUNT, not the molecule.*
+
+**The transmitter inside.** `r x 0.115` per ball, `NT_PER_VESICLE` of them,
+seeded and jostling on the screen clock — the app's own glossy transmitter dot,
+the same ink it wears in the synapse view and the cleft.
+
+**The flash.** The signal palette's own yellow (`SIGNAL_RGB`) with a
+`SIGNAL_CORE` centre — a band across the terminal plus a bolt riding down its
+edge, the same mark as the button that sent it. Every flash identical: a burst
+is more of them, never a bigger one.
+
+
+## The terminal's furniture (D18, 2026-09-07)
+
+Two quiet objects added so the busy ones can be read, both answering reported
+failures.
+
+**The parking spaces.** A faint patch of wall — `rgba(148, 163, 184, 0.22)`,
+`outerR x 0.78` either side of each docked seat, exactly the wall's own
+thickness. An active zone really is marked out by a dense web of protein, and
+release happens at those spots and nowhere else. Its job is that an EMPTY space
+reads as an empty space rather than as plain wall: half of "which bubbles have
+gone".
+
+**The scaffold.** Actin, `#64748b`, two strands wound round each other (which is
+what F-actin is), running across the back of the terminal one bubble-width
+behind the last reserve row. Muted, because it is the furniture the lesson
+happens against.
+
+⚠ **It exists so the ropes can be READ.** The synapsin ropes used to run
+bubble-to-bubble with one string going off to an anchor that was never drawn —
+so "tied down" could not read at all (user: *"I don't understand what is that
+yellow rope"*). Every reserve bubble now has its own rope to the scaffold, and
+the scaffold STAYS when the ropes are cut: the tether goes, the cytoskeleton
+does not.
+
+| | |
+| --- | --- |
+| Scaffold | `#64748b`, 2 wound strands, 0.75 alpha |
+| Rope (synapsin) | `#fbbf24`, one per reserve bubble, straight to the scaffold above it |
+| Docking site | `rgba(148, 163, 184, 0.22)`, on the wall, one per parking space |
+
+
+## D18 rebuilt: five bubbles and a corner dial (2026-09-07)
+
+| | |
+| --- | --- |
+| Bubbles | 3 parked + 2 storage, ring r ≈ 51 px (was 25), lumen 39.5, cargo balls 7.9 px |
+| Ranks | 2 (parked at the wall, storage behind) — was 5 |
+| Terminal wall | 0.55 of the frame (was 0.80) — the picture LIFTS |
+| Far membrane | 0.82 of the frame, leaving a 180 px gap and a 120 px strip of receiving cell |
+| Dial | bottom-right corner, r ≈ 78, on an opaque `#0b1220` plate with a slate border, drawn LAST |
+| Receptors | two, left of centre so the plate cannot cover them — measured by a guard |
+
+**Why the dial left the picture.** It used to be set into the receiving cell,
+sharing ground with the membrane, the receptors and the drifting ions — a
+reading competing with the thing it reads. A dial is chrome: it belongs on top,
+on its own opaque ground, where a child's eye can go to it and come back.
+
+**Gone:** the actin scaffold and the synapsin ropes (2026-09-07). Real, and
+21c-21 drew the scaffold so the rope could be read at all — but with two storage
+bubbles the mechanism cost two object types on a picture being quietened, and
+bought a moment that barely happened.
+
+
+## D18 becomes one terminal (2026-09-08)
+
+| | |
+| --- | --- |
+| Panel | one, full width — 1024 x 706 (was two of 489) |
+| Bubbles | 3 parked + 2 stored, ring r ≈ 62.5 px (was 51), cargo balls 10.2 px |
+| Parking row | spread over 71% of the wall (`GAP_X` 0.45 → 1.35) |
+| Button | at the foot of the panel it fires, not on a bar above a pair |
+| Dial | bottom-right, r ≈ 86, plate sized to fit BELOW the far membrane |
+
+**Why one.** The child's own tapping is the variable, so a second panel showed a
+difference with no cause they could see. See 03-architecture, *When the user IS
+the variable, a second panel is answering nothing.*
+
+**Two numbers that drift with the bubble's size**, both caught by guards when
+the panel widened: `SITE_CLEAR_P` (the merging remnant is a fraction of the
+radius) and the gauge's plate height (it is 1.45 x the dial's radius, and the
+PLATE is what must clear the cleft).
+
+## D18's fusion pore: one molecule wide (2026-09-11)
+
+The wall of the terminal is paved at `POOL_SPACING` = **4.69 px**, with heads of
+**2.29 px** radius — so neighbouring heads all but touch, a clear **0.11 px**
+apart. That number is the reference for every hole drawn in this wall.
+
+**A merging or budding bubble opens the wall by half that pitch each way** —
+`poreHalf` caps the geometric mouth at `POOL_SPACING * 0.5` — which removes
+exactly the one head nearest the site and leaves a clear span of **4.8 px** in
+that leaflet. The two leaflets are staggered, so the sheet as a whole never opens
+past **2.3 px**. Everything else the geometry wants to open — the chord of a
+sinking sphere, up to **120 px** — the wall simply carries on across.
+
+The bubble itself is drawn as its **dome only** (the arc above the wall line);
+the submerged part is not drawn, because the wall is drawing that stretch.
+
+The consequence to hold on to: **the transmitter balls are wider than the pore
+they leave by**. That is deliberate and declared in the info block. A real
+fusion pore is 1–2 nm against a 40 nm vesicle, so of the two, the ball's size is
+the exaggeration and the pore's is close to honest.
+
+
+## D07: two receptors, one glyph (2026-09-11)
+
+**The protein.** Both panels draw `drawLigandChannel` — the traced ligand-gated
+channel from the ion-channel bench — at `halfHeight = HALF_MEM` inside a context
+scaled by `hm / HALF_MEM`, where `hm` is `MEM_OF_PANEL` (0.15) of the drawing
+area. The membrane is sized off the panel and the protein off the membrane,
+never off the canvas: a receptor's size is a fact about the wall it sits in.
+Only the species tint differs between the panels — teal for AMPA, stone for
+NMDA — and the geometry is identical mark for mark.
+
+**Magnesium's ink: stone brown** `#b08968` (light `#e7d8c9`, dark `#6f4518`),
+added to `GLOSSY_COLORS` as a drawable species like the proton — it carries no
+concentration model. It was arrived at by elimination: gold, violet, green and
+pink are the four signalling ions; red and sky are reserved for charge sign;
+amber for force and explanation; teal is the transmitter's own ink and orange is
+glutamine's. Nothing was left that would not have said *"I am one of the ions you
+already know"* — which turns out to be the right answer rather than the leftover
+one. This ion appears in exactly one place in the whole app, sitting in NMDA's
+throat and stopping everything; a mineral brown says *a stone in the way* where a
+fifth bright ion colour would have said *a fifth messenger*.
+
+**Where the stone sits, and why that number.** Its depth below the outer face is
+`open x block x 2 x hm x MG_DELTA`, with `MG_DELTA = 0.83` — Woodhull's δ, the
+fraction of the membrane's electric field the ion sits down in. So the depth in
+the picture IS the physics, not a depth that looks about right beside a
+paragraph claiming the physics. As the block clears it rises past the mouth and
+out into the gap by `(1 − block) x hm x 1.1`, which is the motion the child is
+being asked to watch.
+
+**The travellers.** Seven ion slots per panel, crossing on an `ION_MS` cycle,
+running from above the outer face to the **foot of the drawing area** — an ion
+that stops short of the edge reads as one that ran out of somewhere to go. The
+block picks WHICH of them turn back (a fresh seeded draw each crossing), never
+how far each gets. One that passes stays solid to the edge and leaves the
+picture; one that is turned back fades as it rejoins the gap. The reading word
+sits left-aligned, out of the ions' column.
+
+**The negative inside** is the app's own `polarityT` + `chargeWash`, painted in
+**both** panels from the inner face down — it is one membrane potential and one
+cell.
+
+**Drawn as paths, not `fillRect`.** The wash, the cleft tint and the three bar
+strips are `beginPath`/`rect`/`fill`. Same pixels; `fillRect` lays no path
+vertices and so cannot be measured. See 03 → *Ink a guard cannot see is a claim
+you cannot make*.
+

@@ -12,6 +12,10 @@ import { PX_PER_UM } from './layout'
 import { glossySphere } from './particleStyle'
 import { spoken, drawSpoken, drawConnector, type SpokenLabel } from './spokenLabels'
 import type { TeachingPara } from '../core/neuron'
+import { hash01 } from '../core/noise'
+
+// Re-exported: the lab was this helper's home before it had one.
+export { hash01 }
 
 // D01 — the lipid lab. What the wall is actually made of, why it assembles
 // itself, and that it is a liquid you can pull a molecule out of.
@@ -92,11 +96,6 @@ export interface LipidPose {
   angle: number
 }
 
-/** Deterministic per-(lipid, key) noise — the lab's only randomness, seeded. */
-export function hash01(i: number, k: number): number {
-  const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
-  return s - Math.floor(s)
-}
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v)
 const smooth = (u: number): number => {

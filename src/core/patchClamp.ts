@@ -2,6 +2,7 @@ import type { TeachingPara } from './neuron'
 import { REST_MV } from './capacitor'
 import { nernstMv } from './voltage'
 import { restingCounts } from './ions'
+import { hash01 } from './noise'
 
 // D13 — the patch clamp. HOW WE KNOW.
 //
@@ -83,10 +84,6 @@ export function meanClosedMs(vm: number): number {
 /** Seeded, never `Math.random`: the same channel at the same voltage flickers
  *  the same way every time, so a paused picture stays put and a test can walk
  *  it. */
-function hash01(a: number, b: number): number {
-  const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453
-  return s - Math.floor(s)
-}
 
 /** An exponential dwell from a uniform draw: real channel lifetimes are
  *  exponentially distributed, which is what "it has no memory of how long it

@@ -20,6 +20,7 @@ import {
 import { strictCanvas } from './strictCanvas'
 import { chipWidth, chipCenter, labelRows } from '../ui/timelineMath'
 import { STAGE_W } from './layout'
+import { LIPID_HEAD_MID } from './bilayer'
 import { boundsOf } from './svgPath'
 
 const SOURCES_CORE = import.meta.glob('../core/*.ts', {
@@ -113,6 +114,17 @@ import {
   reservePool,
   synapseGeometry,
   synapseLabels,
+  LUMEN_RGB,
+  vesicle,
+  LUMEN_FADE_HALF,
+  lumenEdgeR,
+  WALL_BAND,
+  WALL_BAND_ALPHA,
+  WALL_CORE,
+  WALL_CORE_INK,
+  WALL_LEAFLET_INK,
+  ZONE_LIPID,
+  spineWalls,
 } from './synapseScene'
 import {
   CAST_ALPHA,
@@ -864,7 +876,7 @@ describe('S12 — the synapse, leg 1', () => {
     const g = synapseGeometry()
     const c = strictCanvas()
     drawSynapse(c.ctx, { run, cleft, u: null })
-    const cores = c.styles.filter((s) => s === 'rgba(71, 85, 105, 0.75)').length
+    const cores = c.styles.filter((s) => s === WALL_CORE_INK).length
     expect(cores).toBeGreaterThanOrEqual(reservePool(g).length + activeZone(g).docked.length + 2)
   })
 
@@ -898,7 +910,7 @@ describe('S12 — the synapse, leg 1', () => {
       drawSynapse(c.ctx, { run, cleft, u })
       const at = c.styles.indexOf(door)
       expect(at).toBeGreaterThan(0)
-      return c.styles.slice(0, at).filter((s) => s === 'rgba(71, 85, 105, 0.75)').length
+      return c.styles.slice(0, at).filter((s) => s === WALL_CORE_INK).length
     }
     // ms 0.8: just past the spike's peak, vm well above −40 — the repaint is on.
     const hot = bandsBeforeDoors(0.8 / run.windowMs)
@@ -1685,12 +1697,17 @@ describe('S12 — the synapse, leg 1', () => {
     // bilayer running INSIDE the cell. The second handover's trace is the cell's
     // real boundary, so a band laid on it is a wall exactly where the bouton's
     // and the spine's are.
+    // ⚠ ASKED OF THE INK, NOT OF THE SOURCE TEXT (21c-42). This used to grep
+    // `drawAstrocyte`'s body for the two colour strings — which passed happily
+    // while the astrocyte stroked its OWN strengths (0.85/0.7) against the
+    // neurons' (0.38/0.75), because both spell the same rgb. A comment claimed
+    // "one biology, one drawing" and the numbers disagreed. Rendered, the two
+    // walls must now lay down the SAME strokes.
     const src = SOURCES['./synapseScene.ts']
     const draw = src.slice(src.indexOf('export function drawAstrocyte('))
     const body = draw.slice(0, draw.indexOf('\nexport '))
-    // The same LEAFLET/CORE the rest of the frame wears…
-    expect(body).toContain('203, 213, 225')
-    expect(body).toContain('71, 85, 105')
+    expect(body).toContain('WALL_LEAFLET_INK')
+    expect(body).toContain('WALL_CORE_INK')
     // …over the cell's own cytoplasm, which is still its own green.
     expect(body).toContain('ASTRO_INK')
     expect(ASTRO_EDGE_ALPHA).toBeGreaterThan(ASTRO_BODY_ALPHA)
@@ -3079,10 +3096,32 @@ describe('S12 — the synapse, leg 1', () => {
     const tears = tearsAt(g, run, first + 2)
     const pts = membraneLipids(g, tears)
     expect(pts.length).toBeGreaterThan(60)
+    // ⚠ THE SPINE'S SIDE WALLS ARE PAVED NOW (21c-52, user: "Add phospholipid
+    // bilayer also on the leg of the dendritic spine", "remove gaps on the
+    // membrane"). They are membrane like any other, and they are the OUTLINE'S
+    // OWN cubics — so the guard asks those, which is what stops the paving and
+    // the outline becoming two descriptions of one shape again.
+    const walls = spineWalls(g, g.height)
+    const nearWall = (q: { x: number; y: number }) => {
+      let best = Infinity
+      for (const w of walls) {
+        for (let i = 0; i <= 400; i++) {
+          const t = i / 400
+          const u = 1 - t
+          const x =
+            u * u * u * w.p0.x + 3 * u * u * t * w.c1.x + 3 * u * t * t * w.c2.x + t * t * t * w.p1.x
+          const y =
+            u * u * u * w.p0.y + 3 * u * u * t * w.c1.y + 3 * u * t * t * w.c2.y + t * t * t * w.p1.y
+          best = Math.min(best, Math.hypot(q.x - x, q.y - y))
+        }
+      }
+      return best
+    }
     for (const p of pts) {
       const onWall = Math.abs(p.at.y - wallAt(g, p.at.x)) < 0.5
       const onFace = Math.abs(p.at.y - faceAt(g, p.at.x)) < 0.5
-      expect(onWall || onFace, `at ${p.at.x.toFixed(0)}`).toBe(true)
+      const onSide = nearWall(p.at) < 1
+      expect(onWall || onFace || onSide, `at ${p.at.x.toFixed(0)},${p.at.y.toFixed(0)}`).toBe(true)
       if (onWall) {
         for (const t of tears) {
           expect(p.at.x < t.xL - 2 || p.at.x > t.xR + 2, `in tear at ${p.at.x.toFixed(0)}`).toBe(
@@ -3584,5 +3623,243 @@ describe('the arrival afterglow (2026-09-02)', () => {
     expect(mid).not.toBeNull()
     expect(mid!.alpha).toBeCloseTo(0.5, 1)
     expect(arrivalFlash(g, run, msAtScreen(FLASH_FADE_SCREEN_MS + 60))).toBeNull()
+  })
+})
+
+describe('the band behind the molecules is ground, not a second bilayer', () => {
+  it('A1 (21c-39): it CONTAINS the heads — nothing hangs out of its edges', () => {
+    // ⚠ (user, 2026-09-12: "the heads of lipids stick out of the background
+    // borders".) The band was stroked at `MEM_PX` = 5 while the molecules span
+    // `2 x (halfMem + headR)` = 12, so the real bilayer hung 3.5px out of its
+    // own backing on each side, in the lipid head's own ink.
+    const molecules = 2 * (ZONE_LIPID.halfMem + ZONE_LIPID.headR)
+    expect(
+      WALL_BAND,
+      `the band is ${WALL_BAND.toFixed(1)}px behind molecules spanning ${molecules.toFixed(1)}px`,
+    ).toBeGreaterThanOrEqual(molecules)
+    expect(WALL_BAND, 'the band has become a slab in its own right')
+      .toBeLessThan(molecules * 1.35)
+    expect(WALL_CORE).toBeGreaterThan(0)
+    expect(WALL_CORE).toBeLessThan(WALL_BAND)
+  })
+
+  it('A1 (21c-41): the band DISSOLVES as the molecules arrive — and only then', () => {
+    // ⚠ "but keep lipids, only make grey bg behind the lipids transparent"
+    // (user). Turning it off outright took every membrane with it the moment
+    // the camera pulled back, because at low detail the molecules are not drawn
+    // and this band IS the membrane. `depth = 1 - chrome`, so `chrome` IS its
+    // own fade.
+    const at = (chrome: number) => {
+      const c = strictCanvas()
+      drawSynapse(c.ctx, { run, cleft, u: 0.5, chrome })
+      let band = 0
+      c.inks.forEach((i, k) => {
+        if (i.op === 'stroke' && i.stroke === WALL_LEAFLET_INK) {
+          band = Math.max(band, c.alphas[k] ?? 0)
+        }
+      })
+      return { band, heads: c.styles.filter((x) => x === LIPID_HEAD_MID).length }
+    }
+    const out = at(1)
+    const deep = at(0)
+    expect(out.band, 'the band is missing where nothing else draws the membrane')
+      .toBeGreaterThan(0.9)
+    expect(deep.heads, 'the lipids went with the band').toBeGreaterThan(out.heads * 4)
+    expect(deep.band, `the band still paints at ${deep.band.toFixed(2)} behind the lipids`)
+      .toBeLessThan(0.01)
+    // ⚠ AND THE MIDDLE, or a guard on the two ends passes over a hard switch.
+    const mid = at(0.5)
+    expect(mid.band).toBeLessThan(out.band)
+    expect(mid.band).toBeGreaterThan(deep.band)
+  })
+
+  it('A1 (21c-39): it is a WASH, never the lipid head’s own solid ink', () => {
+    const c = strictCanvas()
+    drawSynapse(c.ctx, { run, cleft, u: 0.5 })
+    const strokes = c.inks.filter((i) => i.op === 'stroke').map((i) => i.stroke)
+    expect(strokes.length, 'nothing was stroked at all').toBeGreaterThan(5)
+    expect(
+      strokes.filter((x) => x === LIPID_HEAD_MID).length,
+      'the band is still painted in the lipid head’s own solid colour',
+    ).toBe(0)
+    const wash = strokes.filter((x) => /^rgba\(203, 213, 225/.test(x))
+    expect(wash.length, 'the band is not stroked at all').toBeGreaterThan(0)
+    for (const w of wash) {
+      expect(w, 'a band stroke disagrees with the dial').toBe(WALL_LEAFLET_INK)
+    }
+    const alpha = Number(WALL_LEAFLET_INK.match(/,\s*([\d.]+)\s*\)$/)?.[1] ?? 1)
+    expect(alpha).toBeCloseTo(0.85 * WALL_BAND_ALPHA, 9)
+  })
+})
+
+describe('one membrane for every cell in the frame', () => {
+  it('A1 (21c-42): the astrocyte and the neurons wear the SAME wall, exactly', () => {
+    // ⚠ (user, 2026-09-12: "Whole picture view: make neurons' membrane same as
+    // astrocyte's".) They were not: the glial cell stroked 0.85/0.7 and the two
+    // neurons 0.38/0.75, so at the whole view one cell had a solid wall and its
+    // neighbours had a faint one — while a comment in the astrocyte's own code
+    // claimed "the same LEAFLET/CORE the rest of the frame wears".
+    //
+    // Measured on the ink: every slate stroke in the frame must be one of the
+    // two shared constants. A second strength anywhere is the bug coming back.
+    const c = strictCanvas()
+    drawSynapse(c.ctx, { run, cleft, u: 0.5, chrome: 1 })
+    const strokes = c.inks.filter((i) => i.op === 'stroke').map((i) => i.stroke)
+    const leaflets = strokes.filter((x) => /^rgba\(203, 213, 225/.test(x))
+    const cores = strokes.filter((x) => /^rgba\(71, 85, 105/.test(x))
+    expect(leaflets.length, 'no wall was stroked at all').toBeGreaterThan(4)
+    expect(cores.length, 'no oily core was stroked at all').toBeGreaterThan(4)
+    expect(
+      [...new Set(leaflets)],
+      'two different wall strengths in one frame',
+    ).toEqual([WALL_LEAFLET_INK])
+    expect([...new Set(cores)], 'two different core strengths in one frame')
+      .toEqual([WALL_CORE_INK])
+  })
+
+  it('A1 (21c-42): and the glial wall dissolves behind its molecules too', () => {
+    // One dial for every wall, or one cell is made of molecules while its
+    // neighbour is still made of paint.
+    const bandAt = (chrome: number) => {
+      const c = strictCanvas()
+      drawSynapse(c.ctx, { run, cleft, u: 0.5, chrome })
+      let worst = 0
+      c.inks.forEach((i, k) => {
+        if (i.op === 'stroke' && i.stroke === WALL_LEAFLET_INK) {
+          worst = Math.max(worst, c.alphas[k] ?? 0)
+        }
+      })
+      return worst
+    }
+    expect(bandAt(1)).toBeGreaterThan(0.9)
+    expect(bandAt(0), 'a wall is still painted behind its own molecules')
+      .toBeLessThan(0.01)
+  })
+})
+
+describe('a vesicle\u2019s edge is a fade, not a cut', () => {
+  it('A1 (21c-43): the outside creeps back in over the rim', () => {
+    // ⚠ (user, 2026-09-12: "on vesicles, add gradient on the bg edge, so that
+    // inside and outside do not have such an abrupt cut".) A lumen is the
+    // bath's own ink and the cytoplasm around it is that same bath under a
+    // tenth of slate, so the rim was a hard step. The wall used to hide it;
+    // once the band began dissolving behind the molecules there was nothing
+    // covering it.
+    const c = strictCanvas()
+    vesicle(c.ctx, 200, 200, vesicleR(synapseGeometry()))
+    // ⚠ THE LUMEN IS UNTOUCHED. Two guards identify a vesicle's body BY this
+    // fill — including "its lumen IS the extracellular ink, not a match for
+    // it", which exists to stop the bath's colour being retyped as a lookalike.
+    // The fade is painted OVER it, never instead of it.
+    expect(c.styles, 'the lumen stopped being the bath’s own ink').toContain(LUMEN)
+    // ⚠ IT IS THE LUMEN THAT FADES, not cytoplasm painted over it. The first
+    // build did the latter and the user reported "nothing changed" — rightly:
+    // adding the cytoplasm's own 10% slate reproduces the terminal's colour
+    // inside the bubble and OVERSHOOTS it outside, to rgb(42, 51, 70), which is
+    // a halo rather than a blend. The step never moved.
+    const stops = c.styles.filter((x) => x.startsWith(`rgba(${LUMEN_RGB}`))
+    expect(stops.length, 'no fade was painted at all').toBeGreaterThan(2)
+    const alphas = stops.map((x) => Number(x.match(/,\s*([\d.]+)\s*\)$/)?.[1] ?? -1))
+    expect(Math.max(...alphas), 'the fade does not start from a solid lumen').toBe(1)
+    expect(Math.min(...alphas), 'the fade never reaches nothing').toBe(0)
+    // ⚠ AND THE MIDDLE, or "solid at one end and gone at the other" passes on a
+    // two-stop ramp that is still effectively a cut.
+    expect(alphas.filter((a) => a > 0 && a < 1).length, 'the fade is a step')
+      .toBeGreaterThan(0)
+    // ⚠ AND THE CHANNELS ARE DERIVED, never retyped — the same reason the
+    // lumen must BE the extracellular ink rather than match it.
+    const [rr, gg, bb] = LUMEN_RGB.split(',').map((n) => Number(n.trim()))
+    const hex = `#${[rr, gg, bb].map((n) => n.toString(16).padStart(2, '0')).join('')}`
+    expect(hex, 'the fade’s channels are a lookalike, not the bath itself').toBe(OUTSIDE)
+  })
+
+  it('A1 (21c-44): the fade spans the MEMBRANE — head edge to head edge', () => {
+    // ⚠ (user, 2026-09-12: "the gradient starts where heads start, and end at
+    // the heads' edge on the other side".) A head's outer edge is exactly
+    // `halfMem` from the wall's midline — its centre is at `halfMem − headR`
+    // and its radius is `headR` — so the two edges are `r ± halfMem`, and the
+    // fade must reach both. It used to stop dead at `r`, entirely inside the
+    // bubble, leaving the wall standing on a step.
+    expect(LUMEN_FADE_HALF, 'the fade no longer reaches the heads')
+      .toBeCloseTo(ZONE_LIPID.halfMem, 9)
+    const g = synapseGeometry()
+    for (const r of [vesicleR(g), activeZone(g).docked[0].r, 6, 2]) {
+      expect(lumenEdgeR(r), `a bubble of ${r.toFixed(1)} does not fade past its wall`)
+        .toBeCloseTo(r + ZONE_LIPID.halfMem, 9)
+      // …and it really is painted that wide. ⚠ Measured on the ARC's radius,
+      // which the recording canvas had to learn to keep: `points` records an
+      // arc's CENTRE, so a first version of this guard measured every circle at
+      // distance zero from itself and could not fail.
+      const c = strictCanvas()
+      vesicle(c.ctx, 300, 300, r)
+      const reach = Math.max(...c.arcs.map((a) => a.r))
+      expect(reach, `a bubble of ${r.toFixed(1)} paints only to ${reach.toFixed(1)}`)
+        .toBeGreaterThanOrEqual(r + ZONE_LIPID.halfMem - 0.001)
+    }
+  })
+
+  it('A1 (21c-43): a FUSING bubble keeps the same edge', () => {
+    // A pocket IS a vesicle part-way into the wall — it cannot harden its rim
+    // the moment fusion starts.
+    const src = SOURCES['./synapseScene.ts']
+    const draw = src.slice(src.indexOf('export function drawPocket('))
+    const body = draw.slice(0, draw.indexOf('\nexport '))
+    expect(body, 'a fusing bubble draws a different edge from an intact one')
+      .toContain('lumenEdge')
+  })
+})
+
+describe('21c-62 — the SNARE zips flat, it does not teleport', () => {
+  // ⚠ (user, 2026-09-13: "adjust snare removal animation. Currently teleports.
+  // Expected: smooth animation".) At the instant a vesicle was marked fused the
+  // STANDING rope — anchored between the bubble and the wall — was replaced by
+  // a FLAT one lying a whole vesicle-radius away. Two correct drawings of one
+  // object, with nothing in between.
+  const g = synapseGeometry()
+  const d = activeZone(g).docked[Math.floor(activeZone(g).docked.length / 2)]
+  const sinking = { x: d.x, y: d.y + d.r * 0.4, r: d.r * 1.2 }
+
+  it('A1: the ends TRAVEL between the standing rope and the flat one', () => {
+    const up = snareMini(g, sinking).ropes
+    const flat = snareCis(g, d).ropes
+    const jump = Math.max(
+      ...flat.map((f, i) => Math.hypot(f.from.x - up[i].from.x, f.from.y - up[i].from.y)),
+    )
+    expect(jump, 'the two drawings coincide — there was no teleport to fix')
+      .toBeGreaterThan(MEM_PX * 2)
+
+    // …and every step of the way is a step, never the whole jump at once.
+    let worst = 0
+    let prev = snareCis(g, d, 0, sinking).ropes
+    for (let i = 1; i <= 40; i++) {
+      const here = snareCis(g, d, i / 40, sinking).ropes
+      for (const [k, r] of here.entries()) {
+        worst = Math.max(
+          worst,
+          Math.hypot(r.from.x - prev[k].from.x, r.from.y - prev[k].from.y),
+          Math.hypot(r.to.x - prev[k].to.x, r.to.y - prev[k].to.y),
+        )
+      }
+      prev = here
+    }
+    expect(worst, `the rope moves ${worst.toFixed(1)}px in one step of the zip`)
+      .toBeLessThan(jump * 0.2)
+
+    // …starting AT the standing rope and ending AT the flat one.
+    const zero = snareCis(g, d, 0, sinking).ropes
+    expect(zero[0].from.x).toBeCloseTo(up[0].from.x, 6)
+    expect(zero[0].to.y).toBeCloseTo(up[0].to.y, 6)
+    const one = snareCis(g, d, 1, sinking).ropes
+    expect(one[0].from.x).toBeCloseTo(flat[0].from.x, 6)
+    expect(one[0].to.y).toBeCloseTo(flat[0].to.y, 6)
+  })
+
+  it('A1: and the SCENE zips it — the flat rope is not simply switched in', () => {
+    // ⚠ A geometry test passes on a drawing that never asks for the middle.
+    const src = SOURCES['./synapseScene.ts']
+    expect(src, 'the scene hands the zip no progress at all')
+      .toContain('drawSnareCis(ctx, g, d, zip,')
+    expect(src, 'the zip is not tied to the bubble flattening')
+      .toContain('(fusedAgeAt(ms, gone) - FLATTEN_FROM_MS) / FLATTEN_MS')
   })
 })

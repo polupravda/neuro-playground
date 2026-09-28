@@ -17,6 +17,8 @@ import { GatingBench } from './ui/GatingBench'
 import { ScalesBench } from './ui/ScalesBench'
 import { SnareBench } from './ui/SnareBench'
 import { RetrievalBench } from './ui/RetrievalBench'
+import { PoolsBench } from './ui/PoolsBench'
+import { ReceptorBench } from './ui/ReceptorBench'
 import { ContentsRail } from './ui/ContentsRail'
 
 export default function App() {
@@ -103,6 +105,8 @@ export default function App() {
         {/* Reached from the fusing vesicle on the synapse view. */}
         <SnareBench />
         <RetrievalBench />
+        <PoolsBench />
+        <ReceptorBench />
         {/* One signal at three sizes — draws its own views, touches nothing. */}
         <ScalesBench />
       </main>

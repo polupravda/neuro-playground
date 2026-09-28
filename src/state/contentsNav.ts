@@ -14,6 +14,8 @@ import { usePatchStore } from './patchStore'
 import { useGatingStore } from './gatingStore'
 import { useSnareStore } from './snareStore'
 import { useRetrievalStore } from './retrievalStore'
+import { usePoolsStore } from './poolsStore'
+import { useReceptorStore } from './receptorStore'
 
 // TAKING SOMEONE SOMEWHERE, rather than showing them a page.
 //
@@ -43,6 +45,8 @@ const OPENERS: Record<string, () => void> = {
   scales: () => useTourStore.getState().openBench(),
   snare: () => useSnareStore.getState().openBench(),
   s14: () => useRetrievalStore.getState().openBench(),
+  pools: () => usePoolsStore.getState().openBench(),
+  receptors: () => useReceptorStore.getState().openBench(),
 }
 
 /** Everything a route does, as data — so a test can check the plan without

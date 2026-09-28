@@ -1,4 +1,12 @@
-import { HALF_MEM, HEAD_R, OILY_CORE, paveMembrane, type LipidGeom, type WallPoint } from './bilayer'
+import {
+  HALF_MEM,
+  HEAD_R,
+  OILY_CORE,
+  lipidSpacing,
+  paveMembrane,
+  type LipidGeom,
+  type WallPoint,
+} from './bilayer'
 import { GLOSSY_COLORS, drawGlossyIon } from './particleStyle'
 import { coatFlyAt, coatOrder, coatSettleAt, drawDynamin, drawTriskelion } from './clathrin'
 import { softGlow } from './signal'
@@ -62,7 +70,7 @@ export const SN_H = Math.max(360, VIEW_H - 40 - 8 - 18)
 /** The molecule, drawn big — this is the one view where it is resolvable. */
 export const LIPID: LipidGeom = { headR: HEAD_R * 1.15, halfMem: HALF_MEM * 1.15 }
 /** How far apart the molecules stand along a wall. */
-const SPACING = LIPID.headR * 2.05
+const SPACING = lipidSpacing(LIPID)
 
 /** ⚠ VGLUT AT THIS MAGNIFICATION (21c-3o). The synapse view draws it several
  *  times its membrane's drawn thickness — a declared exaggeration, because
@@ -164,6 +172,30 @@ export function vesicleCentre(g: SnareGeometry, u: number): { x: number; y: numb
  *  lies ON the wall. The approach-to-contact fraction (`SINK_TOUCH`) is the
  *  core's own — one copy, shared with the cargo's exit schedule. */
 
+/** ⚠ THE SINK, ASKED OF A PROGRESS (21c-17). How deep a fusing vesicle's centre
+ *  has got, given where it started, how big it is, and how far through its
+ *  fusion it is — extracted from `fusedCentreY` so a second exhibit can play
+ *  the SAME fusion on its own clock.
+ *
+ *  D18 draws up to three vesicles fusing at once on a 1.4 s ramp, nothing like
+ *  the SNARE cycle's single 20 s run; what must not differ is the SHAPE of the
+ *  sink. So the schedule is the caller's and this rule is shared: the first
+ *  `SINK_TOUCH` of the progress is the approach to contact, and the rest sweeps
+ *  the intersection ANGLE at a constant rate — which is what bounds every
+ *  lipid's speed, because a sphere's waterline sweeps at infinite rate the
+ *  instant it touches a plane. */
+export function fusedCentreFor(
+  g: SnareGeometry,
+  from: number,
+  r: number,
+  p: number,
+): number {
+  const touch = g.wallY - r
+  if (p <= SINK_TOUCH) return from + (p / SINK_TOUCH) * (touch - from)
+  const aR = Math.PI / 2 - ((p - SINK_TOUCH) / (1 - SINK_TOUCH)) * Math.PI
+  return g.wallY - r * Math.sin(aR)
+}
+
 export function fusedCentreY(g: SnareGeometry, u: number): number {
   const pressed = vesicleCentre(g, u).y
   const p = poreAt(u)
@@ -176,13 +208,7 @@ export function fusedCentreY(g: SnareGeometry, u: number): number {
   // at a constant rate bounds every lipid's speed and eases both contacts —
   // the depth then follows a sine, slow exactly where it must be.
   const touch = g.wallY - g.r
-  if (back <= 0 && lift <= 0) {
-    if (p <= SINK_TOUCH) {
-      return pressed + (p / SINK_TOUCH) * (touch - pressed)
-    }
-    const aR = Math.PI / 2 - ((p - SINK_TOUCH) / (1 - SINK_TOUCH)) * Math.PI
-    return g.wallY - g.r * Math.sin(aR)
-  }
+  if (back <= 0 && lift <= 0) return fusedCentreFor(g, pressed, g.r, p)
   // ⚠ THE SAME BUBBLE COMES BACK, AT THE SAME SPOT (user, 2026-09-02: "the
   // new vesicle is formed in a location different from the original — fix";
   // "the membrane stays enclosed — fix"). Retrieval is the sink's own
@@ -210,12 +236,21 @@ export function fusedCentreY(g: SnareGeometry, u: number): number {
  *  exact material conservation — so a vesicle molecule becomes a wall
  *  molecule by travelling, and when the centre has sunk one radius past the
  *  wall the whole ring lies flat: it IS wall now, and stays drawn as such. */
-export function omegaRing(g: SnareGeometry, cx: number, cy: number, r: number): WallPoint[] {
-  const n = Math.max(12, Math.round((2 * Math.PI * r) / SPACING))
+export function omegaRing(
+  g: SnareGeometry,
+  cx: number,
+  cy: number,
+  r: number,
+  /** ⚠ The spacing of the molecule this ring is going to be paved with. A ring
+   *  sampled for one lipid and painted with another is either gappy or piled
+   *  up — and until 21c-19 that was not even sayable. */
+  spacing = SPACING,
+): WallPoint[] {
+  const n = Math.max(12, Math.round((2 * Math.PI * r) / spacing))
   const yw = g.wallY
   const sinStar = (yw - cy) / r
   const out: WallPoint[] = []
-  if (sinStar >= 1) return ringPoints(cx, cy, r)
+  if (sinStar >= 1) return ringPoints(cx, cy, r, undefined, undefined, spacing)
   const aR = Math.asin(Math.max(-1, Math.min(1, sinStar)))
   const aL = Math.PI - aR
   const footR = cx + r * Math.cos(aR)
@@ -901,8 +936,19 @@ export function lumenArc(
 }
 
 /** Sample a circle as a wall, with `inward` pointing at its middle. */
-function ringPoints(cx: number, cy: number, r: number, skipFrom?: number, skipTo?: number): WallPoint[] {
-  const n = Math.max(12, Math.round((2 * Math.PI * r) / SPACING))
+function ringPoints(
+  cx: number,
+  cy: number,
+  r: number,
+  skipFrom?: number,
+  skipTo?: number,
+  /** ⚠ The spacing of the molecule that will pave it — the same one the omega
+   *  uses. A resting ring sampled at one spacing and a merging ring at another
+   *  makes a bubble's molecules visibly close up the instant it starts to
+   *  fuse. */
+  spacing = SPACING,
+): WallPoint[] {
+  const n = Math.max(12, Math.round((2 * Math.PI * r) / spacing))
   const out: WallPoint[] = []
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2
@@ -937,17 +983,44 @@ export function wallPoints(
    *  BESIDE the active zone, and a gap that opens at the frame's centre while
    *  the dent forms to the right is a wall parting where nothing is happening. */
   about = g.cx,
+  spacing = SPACING,
+): WallPoint[] {
+  return wallPointsMany(g, [{ about, shift }], spacing)
+}
+
+/** ⚠ THE SAME WALL, OPENED IN SEVERAL PLACES AT ONCE (21c-17).
+ *
+ *  D18's terminal fuses up to three vesicles at a time, at three different
+ *  docked slots, and one `shift` about one `about` cannot say that: a wall that
+ *  parts in the middle while bubbles merge left and right is a wall parting
+ *  where nothing is happening — the very bug `about` was added for, one step
+ *  further out.
+ *
+ *  ⚠ AND THE SHIFTS ADD UP, which is the honest part. Each fusion ADDS its
+ *  vesicle's membrane to the wall, so a molecule is pushed aside by every
+ *  opening it is not inside — sum the displacement over the sites, each with
+ *  its own side. Two fusions either side of a molecule cancel, and that is
+ *  right too: it is being crowded equally from both directions. */
+export function wallPointsMany(
+  g: SnareGeometry,
+  sites: readonly { about: number; shift: number }[],
+  /** The spacing of the molecule this wall is going to be paved with. */
+  spacing = SPACING,
 ): WallPoint[] {
   const out: WallPoint[] = []
-  const n = Math.round((g.right - g.left) / SPACING)
+  const n = Math.round((g.right - g.left) / spacing)
   for (let i = 0; i <= n; i++) {
     const x0 = g.left + (i / n) * (g.right - g.left)
-    // ⚠ NO MOLECULE STAYS IN THE MOUTH (21c-8, user: "1 lipid remains in the
-    // center of opening"). `Math.sign(0)` is 0, so the slot that lands exactly
-    // at the opening's own centre was shoved NOWHERE — one lipid left floating
-    // in the parted gap, in front of the merging vesicle. The centre slot goes
-    // right; there is no honest side for it, only a side.
-    const x = x0 + (x0 >= about ? 1 : -1) * shift
+    let x = x0
+    for (const site of sites) {
+      if (site.shift <= 0) continue
+      // ⚠ NO MOLECULE STAYS IN THE MOUTH (21c-8, user: "1 lipid remains in the
+      // center of opening"). `Math.sign(0)` is 0, so the slot that lands
+      // exactly at the opening's own centre was shoved NOWHERE — one lipid left
+      // floating in the parted gap, in front of the merging vesicle. The centre
+      // slot goes right; there is no honest side for it, only a side.
+      x += (x0 >= site.about ? 1 : -1) * site.shift
+    }
     out.push({
       at: { x, y: g.wallY },
       tangent: { x: 1, y: 0 },

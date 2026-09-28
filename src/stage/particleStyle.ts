@@ -36,7 +36,7 @@ export function glossySphere(
 /** The species this palette can paint: the four signalling ions, plus the
  *  proton — not an `IonKind` (it carries no concentration model here), but a
  *  drawable species for D06's pump-and-trade. */
-export type GlossyKind = IonKind | 'h'
+export type GlossyKind = IonKind | 'h' | 'mg'
 
 export const GLOSSY_COLORS: Record<
   GlossyKind,
@@ -51,6 +51,19 @@ export const GLOSSY_COLORS: Record<
   // colour both apps reserve, and a proton IS a bare + charge.
   h: { light: '#ffd4d0', mid: '#f87171', dark: '#dc2626', glow: '248, 113, 113' },
   ca: { light: '#fce7f3', mid: '#f472b6', dark: '#be185d', glow: '244, 114, 182' },
+  // ⚠ MAGNESIUM IS STONE (D07, 2026-09-11), and the colour was arrived at by
+  // elimination rather than taste: gold, violet, green and pink are the four
+  // signalling ions; red and sky are RESERVED for charge sign; amber is
+  // reserved for force and explanation; teal is the transmitter's own ink and
+  // orange is glutamine's. Nothing was left that would not have said "I am one
+  // of the ions you already know".
+  //
+  // Which turns out to be the right answer and not merely the leftover one.
+  // This ion never carries a signal anywhere in the app — it appears in exactly
+  // one place, sitting in NMDA's throat and stopping everything. A mineral
+  // brown says "a stone in the way" where a fifth bright ion colour would have
+  // said "a fifth messenger".
+  mg: { light: '#e7d8c9', mid: '#b08968', dark: '#6f4518', glow: '176, 137, 104' },
 }
 
 /** react-konva fill props for a glossy ion of body radius `radius`
@@ -161,6 +174,52 @@ export function chargeRamp(t: number): string {
   const c = CHARGE_NEUTRAL.map((v, i) => Math.round(v + (to[i] - v) * k))
   return `${c[0]}, ${c[1]}, ${c[2]}`
 }
+
+/** ⚠ COLD STRAIGHT TO HOT, WITHOUT THE NEUTRAL IN BETWEEN, 0…1.
+ *
+ *  The ramp above passes through `CHARGE_NEUTRAL` because its subject is how far
+ *  from NEUTRAL a compartment is — right for a bath, and wrong for a compartment
+ *  that is never neutral. A spine head runs from very negative to less negative
+ *  and never once has no charge, so the slate is a colour it has no business
+ *  wearing: MEASURED, the whole of that view's working range came out between
+ *  rgb(96, 123, 149) and rgb(170, 115, 127), which is slate to a mauve barely
+ *  distinguishable from it, and "the cell goes red" could not be seen.
+ *
+ *  Same two inks, same visual language — only the stop in the middle is skipped,
+ *  because nothing in that view is ever at it. */
+export function chargeSpan(f: number): string {
+  const k = Math.max(0, Math.min(1, f))
+  const c = CHARGE_COLD.map((v, i) => Math.round(v + (CHARGE_HOT[i] - v) * k))
+  return `${c[0]}, ${c[1]}, ${c[2]}`
+}
+
+/** ⚠ WHERE THIS WALK STOPS READING COOL — SOLVED off the two inks, never typed,
+ *  so it follows them if either is ever re-picked.
+ *
+ *  ⚠ AND THE GREY MIDDLE CANNOT BE DESIGNED AWAY — it is the PALETTE, not a
+ *  tuning (user, 2026-09-13: "supposed to get red background inside the spine …
+ *  this does not happen"). Skipping `CHARGE_NEUTRAL` was not enough: sky and red
+ *  are near-complementary, so the straight line between them passes close to the
+ *  grey axis whatever route is taken through it. MEASURED, the walk is a
+ *  lavender-grey at 0.5 and a mauve at 0.6, and it does not read warm until
+ *  about 0.8.
+ *
+ *  Bowing the path away from grey means giving the middle a saturated hue, and
+ *  every one of them is spoken for: this file's own ion list reserves gold,
+ *  violet, green and pink for the four signalling ions, amber for force and
+ *  explanation, teal for the transmitter and orange for glutamine — leaving
+ *  exactly red and sky for charge sign, which is the whole point. A background
+ *  wash bowed through violet would put potassium's ink behind the spine; bowed
+ *  through pink, calcium's.
+ *
+ *  So the ink is fixed and the only honest lever is WHERE A READING SITS ON IT.
+ *  This is the number a caller shapes its reading against — see `spineCharge`.
+ *
+ *  It is the crossing of the red and blue channels: below it the wash has more
+ *  blue in it than red, above it more red than blue. */
+export const SPAN_NEUTRAL =
+  (CHARGE_COLD[2] - CHARGE_COLD[0]) /
+  (CHARGE_HOT[0] - CHARGE_COLD[0] - (CHARGE_HOT[2] - CHARGE_COLD[2]))
 
 /** As a hex-ish CSS colour, for chrome that cannot take an alpha separately. */
 export function chargeColour(t: number): string {
@@ -329,9 +388,18 @@ export function chargeWash(
   toY: number,
   t: number,
   peak = 0.5,
+  /** ⚠ HOW STRONGLY IT IS PAINTED, 0…1 — `|t|` by default, which is right for a
+   *  view whose subject is HOW FAR FROM NEUTRAL a compartment is.
+   *
+   *  It is wrong for one whose subject is a compartment CHANGING, and the spine
+   *  is that: measured, its wash faded to alpha 0.000 on every run, because a
+   *  cell on its way from blue to red passes through neutral and `|t|` makes
+   *  that the most invisible moment of the whole event. The colour has to carry
+   *  the reading there, not the opacity. */
+  strength = Math.abs(t),
+  /** The colour, when the caller's subject is not "how far from neutral". */
+  rgb = chargeRamp(t),
 ): CanvasGradient {
-  const rgb = chargeRamp(t)
-  const strength = Math.abs(t)
   const g = ctx.createLinearGradient(0, fromY, 0, toY)
   g.addColorStop(0, `rgba(${rgb}, 0)`)
   g.addColorStop(0.06, `rgba(${rgb}, ${peak * strength})`)

@@ -71,6 +71,13 @@ export interface StrictCanvas {
    *  in the factory. Lets a test ask whether a drawing honoured a fade it was
    *  handed instead of painting over it. */
   alphas: number[]
+  /** ⚠ EVERY ARC ASKED FOR, WITH ITS RADIUS (21c-44) — in device units.
+   *
+   *  `points` records an arc's CENTRE, which is the right thing for asking
+   *  where something is and useless for asking how BIG it is. A guard on "the
+   *  fade reaches past the wall" could measure nothing at all: every arc landed
+   *  at distance zero from its own centre. A radius is ink too. */
+  arcs: { x: number; y: number; r: number }[]
   /** ⚠ EVERY INK-LAYING CALL, WITH THE COLOUR IT LAID (21c-3l) — in order, so a
    *  test can ask WHAT IS PAINTED OVER WHAT. `styles` records the colours a
    *  drawing chose and `calls` records the operations, but neither pairs them,
@@ -121,6 +128,7 @@ export function strictCanvas(): StrictCanvas {
   const styles: string[] = []
   const alphas: number[] = []
   const inks: { op: string; fill: string; stroke: string }[] = []
+  const arcs: { x: number; y: number; r: number }[] = []
   const drawStack: Record<string, unknown>[] = []
   /** Through the current transform, so a caller sees where the ink went. */
   const put = (x: number, y: number) => {
@@ -234,6 +242,14 @@ export function strictCanvas(): StrictCanvas {
     checkNumbers('arc', args)
     if ((args[2] as number) < 0) throw new Error(`arc: negative radius ${args[2]}`)
     put(args[0] as number, args[1] as number)
+    // ⚠ THE RADIUS IS INK TOO (21c-44). Through the transform, like `put`, so a
+    // caller sees the size it is actually drawn at.
+    const scale = Math.hypot(m.a, m.b) || 1
+    arcs.push({
+      x: m.a * (args[0] as number) + m.c * (args[1] as number) + m.e,
+      y: m.b * (args[0] as number) + m.d * (args[1] as number) + m.f,
+      r: (args[2] as number) * scale,
+    })
     calls.push('arc')
   }
   methods.arcTo = record('arcTo')
@@ -285,5 +301,5 @@ export function strictCanvas(): StrictCanvas {
     },
   ) as unknown as CanvasRenderingContext2D
 
-  return { ctx, calls, points, texts, styles, alphas, inks }
+  return { ctx, calls, points, texts, styles, alphas, inks, arcs }
 }

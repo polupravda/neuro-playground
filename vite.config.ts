@@ -18,4 +18,17 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig(() => ({
   base: './',
   plugins: [react(), tailwindcss()],
+  test: {
+    // ⚠ THE RENDER WALKS NEED LONGER THAN FIVE SECONDS UNDER LOAD (21c-57).
+    // Nothing in this suite is asynchronous: a test only runs long because it
+    // paints the whole scene at many points of a run, and the heaviest of those
+    // take about a second alone but six or seven when eighty-five files are
+    // competing for the machine. Two of them started failing intermittently on
+    // the default 5 s — a timeout, never an assertion — which is a flaky suite
+    // reporting the laptop's mood rather than the code's.
+    //
+    // Twenty seconds still catches a genuine hang, which is the only thing a
+    // timeout is for here.
+    testTimeout: 20000,
+  },
 }))

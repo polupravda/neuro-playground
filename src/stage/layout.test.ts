@@ -193,9 +193,12 @@ describe('zoom targets', () => {
     expect(nearest, 'the camera is off the drawn wall').toBeLessThan(0.05)
   })
 
-  it('only claims built content for the membrane targets', () => {
+  it('only claims built content where the view is actually built', () => {
+    // `content` is shown INSTEAD of the promise, so carrying it is a claim that
+    // there is something behind the marker. ⚠ The spine carries it (21c-46):
+    // its view is built and, unlike the synapse, it has no panel of its own.
     const built = ZOOM_TARGETS.filter((t) => t.content).map((t) => t.id)
-    expect(built).toEqual(['dendrite-membrane', 'axon-membrane'])
+    expect(built).toEqual(['dendrite-membrane', 'axon-membrane', 'spine'])
   })
 
   it('gives every target its own id', () => {
@@ -290,6 +293,9 @@ describe('zoom targets', () => {
       // The same view, four times deeper — the active zone is a PLACE
       // (user, 2026-09-01: "the same demo, but at the image's scale").
       'active-zone',
+      // ⚠ S13 — the first synapse place on the FAR side of the gap, and a view
+      // of its own because the picture is not the terminal's any more.
+      'spine',
     ])
   })
 })

@@ -10,6 +10,7 @@ import {
 import { IONS } from '../core/ions'
 import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
 import { chargesFor, potassiumInside, fmtBig, REST_MV } from '../core/capacitor'
+import { hash01 } from '../core/noise'
 
 // D12 — the charge skin, and the crowd it is borrowed from.
 //
@@ -64,10 +65,6 @@ export const BULK_IONS = 340
 /** Body radius of a drawn potassium ion. Big enough to wear a charge ring. */
 export const ION_R = 3.4
 
-function hash01(i: number, k: number): number {
-  const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
-  return s - Math.floor(s)
-}
 
 export interface BulkIon {
   x: number

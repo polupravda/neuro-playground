@@ -18,6 +18,7 @@ import {
   type TravellerId,
 } from '../core/permeability'
 import type { TeachingPara } from '../core/neuron'
+import { hash01 } from '../core/noise'
 
 // D02 — the permeability bench. Containers of real substances above a bare
 // lipid wall: click one and a squirt of it is released at the wall, to cross
@@ -135,10 +136,6 @@ export interface Mote {
 export const MOTES_PER_SHOT = 12
 export const MAX_MOTES = 240
 
-function hash01(a: number, b: number): number {
-  const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453
-  return s - Math.floor(s)
-}
 
 /** One squirt: MOTES_PER_SHOT motes fanned downward from the container's
  *  mouth. Deterministic in (startId). */

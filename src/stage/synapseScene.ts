@@ -31,9 +31,39 @@ import {
   place,
   type BoutonFit,
 } from './boutonShape'
-import { GLOSSY_COLORS, chargeWash, drawGlossyIon, polarityT } from './particleStyle'
+import {
+  GLOSSY_COLORS,
+  chargeWash,
+  chargeSpan,
+  drawGlossyIon,
+  drawIonCharge,
+  polarityT,
+} from './particleStyle'
 import { SIGNAL_RGB, softGlow } from './signal'
-import { drawLigandChannel } from './ligandChannel'
+import { drawLigandChannel, ligandHalfWidth } from './ligandChannel'
+import { hash01 } from '../core/noise'
+import {
+  AMPA_AT_REST,
+  AMPA_DELIVERED,
+  camDrive,
+  camkPulse,
+  naAlpha,
+  naCrossing,
+  naSettling,
+  dispatchAt,
+  nmdaGate,
+  spineAmpaShown,
+  spineCharge,
+  spineHeadAlpha,
+  nmdaLive,
+  nmdaKind,
+  nmdaWaiting,
+  spineStone,
+  deliveryAt,
+  nmdaOpen,
+  type SpineState,
+} from '../core/spine'
+import { drawCaMKII, drawCalmodulin } from './cascadeGlyphs'
 
 import { drawVoltageChannel } from './voltageChannel'
 import {
@@ -62,7 +92,14 @@ import {
   sodiumCast,
   transmitterCast,
 } from './synapseCast'
-import { paveMembrane, type LipidGeom, type WallPoint } from './bilayer'
+import {
+  HALF_MEM,
+  HEAD_GAP,
+  HEAD_R,
+  paveMembrane,
+  type LipidGeom,
+  type WallPoint,
+} from './bilayer'
 import { POOL, sampleSynapse, type SynapseRun } from '../core/synapse'
 import { spoken, drawSpoken, type SpokenLabel } from './spokenLabels'
 
@@ -345,9 +382,14 @@ function loopMoments(
 export function synapseEvents(
   run: SynapseRun,
   cleft: CleftRun,
+  /** ⚠ THE FRAMING'S OWN GEOMETRY, when it has one. The dated moments depend on
+   *  HOW MANY receptors there are — a run reaches "the first one is bound" at a
+   *  different millisecond with two than with five — so a view that draws its
+   *  own row must date its timeline off that row. */
+  geom = synapseGeometry(),
 ): { id: string; label: string; ms: number; note: string }[] {
-  const g = synapseGeometry()
-  const sites = receptorSites(g)
+  const g = geom
+  const sites = castSeats(g)
   let fusion: number | null = null
   for (const v of run.vesicles)
     if (v.fusedAtMs !== null && (fusion === null || v.fusedAtMs < fusion))
@@ -545,9 +587,121 @@ export const OUTSIDE = '#11192b'
  *  of outside that was folded in is unfolded again. Two constants that happened
  *  to agree would be two things that could stop agreeing. */
 export const LUMEN = OUTSIDE
-export const CYTOPLASM = 'rgba(148, 163, 184, 0.10)'
-const LEAFLET = '#cbd5e1'
-const CORE = 'rgba(71, 85, 105, 0.75)'
+/** The cytoplasm's own channels — one source, so the fade below and the fill
+ *  cannot drift into two slightly different slates. */
+export const CYTO_RGB = '148, 163, 184'
+export const CYTO_ALPHA = 0.1
+export const CYTOPLASM = `rgba(${CYTO_RGB}, ${CYTO_ALPHA})`
+
+/** ⚠ HOW A VESICLE'S INSIDE MEETS THE OUTSIDE — a fade, not a cut (user,
+ *  2026-09-12: "add gradient on the bg edge, so that inside and outside do not
+ *  have such an abrupt cut", then "the gradient starts where heads start, and
+ *  end at the heads' edge on the other side").
+ *
+ *  The step is small and real: a lumen is the bath's own ink, `rgb(17, 25, 43)`,
+ *  and the terminal around it is that same bath under a tenth of slate,
+ *  `rgb(30, 39, 57)` — about 5% of the range. The WALL used to cover it; once
+ *  the band began dissolving behind the molecules (21c-41) nothing did.
+ *
+ *  ⚠ AND IT IS THE LUMEN THAT FADES, NOT CYTOPLASM PAINTED OVER IT. That was
+ *  built first and the user reported "nothing changed" — correctly. Laying the
+ *  cytoplasm's own 10% slate on top can only ever ADD its 10%: inside the
+ *  bubble it reproduces the terminal's colour, and outside the bubble it lands
+ *  on ground that already has that slate and makes `rgb(42, 51, 70)` — lighter
+ *  than the terminal, a halo rather than a blend. The step never moved.
+ *
+ *  Fading the lumen OUT lets whatever is behind show through, so the transition
+ *  is the real one, blurred. It runs head edge to head edge: a head's outer
+ *  edge is exactly `halfMem` from the wall's midline (its centre is at
+ *  `halfMem − headR`, its radius `headR`), so the two edges are `r ± halfMem`.
+ *
+ *  ⚠ THE CORE IS STILL A FLAT `LUMEN` FILL. Two guards identify a vesicle's
+ *  BODY by it — one of them "its lumen IS the extracellular ink, not a match
+ *  for it" — so the flat disc stays and the rim is drawn over it. And the
+ *  channels below are PARSED from `OUTSIDE`, never retyped, for that guard's
+ *  own reason: two spellings of one colour are two things that can stop
+ *  agreeing. */
+const hexChannels = (hex: string): string => {
+  const h = hex.replace('#', '')
+  const n = parseInt(h, 16)
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`
+}
+/** The bath's own channels, derived from `OUTSIDE` itself. */
+export const LUMEN_RGB = hexChannels(OUTSIDE)
+
+/** Half the membrane's thickness — a lipid head's outer edge, measured from the
+ *  wall's midline. The fade's two ends. */
+export const LUMEN_FADE_HALF = MEM_PX
+/** How far out the fade reaches past a bubble of radius `r`, and how far in the
+ *  flat core runs. */
+export const lumenEdgeR = (r: number): number => r + LUMEN_FADE_HALF
+export const lumenCoreR = (r: number): number => Math.max(0, r - LUMEN_FADE_HALF)
+
+export function lumenEdge(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+): CanvasGradient {
+  const grad = ctx.createRadialGradient(x, y, lumenCoreR(r), x, y, lumenEdgeR(r))
+  grad.addColorStop(0, `rgba(${LUMEN_RGB}, 1)`)
+  grad.addColorStop(0.5, `rgba(${LUMEN_RGB}, 0.6)`)
+  grad.addColorStop(1, `rgba(${LUMEN_RGB}, 0)`)
+  return grad
+}
+
+/** ⚠ THE BAND BEHIND THE MOLECULES — and it is a WASH, not a second bilayer
+ *  (user, 2026-09-12: "right behind the bilayer, you have a background that
+ *  simulates the bilair with similar colors… the heads of lipids stick out of
+ *  the background borders. Either remove the background completely or make it
+ *  slightly transparent so it serves more as a unifier").
+ *
+ *  It was `#cbd5e1` — the lipid head's OWN colour — stroked at `MEM_PX` = 5 px
+ *  while the heads span `2 x (halfMem + headR)` = 12. So it was a solid copy of
+ *  the bilayer, in the bilayer's ink, two and a half times too narrow, with the
+ *  real molecules hanging out of both its edges.
+ *
+ *  It cannot simply go: at low detail the molecules are not drawn at all and
+ *  this band IS the membrane. So it keeps that job and loses the other one —
+ *  wide enough to CONTAIN the heads, and faint enough to read as the ground
+ *  they sit on rather than as an element of its own. */
+/** ⚠ HOW STRONGLY THE BAND IS PAINTED WHERE NO MOLECULES ARE DRAWN — one dial
+ *  for both of its strokes.
+ *
+ *  ⚠ IT IS NOT AN OFF SWITCH, it is the far end of a DISSOLVE (user,
+ *  2026-09-12: "but keep lipids, only make grey bg behind the lipids
+ *  transparent"). Turning it to 0 outright did make the grey go from behind the
+ *  molecules — and took every membrane with it the moment the camera pulled
+ *  back, because at low detail the molecules are not drawn at all and this band
+ *  IS the membrane.
+ *
+ *  So the band now fades out exactly as the molecules fade IN, which is this
+ *  app's own rule: level of detail dissolves, never switches. Behind the lipids
+ *  there is nothing; where there are no lipids there is a membrane. */
+export const WALL_BAND_ALPHA = 1
+
+/** The band's two inks, exported so guards can match what is ACTUALLY
+ *  painted rather than a colour literal kept in sync by hand — which is how
+ *  three of them broke the moment the dial above moved. */
+/** ⚠ THE ASTROCYTE'S OWN STRENGTHS, now everyone's (2026-09-12, user: "Whole
+ *  picture view: make neurons' membrane same as astrocyte's").
+ *
+ *  The astrocyte's code already CLAIMED this — "It is the same LEAFLET/CORE the
+ *  rest of the frame wears — one biology, one drawing" — and then stroked its
+ *  own numbers: 0.85 and 0.7 against the neurons' 0.38 and 0.75. So at the whole
+ *  view the glial cell had a solid wall and the two neurons had a faint one, and
+ *  a comment insisted they were the same. They are now, from one pair of
+ *  constants, faded by one dial. */
+export const WALL_LEAFLET_INK = `rgba(203, 213, 225, ${0.85 * WALL_BAND_ALPHA})`
+const LEAFLET = WALL_LEAFLET_INK
+
+/** How thick the band is: the whole molecule, heads included, so nothing can
+ *  stick out of it. Derived from the lipid, never typed. */
+export const WALL_BAND = 2 * (HALF_MEM + HEAD_R) * (MEM_PX / HALF_MEM)
+/** The oily core showing through it, in the same proportion as before. */
+export const WALL_CORE = WALL_BAND * 0.42
+export const WALL_CORE_INK = `rgba(71, 85, 105, ${0.7 * WALL_BAND_ALPHA})`
+const CORE = WALL_CORE_INK
 const INK = 'rgba(148, 163, 184, 0.85)'
 /** ⚠ THE TRANSMITTER'S OWN INK — one ink wherever the stuff is: in the bubble,
  *  in the gap, on a receptor. The same stuff came out of the same bag; two
@@ -657,7 +811,37 @@ export interface SynapseGeometry {
    *  geometry so every part that has to stay clear of the astrocyte asks the
    *  same number instead of re-deriving it. */
   astroRoom: number
+  /** ⚠ THE RECEPTORS THIS FRAMING ACTUALLY DREW, when they are not the round
+   *  trip's default row (user, 2026-09-13: "NT bind the wrong place. Expected:
+   *  bind receptors").
+   *
+   *  Everything that has an opinion about a receptor — who catches which
+   *  transmitter ball, when a channel is allowed to show itself bound, where
+   *  sodium crosses, when the departing flash launches — worked it out from
+   *  `receptorSites(g)`, the round trip's five seats. The spine draws two, in a
+   *  tight cluster, at a centre of its own. So the balls were binding to five
+   *  places that had no receptor in them: MEASURED, four of the five columns
+   *  were on bare membrane and one was off the side of the stage.
+   *
+   *  One list, carried by the geometry, asked by `castSeats`. */
+  seats?: { x: number; y: number }[]
+  /** ⚠ WHICH SEAT HOLDS ITS LIGAND (user, 2026-09-13: "glutamate is gone from
+   *  NMDA before it gets activated, which is wrong. Why did you make this
+   *  decision?").
+   *
+   *  It was not a decision — it was an inherited default, and the user is
+   *  right. Every seat's ligand was released on the schedule `receptorOpenWindow`
+   *  gives, which is AMPA's: bound for about a millisecond. NMDA's glutamate
+   *  stays bound for hundreds, and that slow unbinding IS why NMDA is slow —
+   *  the receptor was being drawn opening on its own clock while its ligand
+   *  left on somebody else's. */
+  slowSeat?: number
 }
+
+/** The receptors the CAST is keyed to — this framing's, if it has any of its
+ *  own, and the round trip's row otherwise. */
+export const castSeats = (g: SynapseGeometry): { x: number; y: number }[] =>
+  g.seats ?? receptorSites(g)
 
 /** ⚠ THE PRESYNAPTIC WALL AT THIS x — the bouton's own outline, never a line
  *  through its lowest point.
@@ -670,6 +854,15 @@ export interface SynapseGeometry {
  *  Everything that lives on the wall reads this: docked vesicles, the calcium
  *  doors, the cleft's ceiling, the tear. */
 export function wallAt(g: SynapseGeometry, x: number): number {
+  // ⚠ AND NO FRAME MAY DECLARE IT FLAT (21c-57). A `flatWallY` escape hatch was
+  // written here for the spine's framing on the grounds that "a bouton's face
+  // over a single zone is flat to within a pixel at that magnification". It was
+  // never set by anything — and it was not true either: MEASURED, the floor
+  // falls 36px across the active zone, which at the spine's 3.1x is 113px of
+  // screen. Worse, flattening it would have detached the wall's molecules from
+  // the bouton SILHOUETTE, which is one traced drawing and does not flatten
+  // with it. The face is a shallow cup because the terminal is round; that is
+  // the anatomy, and both membranes keep it.
   return boutonFloorAt(g.fit, x) ?? g.foot.y
 }
 
@@ -916,13 +1109,24 @@ export function vesicle(
    *  wall's own curve, never a horizontal band (user, 2026-09-01: "the cut on
    *  the vesicles does not repeat the curve of the presynaptic bouton"). */
   skip?: { from: number; to: number; wallY: (x: number) => number; pad: number },
+  /** How much of the backing band to paint — 1 far out, 0 once this thing's own
+   *  molecules are drawn on top of it. Threaded rather than kept in module
+   *  state, so a caller can never be surprised by a frame it did not set. */
+  band = 1,
 ): void {
   ctx.save()
   ctx.globalAlpha *= alpha
-  // The lumen: the bath's own colour, because that is what it is.
+  // The lumen: the bath's own colour, because that is what it is — a flat core…
   ctx.beginPath()
-  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.arc(x, y, lumenCoreR(r), 0, Math.PI * 2)
   ctx.fillStyle = LUMEN
+  ctx.fill()
+  // …and a rim where it fades out across the wall, head edge to head edge, so
+  // the terminal behind shows through instead of meeting a cut. Wider than the
+  // bubble for that reason, and laid down before the membrane draws on it.
+  ctx.beginPath()
+  ctx.arc(x, y, lumenEdgeR(r), 0, Math.PI * 2)
+  ctx.fillStyle = lumenEdge(ctx, x, y, r)
   ctx.fill()
 
   if (skip) {
@@ -940,16 +1144,21 @@ export function vesicle(
   // vesicles outline look the same as membrane"). A vesicle is the same two
   // leaflets curved round on themselves — the whole reason it can fuse — so it
   // wears the same band: leaflet ink with the oily core through it.
+  ctx.save()
+  // ⚠ THE BAND FADES AS THE MOLECULES ARRIVE. Behind the lipids there must be
+  // nothing; where there are no lipids there must be a membrane.
+  ctx.globalAlpha *= band
   ctx.beginPath()
   ctx.arc(x, y, r, 0, Math.PI * 2)
   ctx.strokeStyle = LEAFLET
-  ctx.lineWidth = MEM_PX
+  ctx.lineWidth = WALL_BAND
   ctx.stroke()
   ctx.beginPath()
   ctx.arc(x, y, r, 0, Math.PI * 2)
   ctx.strokeStyle = CORE
-  ctx.lineWidth = MEM_PX * 0.42
+  ctx.lineWidth = WALL_CORE
   ctx.stroke()
+  ctx.restore()
   ctx.restore()
 }
 
@@ -969,6 +1178,8 @@ export function drawPocket(
   g: SynapseGeometry,
   s: FusedShape,
   p: { xL: number; yL: number; xR: number; yR: number },
+  /** See `vesicle`'s `band`. */
+  band = 1,
 ): void {
   const aL = Math.atan2(p.yL - s.cy, p.xL - s.x)
   const aR = Math.atan2(p.yR - s.cy, p.xR - s.x)
@@ -987,20 +1198,30 @@ export function drawPocket(
   ctx.closePath()
   ctx.fillStyle = LUMEN
   ctx.fill()
+  // ⚠ THE SAME FADE THE BUBBLE HAD BEFORE IT TOUCHED (21c-43). A pocket IS a
+  // vesicle part-way into the wall, so it cannot harden its edge the moment
+  // fusion starts — one object, one drawing, all the way through the event.
+  // Clipped by the pocket's own path, which is why the flat fill comes first:
+  // the gradient only has to soften the arc, not redraw the shape.
+  ctx.fillStyle = lumenEdge(ctx, s.x, s.cy, s.r)
+  ctx.fill()
   // The membrane: the ARC ONLY — never a full circle, and in BOTH of the
   // wall's own strokes, because after fusion this is not a vesicle near a
   // wall, it IS the wall.
+  ctx.save()
+  ctx.globalAlpha *= band
   ctx.beginPath()
   ctx.arc(s.x, s.cy, s.r, aR, aL, true)
   ctx.strokeStyle = LEAFLET
-  ctx.lineWidth = MEM_PX
+  ctx.lineWidth = WALL_BAND
   ctx.lineCap = 'round'
   ctx.stroke()
   ctx.beginPath()
   ctx.arc(s.x, s.cy, s.r, aR, aL, true)
   ctx.strokeStyle = CORE
-  ctx.lineWidth = MEM_PX * 0.42
+  ctx.lineWidth = WALL_CORE
   ctx.stroke()
+  ctx.restore()
   ctx.restore()
 }
 
@@ -1301,6 +1522,8 @@ export function membraneBand(
   /** The wall's own height at an x — so a tear's punch FOLLOWS the curve it is
    *  torn in, edge to edge, rather than being a level rectangle near it. */
   wallY?: (x: number) => number,
+  /** See `vesicle`'s `band`. */
+  band = 1,
 ): void {
   ctx.save()
   if (tears && tears.some((t) => t.xR > t.xL)) {
@@ -1321,20 +1544,90 @@ export function membraneBand(
     ctx.clip('evenodd')
   }
   trace()
+  ctx.save()
+  ctx.globalAlpha *= band
   ctx.strokeStyle = LEAFLET
-  ctx.lineWidth = MEM_PX
+  ctx.lineWidth = WALL_BAND
   ctx.lineJoin = 'round'
   ctx.stroke()
   trace()
   ctx.strokeStyle = CORE
-  ctx.lineWidth = MEM_PX * 0.42
+  ctx.lineWidth = WALL_CORE
   ctx.stroke()
+  ctx.restore()
   ctx.restore()
 }
 
 /** The spine: a neck out of the shaft and a mushroom head facing the terminal.
  *  ⚠ This is the alteration to the handover — see `boutonShape` for why a
  *  glutamate synapse must land on a spine. */
+/** One cubic of the spine's outline. */
+interface XY {
+  x: number
+  y: number
+}
+export interface Cubic {
+  p0: XY
+  c1: XY
+  c2: XY
+  p1: XY
+}
+
+/** ⚠ THE SPINE'S SIDE WALLS, DEFINED ONCE — the two flanks and the two neck
+ *  walls, as the cubics `spinePath` traces and `membraneLipids` paves.
+ *
+ *  They were two descriptions of one shape: the outline drew flaring cubics
+ *  down to the trunk, and the paver laid straight verticals at the neck's own
+ *  half-width. So the molecules sat inside the wall, and between the face's
+ *  ends and the neck the wall had NO molecules at all — which is the gap the
+ *  user reported. One definition, both callers. */
+export function spineWalls(g: SynapseGeometry, height = SYN_H): Cubic[] {
+  const { head } = g
+  const root = g.shaftTop
+  const neck = head.rx * 0.2
+  const bulge = head.ry * 0.6
+  const trunkHalf = head.rx * 0.55
+  const bottom = height + 40
+  const left = head.cx - head.rx
+  const right = head.cx + head.rx
+  const yL = faceAt(g, left)
+  const yR = faceAt(g, right)
+  return [
+    {
+      p0: { x: head.cx - trunkHalf, y: bottom },
+      c1: { x: head.cx - neck * 1.05, y: bottom - (bottom - root) * 0.55 },
+      c2: { x: head.cx - neck, y: root + (bottom - root) * 0.25 },
+      p1: { x: head.cx - neck, y: root },
+    },
+    {
+      p0: { x: head.cx - neck, y: root },
+      c1: { x: head.cx - neck, y: yL + bulge },
+      c2: { x: left, y: yL + bulge },
+      p1: { x: left, y: yL },
+    },
+    {
+      p0: { x: right, y: yR },
+      c1: { x: right, y: yR + bulge },
+      c2: { x: head.cx + neck, y: yR + bulge },
+      p1: { x: head.cx + neck, y: root },
+    },
+    {
+      p0: { x: head.cx + neck, y: root },
+      c1: { x: head.cx + neck, y: root + (bottom - root) * 0.25 },
+      c2: { x: head.cx + neck * 1.05, y: bottom - (bottom - root) * 0.55 },
+      p1: { x: head.cx + trunkHalf, y: bottom },
+    },
+  ]
+}
+
+const cubicAt = (c: Cubic, t: number): XY => {
+  const u = 1 - t
+  return {
+    x: u * u * u * c.p0.x + 3 * u * u * t * c.c1.x + 3 * u * t * t * c.c2.x + t * t * t * c.p1.x,
+    y: u * u * u * c.p0.y + 3 * u * u * t * c.c1.y + 3 * u * t * t * c.c2.y + t * t * t * c.p1.y,
+  }
+}
+
 export function spinePath(
   ctx: CanvasRenderingContext2D,
   g: SynapseGeometry,
@@ -1353,7 +1646,6 @@ export function spinePath(
   // horizontal cross-frame shaft the wide view never showed is gone — and
   // with it, everything the bottom-of-canvas saga was about.
   const { head } = g
-  const root = g.shaftTop
   // ⚠ THE FACE IS TRACED FROM `faceAt`, so the membrane the receptors sit in is
   // literally the membrane the cleft is measured to. It used to be an ellipse
   // near the bouton's lowest point, which is how the apposition came apart.
@@ -1363,7 +1655,7 @@ export function spinePath(
   ctx.beginPath()
   // ⚠ A NECK, NOT A PEDESTAL. Narrow against the head it carries — which is
   // what a real spine neck is, and why a spine is a compartment of its own.
-  const neck = head.rx * 0.2
+  // Its width, and the flanks' bulge, now live in `spineWalls`.
   // ⚠ SMOOTH FLANKS, NOT DIAGONALS (user, 2026-09-01: "the postsynaptic
   // specialization looks misshaped and has angles"). The sides used to be a
   // straight line from the neck to a point below the face's end and a vertical
@@ -1372,53 +1664,449 @@ export function spinePath(
   // and arrives at the face's end VERTICALLY (second control point straight
   // below it), which is also the face curve's own tangent there — so neck,
   // flank and face meet without a corner anywhere. A membrane is a liquid.
-  const bulge = head.ry * 0.6
-  const yL = faceAt(g, left)
-  const yR = faceAt(g, right)
-  const trunkHalf = head.rx * 0.55
-  const bottom = height + 40
   // Up the left wall: from the trunk's off-canvas base, narrowing into the
   // neck, then flaring into the head — every joint a smooth cubic.
-  ctx.moveTo(head.cx - trunkHalf, bottom)
-  ctx.bezierCurveTo(
-    head.cx - neck * 1.05,
-    bottom - (bottom - root) * 0.55,
-    head.cx - neck,
-    root + (bottom - root) * 0.25,
-    head.cx - neck,
-    root,
-  )
-  ctx.bezierCurveTo(head.cx - neck, yL + bulge, left, yL + bulge, left, yL)
+  // ⚠ THE WALLS COME FROM `spineWalls`, so the outline and the molecules paved
+  // on it are one shape rather than two descriptions of it.
+  const walls = spineWalls(g, height)
+  ctx.moveTo(walls[0].p0.x, walls[0].p0.y)
+  for (const w of [walls[0], walls[1]]) {
+    ctx.bezierCurveTo(w.c1.x, w.c1.y, w.c2.x, w.c2.y, w.p1.x, w.p1.y)
+  }
   for (let i = 0; i <= steps; i++) {
     const x = left + ((right - left) * i) / steps
     ctx.lineTo(x, faceAt(g, x))
   }
-  ctx.bezierCurveTo(right, yR + bulge, head.cx + neck, yR + bulge, head.cx + neck, root)
-  // And down the right wall, widening away toward the soma.
-  ctx.bezierCurveTo(
-    head.cx + neck,
-    root + (bottom - root) * 0.25,
-    head.cx + neck * 1.05,
-    bottom - (bottom - root) * 0.55,
-    head.cx + trunkHalf,
-    bottom,
-  )
+  for (const w of [walls[2], walls[3]]) {
+    ctx.bezierCurveTo(w.c1.x, w.c1.y, w.c2.x, w.c2.y, w.p1.x, w.p1.y)
+  }
   if (closed) ctx.closePath()
 }
 
 /** Where the receptors sit on the spine head, facing the cleft. Spacing
  *  jittered — evenly ruled receptors are a diagram, not a membrane. */
-export function receptorSites(g: SynapseGeometry, n = 5): { x: number; y: number }[] {
+/** ⚠ WHERE S13'S RECEPTORS STAND — exported so the drawing and its guard ask
+ *  ONE function rather than each computing the cluster's reach. A guard that
+ *  recomputes the formula passes while the drawing stops calling it, which is
+ *  what happened on the first break round.
+ *
+ *  `ampa` AMPA receptors plus one NMDA, as a packed cluster: a postsynaptic
+ *  density IS packed, and smeared across the active zone's full width at this
+ *  magnification it left most of the frame empty. */
+// ── S13's two stores of AMPA ────────────────────────────────────────────────
+//
+// ⚠ BOTH OF THEM, AT THE USER'S WORD (2026-09-12: "illustrate both storages in
+// the current view"), and they are two STAGES of one supply rather than two
+// alternatives:
+//
+//   · the INTRACELLULAR store — recycling endosomes, membrane-bound carriers
+//     holding AMPA receptors, sitting inside the spine head under the density.
+//     On potentiation they are mobilised and fuse with the wall.
+//   · the SURFACE store — receptors already IN the membrane, outside the
+//     density. In a real synapse these are often the first to arrive: they
+//     simply diffuse in and are trapped by the scaffold, and the exocytosis
+//     above refills THIS pool rather than delivering straight into the synapse.
+//
+// So the delivery now runs through both, which is the honest order: a carrier
+// rises from the store, fuses beside the density, and the receptor it lands
+// SLIDES from there into place.
+
+/** Where the surface pool stands, either side of the density — and it doubles
+ *  as the place a carrier fuses, because that is the same event.
+ *
+ *  ⚠ IT HAD TO COME IN FROM THE SHOULDER. Measured at this camera, the visible
+ *  window is ±171 of the head's centre and the old fusion shoulder was at ±207:
+ *  every carrier was fusing OFF SCREEN. */
+export const surfaceX = (g: SynapseGeometry, side: -1 | 1): number =>
+  g.head.cx + side * g.activeHalf * 0.5
+
+/** ⚠ TWO CARRIERS, NOT FOUR (user, 2026-09-12: "Display just two, make them as
+ *  big as those in the membrane, make the circles made out of Lipids").
+ *
+ *  Fewer and bigger, which is this app's own rule the moment a thing has to
+ *  show what it is MADE of: a recycling endosome is a membrane compartment, so
+ *  its ring is bilayer like any other vesicle here, and it has to be drawn
+ *  large enough for that bilayer to be a bilayer rather than a smudge.
+ *
+ *  And the receptor it carries is the SAME SIZE as the ones in the wall,
+ *  because it is the same protein — one protein, one drawing; only the scale
+ *  differs, and here it must not. */
+export const STORE_N = 2
+/** The receptor a carrier holds, at the wall's own size. */
+export const STORE_RECEPTOR_H = MEM_PX * 2.6
+/** …and the carrier sized to hold it, with room for its own wall. */
+export const storeR = (): number => ligandHalfWidth(STORE_RECEPTOR_H, 0) * 1.5
+
+/** Where the waiting carriers sit inside the head — under the density, which is
+ *  where recycling endosomes are. */
+/** ⚠ HOW DEEP IN THE HEAD THE CARRIERS WAIT (user, 2026-09-13: "Place circles
+ *  with AMPAs deeper in spine, further away from the top"). They sat at 0.62 of
+ *  the head's half-height under the face, tucked right up beneath the density
+ *  where they read as part of it. A recycling endosome is not stuck to the
+ *  postsynaptic density; it is in the head's cytoplasm. */
+export const STORE_DEPTH = 1.18
+/** …and how far apart, along the head (user: "Place 2 stored AMPAs further
+ *  apart. 1 may go further along the membrane"). */
+export const STORE_SPREAD = 0.92
+
+/** ⚠ HOW WIDE THE HEAD IS AT THIS DEPTH — read off the outline's own cubics, so
+ *  anything placed in the cytoplasm can be kept inside the cell it is in.
+ *
+ *  The bug it exists for: pushing the carriers deeper and further apart put one
+ *  of them 5px THROUGH the left wall — a membrane compartment drawn outside the
+ *  membrane. Its depth and its spread were both correct; nothing was asking
+ *  whether the head was still that wide down there. Returns null above the
+ *  head's shoulders, where the face is the boundary instead. */
+export function headSpanAt(
+  g: SynapseGeometry,
+  y: number,
+  height = SYN_H,
+): { lo: number; hi: number } | null {
+  let lo = Infinity
+  let hi = -Infinity
+  for (const w of spineWalls(g, height)) {
+    let prev = cubicAt(w, 0)
+    for (let i = 1; i <= 240; i++) {
+      const here = cubicAt(w, i / 240)
+      if ((prev.y - y) * (here.y - y) <= 0 && prev.y !== here.y) {
+        const t = (y - prev.y) / (here.y - prev.y)
+        const x = prev.x + (here.x - prev.x) * t
+        lo = Math.min(lo, x)
+        hi = Math.max(hi, x)
+      }
+      prev = here
+    }
+  }
+  return lo === Infinity ? null : { lo, hi }
+}
+
+export function storeSeats(
+  g: SynapseGeometry,
+  left: number,
+  centre = g.head.cx,
+): { x: number; y: number; turn: number }[] {
+  const out: { x: number; y: number; turn: number }[] = []
+  const y = faceAt(g, centre) + g.head.ry * STORE_DEPTH
+  // ⚠ IN THE HALF THE CAMERA FRAMES, and between the wall they fuse at and the
+  // density they are bound for — which is both where a mobilised endosome
+  // actually is and the only place this framing can show one. Measured at the
+  // old spread (±0.31 of the active zone about the head's centre) the right
+  // carrier sat 2px past the right edge of the stage once the camera moved to
+  // the left flank; a store nobody can see is a store that is not illustrated.
+  const mid = (wallQueueX(g, 1, centre) + centre) / 2
+  for (let i = 0; i < left; i++) {
+    const t = i / (STORE_N - 1) - 0.5
+    // ⚠ NOT A MIRROR PAIR (user, 2026-09-12: "Make stored channels look
+    // slightly misaligned. Currently, they are too symmetric"). Two carriers
+    // placed at ±t on one line read as a diagram of two carriers; a crowd of
+    // free-floating compartments does not line up. Seeded, so they are
+    // irregular without shimmering.
+    const j1 = hash01(i, 41) - 0.5
+    const j2 = hash01(i, 57) - 0.5
+    // ⚠ AND THE SECOND ONE IS FURTHER ALONG, not merely further out (user:
+    // "1 may go further along the membrane"): the pair is spread along the head
+    // AND staggered in depth, so they read as two compartments floating in a
+    // cell rather than as a diagram of two compartments.
+    const cy = y + (t + j2 * 0.5) * g.head.ry * 0.42
+    const want = mid + t * g.activeHalf * STORE_SPREAD + j1 * g.activeHalf * 0.1
+    // ⚠ …AND INSIDE THE CELL AT THAT DEPTH. The head narrows toward the neck,
+    // so a spread that fits under the density does not fit further down: the
+    // left carrier was drawn 5px through the wall.
+    const span = headSpanAt(g, cy)
+    const r = storeR() * 1.15
+    const cx = span
+      ? Math.max(span.lo + r, Math.min(span.hi - r, want))
+      : want
+    out.push({
+      x: cx,
+      y: cy,
+      // ⚠ AND ITS RECEPTOR IS TURNED (user: "Rotate the stored channels"). A
+      // protein in a vesicle's wall stands ALONG THE RADIUS wherever it happens
+      // to sit, exactly as VGLUT does on a synaptic vesicle — it does not
+      // balance on top. So each carrier's receptor gets its own angle.
+      turn: (hash01(i, 73) - 0.5) * 2.1,
+    })
+  }
+  return out
+}
+
+// ── A1: the supply line up the neck ─────────────────────────────────────────
+//
+// ⚠ RECEPTORS IN THE NECK'S WALL, MAKING THEIR WAY UP — and this is real
+// (user, 2026-09-12: "display some channels on the part of membrane on the leg
+// of the dendritic spine and then display them being pulled up towards synaptic
+// cleft?"). AMPA receptors are put into the membrane at extrasynaptic sites
+// including the dendrite shaft and the spine's neck, and they reach the density
+// by DIFFUSING in the plane of the membrane. The neck is a genuine diffusion
+// barrier, which is part of why a spine is a compartment at all.
+//
+// ⚠ BUT THEY ARE NOT PULLED. Nothing attracts them: they wander, and they STICK
+// when they reach the scaffold under the density (01 → D07: "receptors are not
+// attracted through space — they diffuse in the membrane plane and are
+// caught"). A straight purposeful ascent would draw a force that does not
+// exist, so the climb below carries a seeded wander that does not resolve into
+// anything directed until the capture at the top.
+
+/** ⚠ AND A RECEPTOR IN A CARRIER'S WALL FACES THE OTHER WAY — into the LUMEN.
+ *
+ *  This is the topology, and it is the whole reason the flip is needed: a
+ *  recycling endosome is made by the membrane folding IN, so the face that was
+ *  extracellular becomes the face looking into the bubble. A receptor riding
+ *  inside one therefore offers its binding mouth to the lumen, not to the
+ *  cytoplasm around it — the lumen IS "outside the cell", folded in.
+ *
+ *  The glyph is placed by stepping out along its own −y to the ring, which
+ *  leaves that mouth pointing away from the centre; half a turn puts it back. */
+export const CARRIER_FLIP = Math.PI
+
+/** ⚠ HOW A DELIVERED RECEPTOR IS TURNED AS ITS CARRIER OPENS INTO THE WALL —
+ *  the one place that decides it, and a DECISION rather than ink, because
+ *  nothing a guard can count on a canvas tells you which way a protein faces.
+ *
+ *  Riding in the bubble its binding mouth faces the LUMEN; once the bubble has
+ *  opened into the wall that same mouth faces OUT of the cell. Nothing flips:
+ *  the membrane unfolds and takes the protein with it, which is the whole of
+ *  the topology note and used to happen off screen. */
+export const carrierTurn = (rideTurn: number, merge: number): number => {
+  const t = Math.max(0, Math.min(1, merge))
+  return (rideTurn + CARRIER_FLIP) * (1 - t * t * (3 - 2 * t))
+}
+
+/** ⚠ WHICH FLANK THE SUPPLY LINE CLIMBS — the one the camera frames (user,
+ *  2026-09-13: "let's shift camera so that the left side of the spine is in
+ *  view. So we can follow the membrane and channel's path"). At this
+ *  magnification the head is wider than the stage, so only one flank can be
+ *  watched; traffic drawn on the other is traffic nobody sees. Real receptors
+ *  arrive on every side — this picture follows the ones it can show. */
+export const NECK_SIDE: -1 | 1 = -1
+
+/** How far apart the receptors stand in the wall beside the density: one
+ *  protein's width, so they queue rather than pile up. */
+export const NECK_CATCH_STEP = ligandHalfWidth(MEM_PX * 2.6, 0) * 2.2
+
+/** ⚠ THE QUEUE IN THE WALL BESIDE THE DENSITY, defined ONCE — because the
+ *  climb, the exocytosis, the standing pool and the paver's holes are four
+ *  drawings of one line, and four private copies of it is four chances for a
+ *  protein to stand on another protein.
+ *
+ *  Slot 0 is furthest from the synapse and each step is one protein nearer, so
+ *  the journey reads left to right on the framed flank: a carrier fuses at 0,
+ *  the climbers arriving off the flank are caught at 1 and 2, the pool that was
+ *  already standing there is 3 and 4, and the density is beyond. That order is
+ *  the science — receptors are delivered OUTSIDE the synapse and work their way
+ *  in — laid out as a queue instead of asserted in a caption. */
+export const wallQueueX = (
+  g: SynapseGeometry,
+  slot: number,
+  centre = g.head.cx,
+): number => {
+  // ⚠ ANCHORED TO THE DENSITY, not to a fixed fraction of the active zone —
+  // the density moves with the framing now, and a queue that did not move with
+  // it would end up standing inside the synapse it is queueing for. Slot 0 is
+  // just outside the cluster when it is FULLY GROWN, so an arriving receptor
+  // never has to be drawn on top of one that has already been caught.
+  const grown = spineReceptorSeats(g, AMPA_AT_REST + AMPA_DELIVERED, centre)
+  const edge = Math.min(...grown.map((q) => q.x))
+  return edge + NECK_SIDE * (3 - slot) * NECK_CATCH_STEP
+}
+
+/** ⚠ NO STANDING POOL ANY MORE (user, 2026-09-13: "Remove 2 additional"). Two
+ *  receptors used to stand permanently in the wall beside the density, and with
+ *  the climbers added they were a second telling of the same fact — four
+ *  proteins on the face before anything had happened, when the view's first
+ *  sentence is "there is one AMPA and one NMDA here". The supply outside the
+ *  synapse is now the two coming up the flank, which SHOW the arriving instead
+ *  of asserting it. */
+export const SURFACE_N = 0
+
+/** ⚠ THE CLIMB IS ALONG THE MEMBRANE, and that is not a straight line (user,
+ *  2026-09-13: "we can follow the membrane and channel's path").
+ *
+ *  It used to interpolate x from the neck's half-width to the surface pool's,
+ *  and y from the neck to the face — a straight diagonal, which at the spine's
+ *  framing ran through the CYTOPLASM: measured, the halfway point sat 291px
+ *  from the frame's left edge while the wall it was supposed to be in was 544px
+ *  further out again. A protein in a membrane goes where the membrane goes.
+ *
+ *  So the route is the outline's own cubics: up the neck, round the underside
+ *  of the mushroom cap, out along the flank, and over onto the face. It is a
+ *  long way round, and that IS the anatomy — a spine head overhangs its neck.
+ *
+ *  `endX` is where the wander is caught, on the face. */
+/** ⚠ MEMOISED, and on the NUMBERS rather than on the geometry object — every
+ *  caller builds its own `g`, so a WeakMap on it would never hit. Without this
+ *  the route was rebuilt twice per receptor per frame plus once for the camera:
+ *  measured, the spine's render tests went from under a second to over six. */
+const CLIMB_CACHE = new Map<string, { x: number; y: number; turn: number }[]>()
+
+export function neckClimbPath(
+  g: SynapseGeometry,
+  side: -1 | 1 = NECK_SIDE,
+  endX = surfaceX(g, side),
+  height = SYN_H,
+): { x: number; y: number; turn: number }[] {
+  const key = `${g.head.cx},${g.head.rx},${g.head.ry},${g.shaftTop},${g.activeHalf},${side},${endX},${height}`
+  const hit = CLIMB_CACHE.get(key)
+  if (hit) return hit
+  const walls = spineWalls(g, height)
+  // The left pair is traced upward (trunk → neck → face); the right pair is
+  // traced the other way round by `spineWalls`, so it is read in reverse.
+  const pair = side < 0 ? [walls[0], walls[1]] : [walls[3], walls[2]]
+  const STEPS = 44
+  const raw: { x: number; y: number }[] = []
+  for (const c of pair) {
+    for (let s = 0; s <= STEPS; s++) {
+      const t = s / STEPS
+      raw.push(cubicAt(c, side < 0 ? t : 1 - t))
+    }
+  }
+  // ⚠ LOW IN THE NECK BUT NOT ON THE EDGE — measured at `ry × 0.5` the climb
+  // started 646px down a 660px stage, all but off the foot of the picture.
+  const from = g.shaftTop + g.head.ry * 0.28
+  const pts = raw.filter((p) => p.y <= from)
+  // …and on along the face, to where the scaffold catches it.
+  const lip = pts[pts.length - 1].x
+  for (let s = 1; s <= 26; s++) {
+    const x = lip + (endX - lip) * (s / 26)
+    pts.push({ x, y: faceAt(g, x) })
+  }
+
+  // ⚠ THE TURN IS THE WALL'S OWN NORMAL, read off the path — one rule for every
+  // stretch of it, instead of an eased quarter that was only ever right at its
+  // two ends. The glyph's binding seat is at local −y, and a turn θ sends it to
+  // (sin θ, −cos θ); so θ is whatever points that at the OUTSIDE. Smoothed over
+  // a few samples, which is what rounds the corner where the flank meets the
+  // face rather than snapping through it.
+  const cx = g.head.cx
+  const cy = faceAt(g, g.head.cx) + g.head.ry
+  const W = 4
+  const out = pts.map((p, i) => {
+    const a = pts[Math.max(0, i - W)]
+    const b = pts[Math.min(pts.length - 1, i + W)]
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1
+    const tx = (b.x - a.x) / len
+    const ty = (b.y - a.y) / len
+    let nx = ty
+    let ny = -tx
+    if (nx * (p.x - cx) + ny * (p.y - cy) < 0) {
+      nx = -nx
+      ny = -ny
+    }
+    return { x: p.x, y: p.y, turn: Math.atan2(nx, -ny) }
+  })
+  CLIMB_CACHE.set(key, out)
+  return out
+}
+
+/** How many receptors are shown coming up the neck. */
+export const NECK_N = 2
+
+/** Where they are, given how far the climb has got (0…1). `wander` is the
+ *  clock, so the wander is thermal and never the model's time. */
+export function neckSeats(
+  g: SynapseGeometry,
+  climb: number,
+  wander: number,
+  height = SYN_H,
+  centre = g.head.cx,
+): { x: number; y: number; side: -1 | 1; turn: number }[] {
+  const out: { x: number; y: number; side: -1 | 1; turn: number }[] = []
+  for (let i = 0; i < NECK_N; i++) {
+    // ⚠ THE WANDER IS THE POINT. A fixed fraction of the remaining distance,
+    // shuffled by the clock — so the thing visibly makes its way rather than
+    // being drawn along a line.
+    const jig = Math.sin(wander * 0.0011 + i * 2.3) * 0.09
+    const u = Math.max(0, Math.min(1, climb + jig))
+    // ⚠ EACH IS CAUGHT IN ITS OWN SLOT. Both climb the framed flank now, so two
+    // that ended at one point would be one receptor drawn twice.
+    const endX = wallQueueX(g, 1 + i, centre)
+    const path = neckClimbPath(g, NECK_SIDE, endX, height)
+    const at = path[Math.round(u * (path.length - 1))]
+    out.push({ x: at.x, y: at.y, side: NECK_SIDE, turn: at.turn })
+  }
+  return out
+}
+
+export function spineReceptorSeats(
+  g: SynapseGeometry,
+  ampa: number,
+  /** Where the cluster is centred; the middle of the active zone by default. */
+  centre = g.head.cx,
+): { x: number; y: number }[] {
+  const n = ampa + 1
+  const reach = n <= 1 ? 0 : (ligandHalfWidth(MEM_PX * 2.6, 1) * 2 * 1.3 * (n - 1)) / 2
+  return receptorSites(g, n, reach, centre)
+}
+
+/** ⚠ THE ROW AS IT IS RIGHT NOW, WIDENING — the seats the receptors ALREADY in
+ *  the density stand on, eased between the row they were in and the row they
+ *  are going to be in (21c-72).
+ *
+ *  ⚠ NEW ONES JOIN AT THE NEAR END, which is the end they arrive from. The
+ *  carriers fuse at `wallQueueX(g, 0, …)` and slide inward along the framed
+ *  flank, so a receptor that joined in the MIDDLE of the row would have had to
+ *  pass through the receptors already standing there. Old AMPA `i` therefore
+ *  becomes `i + 1` of the wider row and the NMDA stays last — *one protein, one
+ *  drawing*, and it keeps the slow seat where every caller expects it. */
+export function spineRowSeats(
+  g: SynapseGeometry,
+  ampaShown: number,
+  centre = g.head.cx,
+): { x: number; y: number }[] {
+  const lo = Math.floor(ampaShown + 1e-9)
+  const f = ampaShown - lo
+  const here = spineReceptorSeats(g, lo, centre)
+  if (f <= 1e-9) return here
+  const next = spineReceptorSeats(g, lo + 1, centre)
+  // smoothstep, so the row does not set off and stop dead
+  const e = f * f * (3 - 2 * f)
+  return here.map((p, i) => {
+    const j = i === here.length - 1 ? next.length - 1 : i + 1
+    return { x: p.x + (next[j].x - p.x) * e, y: p.y + (next[j].y - p.y) * e }
+  })
+}
+
+/** ⚠ WHERE AN ARRIVING RECEPTOR IS HEADING — the SEAT it will stand on, asked
+ *  of the row rather than worked out again from the active zone.
+ *
+ *  It was `density + side * activeHalf * (0.13 + slot * 0.12)`: a formula of its
+ *  own, and MEASURED it landed 11 and 12 px from the nearest seat — on bare
+ *  membrane, between two receptors, and then the receptor jumped into its seat
+ *  when `ampa` ticked over. *A cast is keyed to a cast list — carry it, do not
+ *  re-derive it.* */
+export function spineArrivalSeat(
+  g: SynapseGeometry,
+  ampaShown: number,
+  centre = g.head.cx,
+): { x: number; y: number } {
+  const lo = Math.floor(ampaShown + 1e-9)
+  return spineReceptorSeats(g, lo + 1, centre)[0]
+}
+
+export function receptorSites(
+  g: SynapseGeometry,
+  n = 5,
+  /** ⚠ HOW FAR THE CLUSTER REACHES EITHER SIDE OF THE RELEASE SITE, px.
+   *
+   *  ⚠ THE DEFAULT IS LOAD-BEARING and may not be narrowed (21c-37): the CAST
+   *  is keyed to these positions, and tightening it fired four guards at once —
+   *  transmitter balls landing on top of each other, the refill queue
+   *  collapsing, loop dots overlapping. A caller with no cast of its own may
+   *  pass its own reach; the round trip must not. */
+  spread = g.activeHalf * 0.82,
+  /** Where the cluster is centred — the release site, unless a framing that
+   *  has moved its synapse says otherwise. */
+  centre = g.head.cx,
+): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = []
   // ⚠ ACROSS THE ACTIVE ZONE, not across the whole face: a postsynaptic density
   // sits opposite the release site, which is what makes a synapse a synapse
   // rather than two membranes that happen to be near each other.
-  const spread = g.activeHalf * 0.82
   for (let i = 0; i < n; i++) {
     const t = n === 1 ? 0.5 : i / (n - 1)
     const h = Math.sin(i * 73.3 + 5.7) * 43758.5453
     const j = h - Math.floor(h)
-    const x = g.head.cx + (t - 0.5) * 2 * spread + (j - 0.5) * spread * 0.18
+    const x = centre + (t - 0.5) * 2 * spread + (j - 0.5) * spread * 0.18
     // ON the face's own curve, so they sit IN the membrane rather than on a
     // line drawn near it.
     out.push({ x, y: faceAt(g, x) })
@@ -1713,11 +2401,11 @@ export function drawAstroFinger(
   ctx.fill()
   capsule()
   ctx.strokeStyle = fadeStops('203, 213, 225', 0.9, 0)
-  ctx.lineWidth = MEM_PX
+  ctx.lineWidth = WALL_BAND
   ctx.stroke()
   capsule()
   ctx.strokeStyle = fadeStops('71, 85, 105', 0.75, 0)
-  ctx.lineWidth = MEM_PX * 0.42
+  ctx.lineWidth = WALL_CORE
   ctx.stroke()
   // The transporter ticks: the pump family's indigo (D06's own transporter
   // colour, at this register a tick rather than a barrel), each set across
@@ -2288,7 +2976,10 @@ export function astroLipids(g: SynapseGeometry): WallPoint[] {
   const hit = ASTRO_LIPIDS.get(g)
   if (hit) return hit
   const c = astrocyteCell(g)
-  const step = ZONE_LIPID.headR * 2 * 1.25
+  // ⚠ D01'S OWN PACKING (21c-37). The SECOND of the two private copies of the
+  // pitch in this file — see `membraneLipids` for the fault the user reported
+  // and the reason both are gone.
+  const step = ZONE_SPACING
   const reach = g.activeHalf * 1.1
   const near = (x: number, y: number) =>
     c.ticks.some((t) => Math.hypot(t.x - x, t.y - y) < reach)
@@ -2412,14 +3103,20 @@ export function drawAstrocyte(
   trace()
   ctx.fillStyle = fade(ASTRO_INK, ASTRO_BODY_ALPHA)
   ctx.fill()
+  // ⚠ THE SAME TWO INKS THE NEURONS WEAR, from the same constants — and faded
+  // by the same dial, so the glial wall dissolves behind its own molecules
+  // exactly as theirs do. The claim in the paragraph above is now true.
+  ctx.save()
+  ctx.globalAlpha *= 1 - depth
   trace()
-  ctx.strokeStyle = fade('203, 213, 225', 0.85)
-  ctx.lineWidth = MEM_PX
+  ctx.strokeStyle = WALL_LEAFLET_INK
+  ctx.lineWidth = WALL_BAND
   ctx.stroke()
   trace()
-  ctx.strokeStyle = fade('71, 85, 105', 0.7)
-  ctx.lineWidth = MEM_PX * 0.42
+  ctx.strokeStyle = WALL_CORE_INK
+  ctx.lineWidth = WALL_CORE
   ctx.stroke()
+  ctx.restore()
   // ⚠ …AND THE WALL IS MADE OF MOLECULES (21c-4b). The bands above are the
   // membrane's body; these are what it is MADE OF, from the same paver every
   // other wall in this frame uses. Drawn ON the bands, so the material reads
@@ -3229,6 +3926,21 @@ export function snareMini(
 export function snareCis(
   g: SynapseGeometry,
   d: { x: number; y: number; r: number },
+  /** ⚠ HOW FAR THE COMPLEX HAS ZIPPED FLAT, 0…1 (user, 2026-09-13: "adjust snare
+   *  removal animation. Currently teleports. Expected: smooth animation").
+   *
+   *  It DID teleport, and in the one frame the whole view is about: the instant
+   *  a vesicle was marked fused the standing rope — anchored between the bubble
+   *  and the wall — was replaced by a flat one lying a whole vesicle-radius
+   *  away. Two correct drawings of one object, with nothing between them.
+   *
+   *  A trans-complex becoming a cis-complex is not a substitution, it is the
+   *  SAME four helices zipping the rest of the way and settling into the one
+   *  membrane. So the ends travel: from wherever the standing rope's were, on
+   *  the sinking bubble, to where they lie when it is over. */
+  zip = 1,
+  /** The bubble as it is NOW, sinking — the standing rope's anchor. */
+  standing?: { x: number; y: number; r: number },
 ): { ropes: { from: { x: number; y: number }; to: { x: number; y: number } }[] } {
   const lie = (sd: 1 | -1) => {
     const inner = d.x + sd * d.r * (Math.cos(SNARE_ANCHOR_A) + 0.55)
@@ -3238,7 +3950,19 @@ export function snareCis(
       to: { x: outer, y: wallAt(g, outer) - MEM_PX * 0.35 },
     }
   }
-  return { ropes: [lie(1), lie(-1)] }
+  const flat = [lie(1), lie(-1)]
+  const t = Math.max(0, Math.min(1, zip))
+  if (t >= 1 || !standing) return { ropes: flat }
+  // ⚠ EASED: this is a change of PLACE, and a change of place is a journey.
+  const e = t * t * (3 - 2 * t)
+  const up = snareMini(g, standing).ropes
+  const mix = (a: number, b: number) => a + (b - a) * e
+  return {
+    ropes: flat.map((f, i) => ({
+      from: { x: mix(up[i].from.x, f.from.x), y: mix(up[i].from.y, f.from.y) },
+      to: { x: mix(up[i].to.x, f.to.x), y: mix(up[i].to.y, f.to.y) },
+    })),
+  }
 }
 
 /** The spent complex at a fused slot: the same three strands, lying in the
@@ -3247,8 +3971,10 @@ function drawSnareCis(
   ctx: CanvasRenderingContext2D,
   g: SynapseGeometry,
   d: { x: number; y: number; r: number },
+  zip = 1,
+  standing?: { x: number; y: number; r: number },
 ): void {
-  const { ropes } = snareCis(g, d)
+  const { ropes } = snareCis(g, d, zip, standing)
   ctx.save()
   ctx.lineWidth = 1.3
   ctx.lineCap = 'round'
@@ -3282,6 +4008,8 @@ function drawSnareMini(
   ctx: CanvasRenderingContext2D,
   g: SynapseGeometry,
   d: { x: number; y: number; r: number },
+  /** Whether the calcium sensor is drawn — see the knobs below. */
+  sensors = true,
 ): void {
   const m = snareMini(g, d)
   // The ropes: the same three strands, in D06's own strand colours.
@@ -3311,7 +4039,12 @@ function drawSnareMini(
     }
   }
   // Synaptotagmin: the knobs the calcium seats against — D06's sensor grammar.
-  for (const knob of m.knobs) {
+  // ⚠ NOT ON THE RECEIVING SIDE (user, 2026-09-13: "remove Ca binding purple
+  // circles, together with sparkle on binding. Start with NT release
+  // directly"). These are the CALCIUM SENSOR, and this framing draws neither
+  // the doors that let the calcium in nor the calcium itself: a sensor with
+  // nothing to sense is a protein the picture cannot explain.
+  for (const knob of sensors ? m.knobs : []) {
     ctx.beginPath()
     ctx.arc(knob.x, knob.y, 2.6, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
@@ -3330,17 +4063,79 @@ function drawSnareMini(
  *  the app's ONE membrane paver — dissolving in exactly as the chrome
  *  dissolves out. Tears are skipped: a torn wall has no molecules left there
  *  to show. */
-export function membraneLipids(g: SynapseGeometry, tears: Tear[]): WallPoint[] {
+/** ⚠ WHICH WAY IS INTO THE SPINE, at a point on its wall — ONE rule for the
+ *  face, the shoulders, the flanks and the neck, so the bilayer does not change
+ *  its mind where two stretches of one membrane meet.
+ *
+ *  It used to be decided by the sign of the normal's X alone ("whichever points
+ *  back at the spine's own axis"), which is only meaningful on a wall that is
+ *  roughly vertical — and the face, the shoulder and the cap's underside are
+ *  not. Pointing it at the head's own INTERIOR works everywhere, and is the
+ *  same test `neckClimbPath` uses to face a protein out of the cell. */
+export function spineInward(
+  g: SynapseGeometry,
+  at: { x: number; y: number },
+  tx: number,
+  ty: number,
+): { x: number; y: number } {
+  const cy = faceAt(g, g.head.cx) + g.head.ry
+  let nx = -ty
+  let ny = tx
+  if (nx * (at.x - g.head.cx) + ny * (at.y - cy) > 0) {
+    nx = -nx
+    ny = -ny
+  }
+  return { x: nx, y: ny }
+}
+
+export function membraneLipids(
+  g: SynapseGeometry,
+  tears: Tear[],
+  /** ⚠ WHAT IS ACTUALLY STANDING IN THIS WALL (user, 2026-09-12: "remove gaps
+   *  on the membrane"). The paver leaves a molecule out where a protein stands,
+   *  and it used to work that out from `receptorSites(g)` and the calcium doors
+   *  — the round trip's. At the spine's framing the receptors are a tight
+   *  cluster and the doors are not drawn at all, so it was punching holes where
+   *  NOTHING stood: gaps, in the middle of a membrane. A wall's holes are the
+   *  caller's business, because only the caller knows what it drew. */
+  standing?: {
+    /** ⚠ AND HOW WIDE EACH ONE IS RIGHT NOW (21c-75, user: "3 new AMPA
+     *  receptors are covered by a membrane"). A ligand channel's subunits PART
+     *  as it opens, so an open receptor is wider than a shut one — MEASURED,
+     *  10.69 px against 8.82, nearly two pixels of overhang on each side. The
+     *  hole was punched at the SHUT width, so the nearest lipids stood at 9.5
+     *  and 9.9 and every receptor put on a pair of shoulder-pads the moment it
+     *  did its job. `half` is the room this one needs; absent, the shut width. */
+    sites: { x: number; half?: number }[]
+    doors: { x: number }[]
+    /** ⚠ PROTEINS IN THE SIDE WALLS (user, 2026-09-13: "Stored channels aread
+     *  have no gap in the membrane, create gaps"). The flanks and the neck are
+     *  paved now, and the receptors making their way up them were being drawn
+     *  straight over the molecules — a protein has to displace what it stands
+     *  among, on every wall, not only the flat one. */
+    onWalls?: { x: number; y: number }[]
+  },
+): WallPoint[] {
   const pts: WallPoint[] = []
   const span = g.activeHalf * 1.25
-  const step = ZONE_LIPID.headR * 2 * 1.25
-  const doors = activeZone(g).doors
-  const sites = receptorSites(g)
+  // ⚠ THE APP'S OWN PACKING PITCH, not a private one (user, 2026-09-11:
+  // "lipids in the membrane need a fix: the layer should be thick, more even").
+  //
+  // This had `headR * 2 * 1.25` of its own — 22% wider than `lipidSpacing`,
+  // leaving a clear gap of 0.3 between heads where the packing rule leaves
+  // 0.03, ten times tighter. That gap is what "more even" was reporting.
+  //
+  // ⚠ AND THERE WERE TWO COPIES OF IT IN THIS FILE, which is the whole argument
+  // against private copies: the first fix went into `astroLipids` by mistake,
+  // the measurement still said 2.5 against the pitch, and only the number
+  // disagreeing caught it. There is one packing number for this view now.
+  const step = ZONE_SPACING
+  const doors = standing ? standing.doors : activeZone(g).doors
+  const sites: { x: number; half?: number }[] = standing ? standing.sites : receptorSites(g)
   for (let x = g.foot.x - span; x <= g.foot.x + span; x += step) {
     // ⚠ No molecule under a protein (user, 2026-09-01: "they should not
     // overlap with channels") — a channel REPLACES the lipids it displaced.
     const underDoor = doors.some((d) => Math.abs(x - d.x) < 9)
-    const underSite = sites.some((r) => Math.abs(x - r.x) < 10)
     if (!underDoor && !tears.some((t) => x > t.xL - 3 && x < t.xR + 3)) {
       pts.push({
         at: { x, y: wallAt(g, x) },
@@ -3348,12 +4143,86 @@ export function membraneLipids(g: SynapseGeometry, tears: Tear[]): WallPoint[] {
         inward: { x: 0, y: -1 },
       })
     }
-    if (!underSite && Math.abs(x - g.head.cx) <= g.head.rx * 0.98) {
-      pts.push({
-        at: { x, y: faceAt(g, x) },
-        tangent: { x: 1, y: 0 },
-        inward: { x: 0, y: 1 },
-      })
+  }
+  // ⚠ THE SPINE'S FACE IS WALKED ALONG ITS OWN CURVE (user, 2026-09-13: "adjust
+  // bilayer orientation on the left side of the spine, by connecting the
+  // membrane 2 parts").
+  //
+  // It used to be laid by the x-loop above: a molecule every `step` of X, every
+  // one of them standing STRAIGHT DOWN. Across the active zone that is nearly
+  // true, because the face is nearly flat there. Out at the shoulder it is not:
+  // the face falls away on a quarter-ellipse, and MEASURED at the spine's
+  // framing it runs at about 45° while every molecule in it still stood
+  // vertical — and, because the step was in x rather than along the curve, they
+  // were 35px apart on a 1.6px pitch. The flank's molecules stopped at (134,
+  // 503) and the face's first one was at (140, 468): a 108px hole in the wall,
+  // with the two halves meeting at an angle.
+  //
+  // So the face is walked the way the flanks already are — by ARC LENGTH, with
+  // the tangent it actually has — and out to the head's full half-width, which
+  // is exactly where `spineWalls` ends. The two parts now meet.
+  {
+    const from = g.head.cx - g.head.rx
+    const to = g.head.cx + g.head.rx
+    // ⚠ AN ADAPTIVE X-STEP, because a fixed one is not an arc-length step. The
+    // shoulder is a quarter-ellipse and stands VERTICAL at the head's edge, so
+    // a thousand even steps in x still left the first two molecules 8px apart
+    // on a 1.62px pitch. Advancing by `step / √(1 + slope²)` marches the curve
+    // itself: tiny steps where it is steep, full ones where it is flat.
+    const h = 0.05
+    for (let x = from, guard = 0; x <= to && guard < 20000; guard++) {
+      const bx = Math.max(from, x - h)
+      const fx = Math.min(to, x + h)
+      const slope = (faceAt(g, fx) - faceAt(g, bx)) / Math.max(1e-9, fx - bx)
+      const len = Math.hypot(1, slope)
+      const here = { x, y: faceAt(g, x) }
+      const tx = 1 / len
+      const ty = slope / len
+      // ⚠ No molecule under a protein (user, 2026-09-01: "they should not
+      // overlap with channels") — a channel REPLACES the lipids it displaced,
+      // and how many it displaces is how wide it is. ⚠ THE SHUT WIDTH, not the
+      // open one (user, 2026-09-13: "close membrane gaps around channels"):
+      // skipping by the open half-width left ~1.9px of bare wall either side of
+      // every receptor that was not open — a gap round each protein.
+      if (
+        !sites.some(
+          (r) => Math.abs(here.x - r.x) < (r.half ?? ligandHalfWidth(MEM_PX * 2.6, 0)),
+        )
+      ) {
+        pts.push({ at: here, tangent: { x: tx, y: ty }, inward: spineInward(g, here, tx, ty) })
+      }
+      x += step / len
+    }
+  }
+  // ⚠ AND THE FLANKS AND THE NECK WEAR IT TOO (user, 2026-09-12: "Add
+  // phospholipid bilayer also on the leg of the dendritic spine", and "remove
+  // gaps on the membrane"). A membrane is a membrane: the stalk's wall and the
+  // shoulders between it and the face are the same bilayer as the head's, and
+  // leaving them as a bare stroke said they were something else.
+  //
+  // Sampled from `spineWalls` — the outline's OWN cubics — and stepped by arc
+  // length, so the molecules land on the drawn wall and at the drawn pitch.
+  for (const w of spineWalls(g, g.height)) {
+    let carried = 0
+    let prev = cubicAt(w, 0)
+    const N = 240
+    for (let i = 1; i <= N; i++) {
+      const here = cubicAt(w, i / N)
+      const seg = Math.hypot(here.x - prev.x, here.y - prev.y)
+      carried += seg
+      if (carried >= step && seg > 1e-9) {
+        carried = 0
+        const tx = (here.x - prev.x) / seg
+        const ty = (here.y - prev.y) / seg
+        const half = ligandHalfWidth(MEM_PX * 2.6, 0)
+        const blocked = standing?.onWalls?.some(
+          (r) => Math.hypot(r.x - here.x, r.y - here.y) < half,
+        )
+        if (!blocked) {
+          pts.push({ at: here, tangent: { x: tx, y: ty }, inward: spineInward(g, here, tx, ty) })
+        }
+      }
+      prev = here
     }
   }
   return pts
@@ -3397,7 +4266,30 @@ export function vesicleLipids(
 // small heads, LONG tails, two clearly separate leaflets.
 // ~2× down again (user, 2026-09-01: heads stuck out of the contour) — the
 // bilayer now fits INSIDE the drawn band's thickness.
-export const ZONE_LIPID: LipidGeom = { headR: 0.6, halfMem: 3.0 }
+/** ⚠ THE PHOSPHOLIPID BILAYER VIEW'S OWN MOLECULE, SCALED TO THIS WALL (user,
+ *  2026-09-11: "lipids in the membrane need a fix: the layer should be thick,
+ *  more even", then "use lipids from the view 'the phospholipid bilayer'").
+ *
+ *  Two faults, both measured:
+ *
+ *  · IT WAS TOO THIN. `halfMem: 3.0` inside a wall this view draws at
+ *    `MEM_PX` = 5 — the molecules filled **60% of the wall they were paving**,
+ *    so the layer read as a bilayer with air above and below it.
+ *  · IT WAS TOO LOOSELY PACKED. Its spacing came from `lipidSpacing`, which is
+ *    `headR × 2.05`; D01 packs at `headR × 1.62`, derived from the real area
+ *    per lipid (~8 Å). 27% looser, which is heads sitting APART where D01's
+ *    slightly overlap into a continuous row.
+ *
+ *  So all three numbers now come from `bilayer.ts` — the phospholipid bilayer
+ *  view's own — scaled by one factor, which is the only way the shape survives:
+ *  a lipid's proportions are a RATIO, and scaling one number would have drawn a
+ *  different molecule here from the one D01 teaches. */
+const ZONE_K = MEM_PX / HALF_MEM
+export const ZONE_LIPID: LipidGeom = { headR: HEAD_R * ZONE_K, halfMem: HALF_MEM * ZONE_K }
+/** D01's own centre-to-centre packing at this scale. ⚠ NOT `lipidSpacing`,
+ *  which is 27% looser — see the note above, and the hand-over, because the two
+ *  disagreeing across the app is a real thing to settle. */
+export const ZONE_SPACING = HEAD_GAP * ZONE_K
 
 /** Where the axon enters the frame: the stalk's top edge, measured off the
  *  traced outline's own top corners — never typed from the eye. */
@@ -3571,7 +4463,7 @@ export function nudgeLaunchMs(
   cleft: CleftRun,
 ): number | null {
   let launch: number | null = null
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   for (let r = 0; r < sites.length; r++) {
     const ow = receptorOpenWindow(g, run, cleft, r)
     if (ow === null) continue
@@ -3684,7 +4576,7 @@ export function spineTint(
   cleft: CleftRun,
   ms: number,
 ): number {
-  const sites = receptorSites(g)
+  const sites = castSeats(g)
   let sum = 0
   let n = 0
   let last: number | null = null
@@ -3703,6 +4595,32 @@ export function spineTint(
   const decay = ms > last ? Math.exp(-(ms - last) / SPINE_TAU_MS) : 1
   return (sum / n) * decay
 }
+
+/** ⚠ THE INK THE CHILD ACTUALLY SEES INSIDE THE SPINE HEAD — the bath, then the
+ *  cytoplasm over it, then the charge wash over that, composited exactly as the
+ *  canvas composites them.
+ *
+ *  ⚠ IT EXISTS BECAUSE THE CLAIM IS ABOUT THE COMPOSITE, NOT ABOUT EITHER HALF
+ *  (21c-70). The head's reading is now carried by two channels — the hue says
+ *  whether the spine is depolarised, the alpha says by how much (see
+ *  `spineWash`) — so a guard on `spineCharge` alone can be green while the head
+ *  on screen has barely moved, and a guard on the alpha alone says nothing about
+ *  colour. Asked here, once, so both test files measure the same thing and the
+ *  app owns the arithmetic rather than either of them.
+ *
+ *  The app's own rule: measure the claim where the CHILD reads it. */
+export function spineHeadInk(s: SpineState): [number, number, number] {
+  const over = (fg: number[], a: number, bg: number[]) =>
+    fg.map((v, i) => bg[i] + (v - bg[i]) * a)
+  const bath = hexChannels(OUTSIDE).split(',').map(Number)
+  const cyto = over(CYTO_RGB.split(',').map(Number), CYTO_ALPHA, bath)
+  const wash = over(chargeSpan(spineCharge(s)).split(',').map(Number), spineHeadAlpha(s), cyto)
+  return [wash[0], wash[1], wash[2]]
+}
+
+/** How far apart two head readings are, as the eye would count it. */
+export const inkApart = (a: [number, number, number], b: [number, number, number]): number =>
+  Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 export interface SynapseView {
   run: SynapseRun
@@ -3724,6 +4642,23 @@ export interface SynapseView {
   /** The labels switch (2026-09-04): false = the callouts are not drawn at
    *  all, whatever the chrome. Defaults to on. */
   labelsOn?: boolean
+  /** ⚠ S13'S OWN STATE — present when this picture is being framed as the
+   *  RECEIVING side (`stage/spineScene.ts`, which is a camera and not a second
+   *  drawing). It ADDS the spine's machinery — the NMDA receptor and its
+   *  magnesium, the depolarisation inside the head, calmodulin and CaMKII, the
+   *  receptors they send for — and LEAVES OUT the terminal's: the calcium doors
+   *  and the astrocyte (user, 2026-09-12: "Remove Ca channels, as NT release
+   *  should be displayed without unrelated details").
+   *
+   *  Absent, every one of those decisions is off and this draws exactly what it
+   *  has always drawn. */
+  spine?: SpineState | null
+  /** ⚠ WHERE THE DRAWN DENSITY SITS, when the framing has an opinion (user,
+   *  2026-09-13: "Move them to the left along the membrane, so that they appear
+   *  centered in relation to the screen"). Solved from the spine camera, handed
+   *  down — see `spineDensityX`. Absent, the density is where it has always
+   *  been: the middle of the active zone. */
+  densityX?: number
   /** ⚠ ONE DOCKED SITE THIS SCENE MUST NOT DRAW (21c-4c). The clearance drawer
    *  plays retrieval three ways over a still of this scene, and two of those
    *  ways are things this scene cannot do — a bubble that never collapses, and
@@ -3731,6 +4666,12 @@ export interface SynapseView {
    *  itself, out of THIS file's own vesicle; the scene has to leave that site
    *  empty or there are two versions of one bubble on screen. */
   skipDocked?: number
+  /** ⚠ HOW FAR THE TERMINAL HAS RESTOCKED, 0→1, or absent when nothing is
+   *  coming down (21c-72, user: "New Vesicles should not teleport, but arrive
+   *  from top"). While it is set, the picture is HELD at the end of the message
+   *  just played — the bubbles are fused into the wall — and fresh ones descend
+   *  from the reserve pool into the docking sites they will fuse from. */
+  restock?: number | null
   width?: number
   height?: number
 }
@@ -3740,7 +4681,19 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   if (fade <= 0.002) return
   const width = v.width ?? SYN_W
   const height = v.height ?? SYN_H
-  const g = synapseGeometry(width, height)
+  const base = synapseGeometry(width, height)
+  // ⚠ WHERE THIS FRAMING PUTS ITS SYNAPSE, and WHICH RECEPTORS IT DREW. Both go
+  // onto the geometry before anything is asked of it, so the cast binds to the
+  // receptors on the page rather than to the round trip's default row.
+  const density = v.densityX ?? base.head.cx
+  // ⚠ THE ROW AS IT IS RIGHT NOW, not as the integer count says (21c-72). A
+  // receptor joins the density when it has finished SLIDING in, and the row
+  // widens with it — see `spineRowSeats` for the 26 px jump this kills.
+  const drawnSeats = v.spine ? spineRowSeats(base, spineAmpaShown(v.spine), density) : null
+  const g: SynapseGeometry = drawnSeats
+    ? // ⚠ AND THE LAST OF THEM IS THE SLOW ONE — the NMDA, whose glutamate stays.
+      { ...base, seats: drawnSeats, slowSeat: drawnSeats.length - 1 }
+    : base
   const u = v.u
   const ms = u === null ? 0 : u * v.run.windowMs
 
@@ -3779,7 +4732,9 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   // room the synapse was not solved into — the collector the escaping
   // transmitter travels to. Behind both neurons in the pile; the active-zone
   // camera crops it away, which is the agreed close-up treatment.
-  drawAstrocyte(ctx, g, 1 - chrome, jig)
+  // ⚠ NOT ON THE RECEIVING SIDE — it is the reuptake story, and this framing is
+  // about what happens inside the other cell.
+  if (!v.spine) drawAstrocyte(ctx, g, 1 - chrome, jig)
 
   // ── the postsynaptic side, bottom of the pile: the target's dendrite tip,
   // spine head to trunk, leaving through the bottom toward its soma.
@@ -3801,18 +4756,91 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   // they followed the model's early vmPost. The tint below is paced by the
   // drawn ions themselves (see `spineTint`), so the spine only reddens as
   // sodium actually enters, and cools on the membrane's own clock.
-  const tint = u === null ? 0 : spineTint(g, v.run, v.cleft, ms)
-  ctx.fillStyle = chargeWash(ctx, auraTop, height + 40, tint, 0.32)
+  // ⚠ ON THE SPINE'S FRAMING IT IS THE SPINE'S OWN VOLTAGE. The round trip
+  // paces this off the drawn ions of ITS run; here the child's own tapping is
+  // the run, so it reads `spineMv` — the same ramp either way, a different
+  // model behind it.
+  const tint = v.spine
+    ? spineCharge(v.spine)
+    : u === null
+      ? 0
+      : spineTint(g, v.run, v.cleft, ms)
+  // ⚠ AND THE RECEIVING SIDE PAINTS IT AT A FLOOR (21c-65, user: "'depolarized
+  // cell bg' was supposed to get red, which does not happen. Why?"). Two
+  // reasons, both measured: the wash's strength was `|tint|`, which is zero at
+  // the moment the cell passes through neutral — alpha 0.000 on every run — and
+  // the ramp is nearly grey either side of it. The colour carries the reading
+  // here; the opacity only says how much there is to read.
+  // ⚠ AND ON THE RECEIVING SIDE IT IS A FLAT WASH, NOT A GRADIENT (21c-66, user:
+  // "bg of the dendritic does not get red at depolarization").
+  //
+  // The ink was right all along — measured, `rgba(247, 113, 113, 0.42)` was
+  // being laid on every hot frame. WHERE it was laid was the bug. The gradient
+  // runs from `auraTop` to the foot of the whole picture, and at this framing
+  // its strongest stop (0.06) falls at y = 409, ABOVE the head's face at 465 —
+  // inside the cleft, which the clip then throws away. What reached the head
+  // was the tail: about 0.30 at the top and 0.09 at the bottom, fading out
+  // exactly where the child is looking.
+  //
+  // A gradient is right at the round trip's framing, where the depolarisation
+  // is local to one patch of a much bigger cell. A spine head is ISOPOTENTIAL at
+  // this scale — the whole of it is at one voltage — so the whole of it gets one
+  // colour, and the clip is the shape, so there is no edge for a gradient to
+  // hide. The rim's own fade (21c-54) is what softens the boundary.
+  // ⚠ AND THE STRENGTH IS THE OTHER HALF OF THE READING (21c-70). The hue says
+  // WHETHER the head is depolarised; `spineHeadAlpha` says BY HOW MUCH, because
+  // the sky→red ink has not the range to carry both — see `spineWash`. Asked as
+  // one call so the guard and the drawing cannot disagree about the alpha.
+  ctx.fillStyle = v.spine
+    ? `rgba(${chargeSpan(tint)}, ${spineHeadAlpha(v.spine)})`
+    : chargeWash(ctx, auraTop, height + 40, tint, 0.32)
   ctx.fillRect(0, 0, width, height)
+  // ⚠ AND THE EDGE IS A FADE, NOT A CUT (user, 2026-09-13: "the edge behind the
+  // bilayer looks like a cut. There is a distinct line which should be gone").
+  //
+  // Everything inside this clip — the cytoplasm AND the charge wash on top of
+  // it — stops dead at the outline. Measured at rest, that step is
+  // **rgb(39, 60, 67)**: a hard bright line round the whole spine, three times
+  // the one a vesicle's rim used to show. The bilayer is drawn ON that line, so
+  // it reads as the membrane sitting on a cut edge rather than being the edge.
+  //
+  // The cure is the one the vesicles got (21c-45): fade the INSIDE back to the
+  // bath over the wall's own thickness, so there is nothing left to step. A
+  // linear gradient cannot follow a shape that curves, so it is painted as the
+  // outline stroked several times in the bath's own ink — narrow and strong at
+  // the edge, wide and weak inward — which is the same fade by another means.
+  const RIM = 6
+  for (let i = 0; i < RIM; i++) {
+    const t = i / (RIM - 1)
+    ctx.strokeStyle = `rgba(${LUMEN_RGB}, ${0.55 * (1 - t) ** 1.1 + 0.07})`
+    ctx.lineWidth = MEM_PX * (1 + t * 5.4)
+    ctx.lineJoin = 'round'
+    spinePath(ctx, g, width, false, height)
+    ctx.stroke()
+  }
   ctx.restore()
   drawSoup('post')
   // The membrane strokes the OPEN outline — head, neck and trunk walls; its
   // base is off-canvas, because the dendrite continues toward its soma.
-  membraneBand(ctx, () => spinePath(ctx, g, width, false, height))
+  // ⚠ `chrome` IS the band's fade: `depth = 1 - chrome`, so the band is full
+  // where no molecules are drawn and gone where they are.
+  membraneBand(ctx, () => spinePath(ctx, g, width, false, height), undefined, undefined, chrome)
 
   // ── the receptors, in the spine head's own membrane
 
-  for (const [i, site] of receptorSites(g).entries()) {
+  // ⚠ ON THE SPINE'S FRAMING THE COUNT IS THE MODEL'S, and one seat is NMDA's
+  // (user: "Plave AMPA & NMDA on the dendritic spine"). The round trip keeps
+  // its five, because its CAST binds transmitter to receptors by index.
+  // ⚠ AND A PACKED CLUSTER, sized off the RECEPTOR (user, 2026-09-12: "place
+  // receptors closer to each other, to the center"). A postsynaptic density IS
+  // a packed cluster; smeared across the active zone's whole width at this
+  // magnification it left most of the frame empty. This view has no cast keyed
+  // to the positions, so it may choose its own reach — the round trip keeps the
+  // default for exactly that reason.
+  const spineSeats = drawnSeats ?? []
+  const nmdaSeat = v.spine ? spineSeats.slice(-1)[0] : null
+  const seats = v.spine ? spineSeats.slice(0, -1) : castSeats(g)
+  for (const [i, site] of seats.entries()) {
     ctx.save()
     ctx.translate(site.x, site.y)
     // ⚠ NO ROTATION (user, 2026-09-01: "ligand-gated channels are upside
@@ -3846,6 +4874,375 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
     })
     ctx.restore()
   }
+  // ── S13's own machinery, only when this picture is the receiving side ─────
+  if (v.spine && nmdaSeat) {
+    const sp = v.spine
+    // The NMDA receptor: the SAME glyph as the AMPA ones beside it, in calcium's
+    // ink because that is the ion that makes it a different receptor. Two
+    // silhouettes would say "two machines" and there would be nothing to be
+    // surprised by.
+    // ⚠ AND IT WAITS FOR ITS OWN GLUTAMATE. `socket` used to read `nmdaOpen`,
+    // which is a function of the TAP — so the pink receptor showed itself bound
+    // seconds before any transmitter was drawn reaching it, which is the fault
+    // the gold ones were fixed for on 2026-09-01. Now it reads the same seat
+    // window the cast animates, at its own index in the drawn row. How far it
+    // OPENS is still the spine's model: NMDA is slow, and that is the lesson.
+    const nw = receptorSeatWindow(g, v.run, v.cleft, spineSeats.length - 1)
+    const nmdaSeated =
+      u !== null &&
+      nw.seatedAt !== null &&
+      ms >= nw.seatedAt &&
+      (nw.releasedAt === null || ms < nw.releasedAt)
+    // ⚠ AND IT LIGHTS WHILE IT IS ACTUALLY CONDUCTING (21c-64). "Bound" and
+    // "conducting" looked identical: the gate opened on glutamate and the stone
+    // plugged the throat, with no mark for the one state this receptor exists
+    // to detect — both at once. The app already has the grammar, from the
+    // calcium doors: a channel glows while current goes through it.
+    // ⚠ UNDER the glyph, so the protein stays the object and the glow stays an
+    // event happening to it, and drawn as a gradient, never a canvas shadow.
+    const live = nmdaLive(sp)
+    if (live > 0.02) {
+      softGlow(
+        ctx,
+        nmdaSeat.x,
+        nmdaSeat.y,
+        MEM_PX * (3 + 5 * live),
+        GLOSSY_COLORS.ca.glow,
+        0.55 * live,
+      )
+    }
+    ctx.save()
+    ctx.translate(nmdaSeat.x, nmdaSeat.y)
+    drawLigandChannel(ctx, {
+      cx: 0,
+      midY: 0,
+      halfHeight: MEM_PX * 2.6,
+      open: Math.min(1, nmdaOpen(sp)),
+      species: GLOSSY_COLORS.ca.mid,
+      speciesDark: GLOSSY_COLORS.ca.dark,
+      socket: nmdaSeated,
+    })
+    ctx.restore()
+
+    // ── ⚠ THE COINCIDENCE'S OWN MARK (21c-74/21c-75). This receptor conducts
+    // only when it is holding the chemical AND the cell has been made less
+    // negative, and *a coincidence needs a mark of its own*.
+    //
+    // ⚠ TWO CONDITION-PIPS WERE TRIED AND TAKEN OUT (user, 2026-09-15: "what
+    // are green and pink outlined circles under NMDA receptors?" → "ok, remove
+    // them. We find a different way"). A reader who knows this codebase could
+    // not tell what they were, which settles it: two unlabelled dots are not a
+    // reading, they are a legend with the legend missing. The canvas carries
+    // names and readings on a scale, and they were neither.
+    //
+    // What stays is the mark that needs no key, because it is ON the thing it
+    // is about: the throat itself lights when both conditions hold. The two
+    // halves are still drawn — a ball in the socket, a stone in the throat —
+    // and a better way to say "both at once" is still owed.
+    {
+      const gate = nmdaGate(sp, nmdaSeated)
+      // ⚠ AND THE THROAT ITSELF LIGHTS WHEN BOTH ARE TRUE — the coincidence's
+      // own mark, drawn as a clear lumen through the pore rather than a glow
+      // beside it, because a shape reads where a brightness does not.
+      if (gate.open > 0.02) {
+        ctx.save()
+        ctx.globalAlpha *= 0.35 + 0.65 * gate.open
+        ctx.strokeStyle = `rgb(${GLOSSY_COLORS.ca.glow})`
+        ctx.lineWidth = MEM_PX * 0.55 * gate.open
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(nmdaSeat.x, nmdaSeat.y - MEM_PX * 2.1)
+        ctx.lineTo(nmdaSeat.x, nmdaSeat.y + MEM_PX * 2.1)
+        ctx.stroke()
+        ctx.restore()
+      }
+    }
+    // ⚠ THE MAGNESIUM, by the rule the comparison drawer uses — `stoneSeated`,
+    // shared, so one protein cannot behave two ways in two views.
+    // ⚠ THE MODEL'S OWN CALL, on the model's own clock (21c-61). This read
+    // `stoneSeated(sp.plug, jig)` — the JIGGLE clock — while the ions that may
+    // pass the stone are gated on the model's `now`. Two clocks, one stone: the
+    // picture could show it seated while an ion went through.
+    // ⚠ HOW DEEP THE STONE SITS IS THE BLOCK, AND NOTHING ELSE (21c-68, user:
+    // "Depolarization is a cause of an NMDA activation and not its result").
+    //
+    // This was multiplied by how open the gate is — so at rest, with no
+    // glutamate anywhere near it, the magnesium was drawn OUT of the throat,
+    // hanging above the channel. The child met the resting state as "the pore
+    // is clear", watched the stone DROP IN as the gate opened, and then lift
+    // again: the whole story backwards, and the reason the block looked like a
+    // consequence of NMDA rather than the thing standing in its way.
+    //
+    // At rest the stone is in the throat — that is what a 96% block IS. The
+    // gate being shut is shown by the gate.
+    const seated = spineStone(sp)
+    const out = nmdaSeat.y - MEM_PX * 3.2
+    const inAt = nmdaSeat.y + MEM_PX * 1.5
+    const my = out + (inAt - out) * seated
+    drawGlossyIon(ctx, 'mg', nmdaSeat.x, my, MEM_PX * 0.7)
+    drawIonCharge(ctx, nmdaSeat.x, my, MEM_PX * 0.7, 2)
+
+    // ⚠ AND WHAT GETS PAST IT (21c-61, user's own flow: "1-2 ions enter NMDA, Mg
+    // block is blocking … Mg+ block is out => Na+, Ca2+ ions enter NMDA"). The
+    // quanta that are due but have not got through wait AT THE MOUTH, which is
+    // what a block looks like from the outside; the ones that got their moment
+    // cross the pore and go where they are going — sodium into the cytoplasm,
+    // calcium to calmodulin, which is the next thing that happens to it.
+    const mouth = nmdaSeat.y - MEM_PX * 2.4
+    const through = nmdaSeat.y + MEM_PX * 2.2
+    const ionR = MEM_PX * 0.55
+    for (let q = 0; q < nmdaWaiting(sp); q++) {
+      const h = hash01(q + sp.sent * 7, 91)
+      drawGlossyIon(
+        ctx,
+        nmdaKind(sp.sent + q),
+        nmdaSeat.x + (h - 0.5) * MEM_PX * 3.4,
+        mouth - MEM_PX * (1.4 + q * 1.5) - Math.sin(jig * 0.004 + q) * MEM_PX * 0.3,
+        ionR,
+      )
+    }
+
+    // Calmodulin and CaMKII, inside the head under the synapse — drawn where
+    // the calcium is, so what they respond to is visibly next to them.
+    const cy = faceAt(g, g.head.cx) + g.head.ry * 0.95
+    const cr = g.head.ry * 0.2
+    // ⚠ SIZED OFF THEMSELVES, not off the head's half-width. They stood at
+    // ±0.42 of a head that is wider than the stage, so the moment the camera
+    // moved to the left flank CaMKII was 137px past the right edge. They belong
+    // to the SYNAPSE — they are under the receptors the calcium comes through —
+    // so their spread is their own diameter, which keeps them there whatever
+    // the camera does.
+    const cgap = cr * 1.35
+    const calmodulin = { x: density - cgap, y: cy }
+    const camkAt = { x: density + cgap, y: cy }
+    drawCalmodulin(ctx, { ...calmodulin, r: cr, ca: camDrive(sp.ca) })
+    drawCaMKII(ctx, { x: camkAt.x, y: camkAt.y, r: cr, lit: sp.camk })
+    // ⚠ AND IT BEATS, once as each word leaves and once as each catcher lands
+    // (21c-74) — a count for a count, so two carriers read as two errands and
+    // the far end of the journey refers back to what sent it.
+    {
+      const beat = camkPulse(sp)
+      if (beat > 0.02) {
+        softGlow(ctx, camkAt.x, camkAt.y, cr * (1.3 + 1.5 * beat), GLOSSY_COLORS.ca.glow, 0.6 * beat)
+      }
+    }
+
+    // ── ⚠ AND CaMKII SENDS FOR THEM, visibly (21c-72, user: "I expected the 2
+    // pink glyphs to do some work, like dragging new AMPA towards the cleft.
+    // They get color, but it's not visually clear what is their role").
+    //
+    // The switch lit and, on the same frame, two carriers set off from the
+    // store. Both were correct and neither caused the other on screen: a child
+    // watching saw a thing change colour and, elsewhere, a thing move.
+    //
+    // ⚠ IT IS A WORD, NOT A ROPE, and that distinction is the honest part.
+    // CaMKII does not tow anything — it phosphorylates trafficking machinery,
+    // over seconds to minutes. So what is drawn is a PULSE leaving the switch
+    // and reaching the carrier, after which the carrier goes on its own. Drawn
+    // as a ring because every travelling BALL in this app is an ion, and a
+    // pink ball setting off from here would be read as calcium going the wrong
+    // way. The info block declares the timing.
+    for (const d of sp.deliveries) {
+      const q = dispatchAt(d)
+      if (q === null) continue
+      const to = storeSeats(g, STORE_N, density)[d.id % STORE_N]
+      const e = q * q * (3 - 2 * q)
+      const x = camkAt.x + (to.x - camkAt.x) * e
+      const y = camkAt.y + (to.y - camkAt.y) * e
+      ctx.save()
+      ctx.globalAlpha *= 0.85 * (1 - e * 0.45)
+      ctx.strokeStyle = `rgb(${GLOSSY_COLORS.ca.glow})`
+      ctx.lineWidth = Math.max(1, cr * 0.1)
+      ctx.beginPath()
+      ctx.arc(x, y, cr * (0.25 + 0.5 * e), 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+      // …and the carrier it reaches brightens as the word lands, so the
+      // hand-over is a moment and not a coincidence of two timers.
+      if (e > 0.72) {
+        softGlow(ctx, to.x, to.y, storeR() * (1.6 + e), GLOSSY_COLORS.ca.glow, 0.5 * (e - 0.72) / 0.28)
+      }
+    }
+
+    // …and the ions on their way: through the pore, then across the head.
+    // ⚠ CALCIUM GOES TO CALMODULIN. A calcium ion that drifted off into the
+    // cytoplasm would leave the cascade beside it unexplained — the whole point
+    // of the pink ones is that they are what the next thing responds to.
+    for (const ion of sp.ions) {
+      const fade = ion.t > 1.75 ? Math.max(0, (2 - ion.t) / 0.25) : 1
+      let x = nmdaSeat.x
+      let y = mouth + (through - mouth) * Math.min(1, ion.t)
+      if (ion.t > 1) {
+        const q = (ion.t - 1) / 1
+        const e = q * q * (3 - 2 * q)
+        const to =
+          ion.kind === 'ca'
+            ? calmodulin
+            : {
+                x: density + (hash01(ion.id, 17) - 0.5) * g.activeHalf * 0.5,
+                y: faceAt(g, density) + g.head.ry * (0.35 + hash01(ion.id, 23) * 0.5),
+              }
+        x = nmdaSeat.x + (to.x - nmdaSeat.x) * e
+        y = through + (to.y - through) * e
+      }
+      ctx.save()
+      ctx.globalAlpha *= fade
+      drawGlossyIon(ctx, ion.kind, x, y, ionR)
+      ctx.restore()
+    }
+
+    // ── the SUPPLY LINE up the neck: receptors in the wall, wandering upward
+    // and caught at the top. `camk` is how far the climb has got — the cell has
+    // begun calling them in — and `jig` is the thermal clock, so the wander is
+    // never the model's time.
+    for (const seat of neckSeats(g, sp.camk, jig, height, density)) {
+      ctx.save()
+      ctx.translate(seat.x, seat.y)
+      ctx.rotate(seat.turn)
+      drawLigandChannel(ctx, {
+        cx: 0,
+        midY: 0,
+        halfHeight: MEM_PX * 2.6,
+        open: 0,
+        species: GLOSSY_COLORS.na.mid,
+        speciesDark: GLOSSY_COLORS.na.dark,
+      })
+      ctx.restore()
+    }
+
+    // ── the INTRACELLULAR store: carriers waiting under the density.
+    // ⚠ RINGS OF BILAYER, like every other bubble in this frame — an endosome
+    // is a membrane compartment, and at this size its wall is drawable.
+    const sr = storeR()
+    for (const seat of storeSeats(g, Math.max(0, STORE_N - sp.delivered), density)) {
+      // ⚠ THE SAME BAND STATE AS EVERY OTHER BUBBLE IN THE FRAME. Omitting
+      // `chrome` left these carrying a full backing band while the terminal's
+      // vesicles had faded theirs away behind their molecules — which is what
+      // "the circles have a different phospholipid view" was reporting.
+      vesicle(ctx, seat.x, seat.y, sr, 1, undefined, chrome)
+      if (chrome < 0.95) {
+        ctx.save()
+        ctx.globalAlpha *= 1 - chrome
+        paveMembrane(ctx, vesicleLipids(seat.x, seat.y, sr), {
+          geom: ZONE_LIPID,
+          first: 1500,
+          taperOver: 0,
+          ms: jig,
+        })
+        ctx.restore()
+      }
+      // ⚠ ON THE CARRIER'S WALL, AT ITS OWN ANGLE — the same grammar as VGLUT on
+      // a synaptic vesicle: translate to the centre, turn, then step out by the
+      // radius, so the protein stands ACROSS the membrane it is in rather than
+      // being parked on top of the circle.
+      ctx.save()
+      ctx.translate(seat.x, seat.y)
+      ctx.rotate(seat.turn)
+      ctx.translate(0, -sr)
+      // ⚠ FACING THE LUMEN — see `CARRIER_FLIP`.
+      ctx.rotate(CARRIER_FLIP)
+      drawLigandChannel(ctx, {
+        cx: 0,
+        midY: 0,
+        halfHeight: STORE_RECEPTOR_H,
+        open: 0,
+        species: GLOSSY_COLORS.na.mid,
+        speciesDark: GLOSSY_COLORS.na.dark,
+      })
+      ctx.restore()
+    }
+
+    // ⚠ A DELIVERED RECEPTOR ARRIVES BESIDE THE SYNAPSE AND SLIDES IN — it is
+    // not pulled through space (01 → D07). It leaves the store, fuses where the
+    // surface pool stands, and slides from there into the density: the two
+    // stores are the two halves of one journey.
+    for (const d of sp.deliveries) {
+      const { fused, merge, slid } = deliveryAt(d)
+      // ⚠ BOTH ARRIVE ON THE FRAMED SIDE, for the same reason the climb does:
+      // a delivery drawn on the flank that is out of shot is a delivery nobody
+      // watches. They are staggered into their own slots so two are never one.
+      const slot = d.id % 2
+      // ⚠ EXOCYTOSED OUTSIDE THE QUEUE, not into it — a carrier that fused on
+      // top of a receptor already standing there would be two proteins in one
+      // hole. Slot 0 is the far end of the line (01 → D07: receptors go into the
+      // wall BESIDE the synapse and find their way in).
+      const shoulderX = wallQueueX(g, 0, density)
+      // ⚠ THE SEAT IT WILL ACTUALLY STAND ON (21c-72) — asked of the row, never
+      // worked out again here. The old formula landed it 11 px from the nearest
+      // seat, on bare membrane between two receptors.
+      const target = spineArrivalSeat(g, spineAmpaShown(sp), density)
+      if (merge < 1) {
+        const from = storeSeats(g, STORE_N, density)[slot % STORE_N]
+        const wallY = faceAt(g, shoulderX)
+        // ⚠ AND THEN IT MERGES, instead of vanishing (21c-62). The float brings
+        // it to the wall; the merge OPENS it into the wall — the ring flattens
+        // away as the piece of membrane it is becomes part of the piece of
+        // membrane it has reached, which is what fusion is and what the
+        // presynaptic bubbles at the top of this same picture already do.
+        const e = merge * merge * (3 - 2 * merge)
+        const x = from.x + (shoulderX - from.x) * fused
+        const y = from.y + (wallY - sr * (1 - e) - from.y) * fused
+        const rr = sr * (1 - e)
+        if (rr > 0.4) {
+          // ⚠ THE ERRAND WEARS THE SENDER'S INK (21c-74, user: "relations
+          // between CaMKII and new AMPA should be clear to a kid"). The switch
+          // turns pink; a pink-marked bubble sets off; it becomes a gold
+          // catcher in the wall. The colour is the sentence, and it fades as
+          // the carrier arrives so the finished receptor is gold like its
+          // neighbours — the mark says where it CAME FROM, not what it is.
+          softGlow(ctx, x, y, rr * (2.1 - fused * 0.7), GLOSSY_COLORS.ca.glow, 0.5 * (1 - fused))
+          vesicle(ctx, x, y, rr, 1, undefined, chrome)
+          if (chrome < 0.95) {
+            ctx.save()
+            ctx.globalAlpha *= 1 - chrome
+            paveMembrane(ctx, vesicleLipids(x, y, rr), {
+              geom: ZONE_LIPID,
+              first: 1700,
+              taperOver: 0,
+              ms: jig,
+            })
+            ctx.restore()
+          }
+        }
+        // ⚠ AND THE CATCHER TURNS THE RIGHT WAY ROUND AS IT GOES. Riding in the
+        // bubble its binding mouth faces the LUMEN — it has to, because a bubble
+        // is a piece of wall folded in. As the bubble opens into the wall that
+        // same mouth ends up facing OUT of the cell, with nothing flipping: the
+        // membrane unfolds and takes the protein with it. This one second is the
+        // whole of the topology note, and it used to happen off screen.
+        // where it stands on the ring…
+        const ringX = x + rr * Math.sin(from.turn)
+        const ringY = y - rr * Math.cos(from.turn)
+        ctx.save()
+        // …easing to its place in the wall, and turning upright as it goes.
+        ctx.translate(ringX + (shoulderX - ringX) * e, ringY + (wallY - ringY) * e)
+        ctx.rotate(carrierTurn(from.turn, merge))
+        drawLigandChannel(ctx, {
+          cx: 0,
+          midY: 0,
+          halfHeight: STORE_RECEPTOR_H,
+          open: 0,
+          species: GLOSSY_COLORS.na.mid,
+          speciesDark: GLOSSY_COLORS.na.dark,
+        })
+        ctx.restore()
+      } else if (slid < 1) {
+        const x = shoulderX + (target.x - shoulderX) * slid
+        ctx.save()
+        ctx.translate(x, faceAt(g, x))
+        drawLigandChannel(ctx, {
+          cx: 0,
+          midY: 0,
+          halfHeight: MEM_PX * 2.6,
+          open: 0,
+          species: GLOSSY_COLORS.na.mid,
+          speciesDark: GLOSSY_COLORS.na.dark,
+        })
+        ctx.restore()
+      }
+    }
+  }
+
   // The transmitter, the calcium and the sodium are drawn LATER, as casts —
   // every ball with identity, over the machinery it moves between.
 
@@ -3870,6 +5267,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
     () => boutonPath(ctx, g.fit),
     tears,
     (x) => wallAt(g, x),
+    chrome,
   )
 
   // ── the spike arriving down the stalk, in the app's own signal yellow.
@@ -3896,6 +5294,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
       () => boutonPath(ctx, g.fit),
       tears,
       (x) => wallAt(g, x),
+      chrome,
     )
     ctx.restore()
   }
@@ -3903,14 +5302,18 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   // ── the reserve pool, each bubble its own (realistically uniform) size
   for (const [i, p] of reservePool(g).entries()) {
     const pr = vesicleR(g) * vesicleScale(i + 40)
-    vesicle(ctx, p.x, p.y, pr)
+    vesicle(ctx, p.x, p.y, pr, 1, undefined, chrome)
     drawCargo(ctx, p.x, p.y, pr)
   }
 
   // ── the active zone: doors and docked vesicles, interleaved
   const zone = activeZone(g)
   const gate = u === null ? 0 : sampleSynapse(v.run, 'open', u)
-  for (const d of zone.doors) {
+  // ⚠ AND NOT THE CALCIUM DOORS (user): release is to be shown without the
+  // machinery that triggers it, because that machinery is the terminal's. The
+  // info block carries the honesty note saying what is missing and where to see
+  // it — a picture that simply omits a cause teaches that there is not one.
+  for (const d of v.spine ? [] : zone.doors) {
     ctx.save()
     ctx.translate(d.x, d.y)
     drawVoltageChannel(ctx, {
@@ -3965,15 +5368,16 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
       if (rewind !== null) {
         // The spent complex is taken apart as the membrane comes back in, and
         // the working rope returns once the bubble is off the wall again.
+        // ⚠ …in the round trip. The receiving side draws no rope at all.
         const back = vesicleRestore(ms)
         ctx.save()
         ctx.globalAlpha *= 1 - back
-        drawSnareCis(ctx, g, d)
+        if (!v.spine) drawSnareCis(ctx, g, d)
         ctx.restore()
         if (shape && shape.cy + shape.r < wallAt(g, d.x)) {
           ctx.save()
           ctx.globalAlpha *= Math.min(1, back * 1.6)
-          drawSnareMini(ctx, g, { x: d.x, y: shape.cy, r: shape.r })
+          if (!v.spine) drawSnareMini(ctx, g, { x: d.x, y: shape.cy, r: shape.r })
           // ⚠ …AND ITS FILLER (21c-3f, user: "recreated vesicles have no pump,
           // add"). A rebuilt bubble had its rope back but no VGLUT — and these
           // are precisely the vesicles the loop then fills, so the ones the
@@ -3991,7 +5395,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
         if (!shape) continue
         const pocket = pocketAt(g, d.x, shape.cy, shape.r)
         if (pocket) {
-          drawPocket(ctx, g, shape, pocket)
+          drawPocket(ctx, g, shape, pocket, chrome)
         } else {
           const touching = shape.cy + shape.r >= wallAt(g, d.x) - MEM_PX * 1.1
           vesicle(
@@ -4008,6 +5412,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
                   pad: MEM_PX * 0.8,
                 }
               : undefined,
+            chrome,
           )
         }
         continue
@@ -4016,7 +5421,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
       if (!shape) continue
       const pocket = pocketAt(g, d.x, shape.cy, shape.r)
       if (pocket) {
-        drawPocket(ctx, g, shape, pocket)
+        drawPocket(ctx, g, shape, pocket, chrome)
       } else {
         // Still sinking. ⚠ The outline stays WHOLE until the circle actually
         // reaches the membrane band (user, 2026-09-01: "the vesicle membrane
@@ -4038,21 +5443,39 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
                 pad: MEM_PX * 0.8,
               }
             : undefined,
+          chrome,
         )
       }
       // ⚠ …and its SNARE complex is still there (user, 2026-09-05: "they
       // should not disappear after exocytosis"). Spent, lying flat in the
       // merged wall as a cis-complex, waiting for NSF — D06's last leg, at
       // this register.
-      drawSnareCis(ctx, g, d)
+      // ⚠ AND IT ZIPS FLAT RATHER THAN SWITCHING (21c-62). The standing rope
+      // and the flat one are the same four helices; the change happens while
+      // the bubble is FLATTENING, which is exactly when a trans-complex becomes
+      // a cis-complex, and the rope's anchor is the sinking bubble until then.
+      const zip = shape
+        ? Math.max(
+            0,
+            Math.min(1, (fusedAgeAt(ms, gone) - FLATTEN_FROM_MS) / FLATTEN_MS),
+          )
+        : 1
+      // ⚠ NOT ON THE RECEIVING SIDE (user, 2026-09-13: "remove snare"). The
+      // SNARE is the machine that pulls the two membranes together, and this
+      // framing's window opens AFTER it has done its work — with its calcium
+      // sensor already gone for the same reason. The zip below is the round
+      // trip's, where the whole of that story is told.
+      if (!v.spine) {
+        drawSnareCis(ctx, g, d, zip, shape ? { x: shape.x, y: shape.cy, r: shape.r } : undefined)
+      }
       // Its cargo is part of the transmitter CAST now — drawn below with the
       // rest of the population, each ball on its own trajectory.
       continue
     }
-    vesicle(ctx, d.x, d.y, r, 1)
+    vesicle(ctx, d.x, d.y, r, 1, undefined, chrome)
     // The machinery holding it there — rope and calcium knobs, so the pink
     // ions settling beside it visibly bind to SOMETHING.
-    drawSnareMini(ctx, g, d)
+    if (!v.spine) drawSnareMini(ctx, g, d)
     // ⚠ …and the door its glutamate goes in by (21c-3e). VGLUT was the one
     // protein in this loop that was never drawn at all: the refilling balls
     // simply appeared inside the bubble. It stands across the vesicle's own
@@ -4083,7 +5506,34 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
     // ⚠ Rule 2 (21c-8): at this depth the membranes are actors — vesicles fuse
     // into this wall and are pinched back out of it — so the crowd jostles on
     // the view's own thermal clock.
-    paveMembrane(ctx, membraneLipids(g, tears), {
+    // ⚠ THE HOLES ARE WHAT THIS FRAME ACTUALLY DREW. At the spine's framing the
+    // receptors are a packed cluster and the calcium doors are absent, so the
+    // round trip's defaults would cut gaps where nothing stands.
+    const standing = v.spine
+      ? {
+          // ⚠ EACH SEAT WITH THE ROOM IT NEEDS RIGHT NOW (21c-75). A receptor
+          // that is open is wider than one that is shut, and the paver cannot
+          // know which is which unless it is told.
+          sites: spineSeats.map((p, i) => ({
+            x: p.x,
+            half: ligandHalfWidth(
+              MEM_PX * 2.6,
+              i === spineSeats.length - 1
+                ? Math.min(1, nmdaOpen(v.spine!))
+                : u === null
+                  ? 0
+                  : receptorOpenFrac(g, v.run, v.cleft, i, ms),
+            ),
+          })),
+          doors: [],
+          // …and the ones climbing the neck, which stand in the SIDE walls.
+          onWalls: neckSeats(g, v.spine.camk, jig, height, density).map((q) => ({
+            x: q.x,
+            y: q.y,
+          })),
+        }
+      : undefined
+    paveMembrane(ctx, membraneLipids(g, tears, standing), {
       geom: ZONE_LIPID,
       first: 0,
       taperOver: 3,
@@ -4132,6 +5582,39 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
         ms: jig,
       })
     }
+    // ⚠ THE RESTOCK: fresh vesicles coming DOWN from the reserve pool into the
+    // docking sites (21c-72). Drawn with the same `vesicle` and the same
+    // `vesicleLipids` a docked one is drawn with — a bubble on its way to the
+    // dock and a bubble at the dock are one object at two moments, so they must
+    // not be two drawings.
+    if (v.restock !== null && v.restock !== undefined) {
+      const pool = reservePool(g)
+      const e = v.restock * v.restock * (3 - 2 * v.restock)
+      for (const [vi, d] of zone.docked.entries()) {
+        const from = pool[(vi * 3 + 1) % pool.length]
+        const x = from.x + (d.x - from.x) * e
+        const y = from.y + (d.y - from.y) * e
+        const rr = d.r * (0.82 + 0.18 * e)
+        vesicle(ctx, x, y, rr, 1, undefined, chrome)
+        paveMembrane(ctx, vesicleLipids(x, y, rr), {
+          geom: ZONE_LIPID,
+          first: 900 + vi * 37,
+          taperOver: 0,
+          ms: jig,
+        })
+        // ⚠ AND IT ARRIVES FILLED (21c-75, user: "vesicles should arrive
+        // filled, not NT teleport"). A restocking bubble came down empty and
+        // its transmitter appeared the instant the next message began — the
+        // cargo teleporting into a container that was already at the dock.
+        //
+        // A vesicle is filled at the pool, from the terminal's standing store,
+        // and travels loaded; that is what the round trip's own refill leg
+        // teaches at the other end of the loop. Drawn with the SAME `drawCargo`
+        // a docked bubble uses, so a bubble on its way and a bubble at the dock
+        // are one object at two moments.
+        drawCargo(ctx, x, y, rr)
+      }
+    }
     for (const [i, p] of reservePool(g).entries()) {
       paveMembrane(ctx, vesicleLipids(p.x, p.y, vesicleR(g) * vesicleScale(i + 40)), {
         geom: ZONE_LIPID,
@@ -4147,7 +5630,7 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
   const local = u === null ? 0 : sampleSynapse(v.run, 'caLocalUm', u)
   if (local > v.run.restUm * 1.2) {
     const lit = Math.min(1, local / Math.max(1e-6, v.run.peakLocalUm))
-    for (const d of zone.doors) {
+    for (const d of v.spine ? [] : zone.doors) {
       softGlow(
         ctx,
         d.x,
@@ -4161,7 +5644,13 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
 
   // ── the fillers, ON their membranes (21c-3l): after the bubbles' own bodies
   // and after the lipid pass, so nothing is painted over them.
-  for (const f of fillers) {
+  //
+  // ⚠ NOT ON THE RECEIVING SIDE (user, 2026-09-13: "remove NT pumps from
+  // vesicles"). VGLUT is the door the transmitter goes IN by, and the filling
+  // is the last leg of a loop this framing's clock does not play — the window
+  // closes at 30 ms and the vesicles refill from 53. A pump with nothing to
+  // pump is the same fault as a calcium sensor with nothing to sense.
+  for (const f of v.spine ? [] : fillers) {
     ctx.save()
     ctx.globalAlpha *= f.alpha
     drawMovingGlyph(ctx, VGLUT_GLYPH, f.at, f.angle, CHANNEL_INK.vglut, VGLUT_SPAN, f.open)
@@ -4196,15 +5685,84 @@ export function drawSynapse(ctx: CanvasRenderingContext2D, v: SynapseView): void
     transmitterDot(ctx, dot.x, dot.y, TRANSMITTER_R, dot.glutamine ?? 0)
   }
   ctx.restore()
-  for (const ion of calciumCast(g, v.run, ms, jig)) {
+  // ⚠ NOT ON THE RECEIVING SIDE (user, 2026-09-13: "remove pink circles for
+  // Ca"). These are the terminal's calcium — the ions that made the bubble
+  // merge, admitted by doors this framing stopped drawing on 2026-09-12. Ink
+  // for a cause whose machine is not on the page is ink nobody can read, and
+  // this view's animation starts after that cause has already happened.
+  for (const ion of v.spine ? [] : calciumCast(g, v.run, ms, jig)) {
     drawGlossyIon(ctx, 'ca', ion.x, ion.y, 3.2, CAST_ALPHA)
   }
-  for (const ion of sodiumCast(g, v.run, v.cleft, ms, jig)) {
+  // ⚠ ON THE RECEIVING SIDE THE SODIUM IS THE SPINE'S OWN, and ALL of it
+  // (21c-72, 21c-76).
+  //
+  // `sodiumCast` is a pure function of the run's own millisecond — right for a
+  // view where the run plays once, and wrong for a story that plays thirteen
+  // messages through one drawing. Asking it at a frozen ms kept the waiting
+  // ions still, which fixed the teleport and left them DEAD: they jiggled above
+  // a channel, never moved, and a different ion came through when it opened.
+  //
+  // One population now, each with a life — see `NaIon`. The round trip keeps
+  // the cast, because there the run really does play once.
+  for (const ion of v.spine ? [] : sodiumCast(g, v.run, v.cleft, ms, jig)) {
     drawGlossyIon(ctx, 'na', ion.x, ion.y, 3, CAST_ALPHA)
+  }
+  if (v.spine) {
+    for (const ion of v.spine.naIons) {
+      const seat = spineSeats[Math.min(ion.seat, Math.max(0, spineSeats.length - 2))]
+      if (!seat) continue
+      const face = faceAt(g, seat.x)
+      // ⚠ ITS OWN PLACE IN THE QUEUE, stable for its whole life — so an ion that
+      // has been waiting somewhere crosses from there rather than snapping to
+      // the middle of the pore first.
+      const side = ion.id % 2 === 0 ? -1 : 1
+      const waitX = seat.x + side * (5 + hash01(ion.id, 71) * 5)
+      const waitY = face - MEM_PX * (4.4 + hash01(ion.id, 72) * 2.6)
+      const mouth = { x: seat.x, y: face - MEM_PX * 1.5 }
+      const inside = { x: seat.x, y: face + MEM_PX * 3.2 }
+      let x = waitX
+      let y = waitY
+      if (ion.stage === 'crossing') {
+        // ⚠ FROM WHERE IT STOOD, INTO THE MOUTH, AND THROUGH — one motion, so
+        // the ion the child was watching is the ion that goes in.
+        const q = naCrossing(ion)
+        const e = q * q * (3 - 2 * q)
+        const lead = Math.min(1, q / 0.35)
+        const mx = waitX + (mouth.x - waitX) * lead
+        const my = waitY + (mouth.y - waitY) * lead
+        x = mx + (inside.x - mx) * e
+        y = my + (inside.y - my) * e
+      } else if (ion.stage === 'inside') {
+        const e = (() => {
+          const q = naSettling(ion)
+          return q * q * (3 - 2 * q)
+        })()
+        const to = {
+          x: seat.x + (hash01(ion.id, 41) - 0.5) * g.activeHalf * 0.5,
+          y: face + g.head.ry * (0.18 + hash01(ion.id, 42) * 0.45),
+        }
+        x = inside.x + (to.x - inside.x) * e
+        y = inside.y + (to.y - inside.y) * e
+      }
+      // ⚠ THE THERMAL WOBBLE IS THE BATH'S, and it stops once the ion is where
+      // it is going — *an unobservable drawn is an assertion you did not mean
+      // to make*, and a settled ion jiggling says it is still travelling.
+      const loose = ion.stage === 'arriving' || ion.stage === 'waiting'
+      if (loose) {
+        x += Math.sin(jig * 0.7 + ion.id * 2.399) * 1.5
+        y += Math.cos(jig * 0.5 + ion.id * 1.171) * 1.3
+      }
+      ctx.save()
+      ctx.globalAlpha *= naAlpha(ion)
+      drawGlossyIon(ctx, 'na', x, y, 3, CAST_ALPHA)
+      ctx.restore()
+    }
   }
   // The snap of binding — the ligand bench's own white aura, at the instant
   // an ion or a ball seats.
-  for (const pulse of bindPulses(g, v.run, v.cleft, ms)) {
+  // ⚠ AND THE CALCIUM'S SNAP GOES WITH ITS SENSOR on the receiving side. The
+  // transmitter's own binding flash stays: THAT is the event this view is about.
+  for (const pulse of bindPulses(g, v.run, v.cleft, ms, !v.spine)) {
     softGlow(ctx, pulse.x, pulse.y, 16, '255, 255, 255', 0.75 * pulse.a)
   }
 
