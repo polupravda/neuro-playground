@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Neurobiology Playground: one neuron in the app's own inks — slate
+       membrane and cytoplasm, a dark nucleus, and a gold patch of action
+       potential partway down the axon (gold = electrical activity, palette in
+       docs/05-visual-language.md). Same dark tile as ../atomic-playground's. -->
+  <defs>
+    <radialGradient id="soma" cx="0.35" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#e2e8f0" />
+      <stop offset="0.5" stop-color="#94a3b8" />
+      <stop offset="1" stop-color="#475569" />
+    </radialGradient>
+    <radialGradient id="bouton" cx="0.35" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#e2e8f0" />
+      <stop offset="0.45" stop-color="#94a3b8" />
+      <stop offset="1" stop-color="#475569" />
+    </radialGradient>
+    <radialGradient id="ap" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fef9c3" stop-opacity="1" />
+      <stop offset="0.35" stop-color="#facc15" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#facc15" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f172a" />
+
+  <!-- dendrites -->
+  <g fill="none" stroke="#94a3b8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 20 L11 9 M14 13 L6 13" />
+    <path d="M27 18 L29 6 M28.5 10 L36 6" />
+    <path d="M16 26 L5 27" />
+    <path d="M18 32 L10 43 M13 39 L5 39" />
+  </g>
+
+  <!-- axon and its terminal branches -->
+  <g fill="none" stroke="#94a3b8" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M29 31 L46 48" />
+    <path d="M46 48 L56 49 M46 48 L48 57 M46 48 L54 55" stroke-width="2.6" />
+  </g>
+
+  <!-- the action potential, a patch of the axon lit gold -->
+  <circle cx="38.5" cy="40.5" r="8" fill="url(#ap)" />
+  <path d="M35.5 37.5 L41.5 43.5" stroke="#fef08a" stroke-width="3.8" stroke-linecap="round" />
+
+  <!-- soma: the seven-point body, glossy slate, with its nucleus -->
+  <path d="M24 13 L28.5 18.5 L35 19 L33 25.5 L36 31 L28 31.5 L23 36.5 L19.5 30.5 L13 28 L17.5 23 L16.5 16 Z"
+        fill="url(#soma)" stroke="#b8c4d4" stroke-width="1.6" stroke-linejoin="round" />
+  <circle cx="25" cy="25" r="4.2" fill="#334155" />
+
+  <!-- boutons -->
+  <circle cx="57" cy="49" r="3.4" fill="url(#bouton)" />
+  <circle cx="48" cy="58" r="3.4" fill="url(#bouton)" />
+  <circle cx="55" cy="56" r="3.4" fill="url(#bouton)" />
+</svg>
